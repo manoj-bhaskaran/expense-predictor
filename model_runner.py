@@ -29,6 +29,7 @@ models = {
         max_depth=10,
         min_samples_split=10,
         min_samples_leaf=5,
+        max_features="auto",  # Add max_features parameter
         random_state=42
     ),
     "Gradient Boosting": GradientBoostingRegressor(
@@ -37,10 +38,10 @@ models = {
         max_depth=5,
         min_samples_split=10,
         min_samples_leaf=5,
+        max_features="sqrt",  # Add max_features parameter
         random_state=42
     ),
 }
-
 
 # Loop through models and evaluate
 for model_name, model in models.items():
