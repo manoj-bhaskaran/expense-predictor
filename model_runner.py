@@ -6,14 +6,14 @@ from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, r2_score, mean_squared_error
 from helpers import preprocess_data, prepare_future_dates, write_predictions
 
+# Define constants
+TRANSACTION_AMOUNT_LABEL = 'Tran Amt'
 
 # Define file path for input data
 file_path = r'D:\Python\Projects\Expense Predictor\trandata.csv'  # Use raw string literal
 
-
 # Preprocess input data
 X_train, y_train, df = preprocess_data(file_path)
-
 
 # Define a dictionary to hold model details
 models = {
@@ -42,7 +42,6 @@ models = {
         random_state=42
     ),
 }
-
 
 # Loop through models and evaluate
 for model_name, model in models.items():
@@ -76,7 +75,7 @@ for model_name, model in models.items():
     y_predict = np.round(y_predict, 2)
 
     # Create a new DataFrame to store predictions with the original dates
-    predicted_df = pd.DataFrame({'Date': future_dates, 'Predicted Tran Amt': y_predict})
+    predicted_df = pd.DataFrame({'Date': future_dates, f'Predicted {TRANSACTION_AMOUNT_LABEL}': y_predict})
 
     # Save predictions to a CSV file
     output_path = rf'D:\Python\Projects\Expense Predictor\future_predictions_{model_name.replace(" ", "_").lower()}.csv'
