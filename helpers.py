@@ -3,6 +3,8 @@ import pandas as pd
 
 # Define constants
 TRANSACTION_AMOUNT_LABEL = 'Tran Amt'
+# Define a constant for 'Day of the Week'
+DAY_OF_WEEK = 'Day of the Week'
 
 # Function to get the end date of the current quarter
 def get_quarter_end_date(current_date):
@@ -35,14 +37,14 @@ def preprocess_data(file_path):
     df.rename(columns={'index': 'Date'}, inplace=True)
 
     # Derive 'Day of the Week' from the 'Date' column
-    df['Day of the Week'] = df['Date'].dt.day_name()
+    df[DAY_OF_WEEK] = df['Date'].dt.day_name()
 
     # Add 'Month' and 'Day of the Month' columns
     df['Month'] = df['Date'].dt.month
     df['Day of the Month'] = df['Date'].dt.day
 
     # Create dummy variables for 'Day of the Week' in the existing data
-    df = pd.get_dummies(df, columns=['Day of the Week'], drop_first=True)
+    df = pd.get_dummies(df, columns=[DAY_OF_WEEK], drop_first=True)
 
     # Prepare x_train and y_train using the historical data
     x_train = df.drop(['Date', TRANSACTION_AMOUNT_LABEL], axis=1)
@@ -62,15 +64,15 @@ def prepare_future_dates():
     future_df = pd.DataFrame({'Date': future_dates})
 
     # Add 'Day of the Week', 'Month', and 'Day of the Month' columns
-    future_df['Day of the Week'] = future_df['Date'].dt.day_name()
+    future_df[DAY_OF_WEEK] = future_df['Date'].dt.day_name()
     future_df['Month'] = future_df['Date'].dt.month
     future_df['Day of the Month'] = future_df['Date'].dt.day
 
     # Convert 'Day of the Week' to categorical for consistency with training data
-    future_df['Day of the Week'] = future_df['Day of the Week'].astype('category')
+    future_df[DAY_OF_WEEK] = future_df[DAY_OF_WEEK].astype('category')
 
     # Create dummy variables for 'Day of the Week' in the future data
-    future_df = pd.get_dummies(future_df, columns=['Day of the Week'], drop_first=True)
+    future_df = pd.get_dummies(future_df, columns=[DAY_OF_WEEK], drop_first=True)
 
     return future_df, future_dates
 
