@@ -1,13 +1,13 @@
 from datetime import datetime, timedelta
-
 import pandas as pd
 
+# Define a constant for 'Day of the Week'
+DAY_OF_WEEK = 'Day of the Week'
 
 # Function to get the end date of the current quarter
 def get_quarter_end_date(current_date):
     quarter = (current_date.month - 1) // 3 + 1
     return datetime(current_date.year, 3 * quarter, 1) + pd.DateOffset(months=1) - pd.DateOffset(days=1)
-
 
 # Function to preprocess input data
 def preprocess_data(file_path):
@@ -25,8 +25,7 @@ def preprocess_data(file_path):
 
     # Set end date to the previous day of the execution date
     end_date = datetime.now() - timedelta(days=1)
-    end_date = end_date.replace(hour=0, minute=0, second=0,
-                                microsecond=0)  # Ensure end_date is set to the beginning of the day
+    end_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)  # Ensure end_date is set to the beginning of the day
 
     # Create a complete date range from the minimum date to the end date (previous day)
     complete_date_range = pd.date_range(start=df['Date'].min(), end=end_date)
@@ -36,14 +35,14 @@ def preprocess_data(file_path):
     df.rename(columns={'index': 'Date'}, inplace=True)
 
     # Derive 'Day of the Week' from the 'Date' column
-    df['Day of the Week'] = df['Date'].dt.day_name()
+    df[DAY_OF_WEEK] = df['Date'].dt.day_name()
 
     # Add 'Month' and 'Day of the Month' columns
     df['Month'] = df['Date'].dt.month
     df['Day of the Month'] = df['Date'].dt.day
 
     # Create dummy variables for 'Day of the Week' in the existing data
-    df = pd.get_dummies(df, columns=['Day of the Week'], drop_first=True)
+    df = pd.get_dummies(df, columns=[DAY_OF_WEEK], drop_first=True)
 
     # Prepare x_train and y_train using the historical data
     x_train = df.drop(['Date', 'Tran Amt'], axis=1)
@@ -51,11 +50,9 @@ def preprocess_data(file_path):
 
     return x_train, y_train, df
 
-
 # Function to prepare future dates
 def prepare_future_dates():
-    start_date = datetime.now().replace(hour=0, minute=0, second=0,
-                                        microsecond=0)  # Set start_date to the beginning of today
+    start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)  # Set start_date to the beginning of today
     end_of_quarter = get_quarter_end_date(start_date)
 
     # Create a date range for future predictions
@@ -65,18 +62,17 @@ def prepare_future_dates():
     future_df = pd.DataFrame({'Date': future_dates})
 
     # Add 'Day of the Week', 'Month', and 'Day of the Month' columns
-    future_df['Day of the Week'] = future_df['Date'].dt.day_name()
+    future_df[DAY_OF_WEEK] = future_df['Date'].dt.day_name()
     future_df['Month'] = future_df['Date'].dt.month
     future_df['Day of the Month'] = future_df['Date'].dt.day
 
     # Convert 'Day of the Week' to categorical for consistency with training data
-    future_df['Day of the Week'] = future_df['Day of the Week'].astype('category')
+    future_df[DAY_OF_WEEK] = future_df[DAY_OF_WEEK].astype('category')
 
     # Create dummy variables for 'Day of the Week' in the future data
-    future_df = pd.get_dummies(future_df, columns=['Day of the Week'], drop_first=True)
+    future_df = pd.get_dummies(future_df, columns=[DAY_OF_WEEK], drop_first=True)
 
     return future_df, future_dates
-
 
 # Function to write predictions to CSV
 def write_predictions(predicted_df, output_path):
