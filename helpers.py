@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta
 import pandas as pd
 
+# Define constants
+TRANSACTION_AMOUNT_LABEL = 'Tran Amt'
 # Define a constant for 'Day of the Week'
 DAY_OF_WEEK = 'Day of the Week'
 
@@ -13,12 +15,12 @@ def get_quarter_end_date(current_date):
 def preprocess_data(file_path):
     df = pd.read_csv(file_path)
 
-    # Check if 'Tran Amt' column is numeric
-    if not pd.to_numeric(df['Tran Amt'], errors='coerce').notnull().all():
-        raise ValueError("The 'Tran Amt' column contains non-numeric values. Please check the data.")
+    # Check if TRANSACTION_AMOUNT_LABEL column is numeric
+    if not pd.to_numeric(df[TRANSACTION_AMOUNT_LABEL], errors='coerce').notnull().all():
+        raise ValueError(f"The '{TRANSACTION_AMOUNT_LABEL}' column contains non-numeric values. Please check the data.")
 
-    # Convert 'Tran Amt' column to numeric type
-    df['Tran Amt'] = pd.to_numeric(df['Tran Amt'])
+    # Convert TRANSACTION_AMOUNT_LABEL column to numeric type
+    df[TRANSACTION_AMOUNT_LABEL] = pd.to_numeric(df[TRANSACTION_AMOUNT_LABEL])
 
     # Convert 'Date' column to datetime format
     df['Date'] = pd.to_datetime(df['Date'], format='%d-%m-%Y')
@@ -30,8 +32,8 @@ def preprocess_data(file_path):
     # Create a complete date range from the minimum date to the end date (previous day)
     complete_date_range = pd.date_range(start=df['Date'].min(), end=end_date)
 
-    # Reindex the dataframe to include all dates and fill missing 'Tran Amt' with 0
-    df = df.set_index('Date').reindex(complete_date_range).fillna({'Tran Amt': 0}).reset_index()
+    # Reindex the dataframe to include all dates and fill missing TRANSACTION_AMOUNT_LABEL with 0
+    df = df.set_index('Date').reindex(complete_date_range).fillna({TRANSACTION_AMOUNT_LABEL: 0}).reset_index()
     df.rename(columns={'index': 'Date'}, inplace=True)
 
     # Derive 'Day of the Week' from the 'Date' column
@@ -45,8 +47,8 @@ def preprocess_data(file_path):
     df = pd.get_dummies(df, columns=[DAY_OF_WEEK], drop_first=True)
 
     # Prepare x_train and y_train using the historical data
-    x_train = df.drop(['Date', 'Tran Amt'], axis=1)
-    y_train = df['Tran Amt']
+    x_train = df.drop(['Date', TRANSACTION_AMOUNT_LABEL], axis=1)
+    y_train = df[TRANSACTION_AMOUNT_LABEL]
 
     return x_train, y_train, df
 
