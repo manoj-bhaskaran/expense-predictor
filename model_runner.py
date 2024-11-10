@@ -30,6 +30,7 @@ models = {
         max_depth=10,
         min_samples_split=10,
         min_samples_leaf=5,
+        max_features="auto",  # Add max_features parameter
         ccp_alpha=0.01,  # Added ccp_alpha parameter
         random_state=42
     ),
@@ -39,6 +40,7 @@ models = {
         max_depth=5,
         min_samples_split=10,
         min_samples_leaf=5,
+        max_features="sqrt",  # Add max_features parameter
         random_state=42
     ),
 }
