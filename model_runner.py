@@ -11,7 +11,7 @@ TRANSACTION_AMOUNT_LABEL = 'Tran Amt'
 
 # Define file path for input data
 file_path = r'D:\Python\Projects\Expense Predictor\trandata.csv'  # Use raw string literal
-excel_path = r'C:\Users\manoj\Dpwnloads\OpTransactionHistory07-12-2024.xls'
+excel_path = r'C:\Users\manoj\Downloads\OpTransactionHistory07-12-2024.xls'
 
 # Preprocess input data
 X_train, y_train, df = preprocess_and_append_csv(file_path, excel_path)  # Optional Excel path
@@ -83,4 +83,3 @@ for model_name, model in models.items():
     # Save predictions to a CSV file
     output_path = rf'D:\Python\Projects\Expense Predictor\future_predictions_{model_name.replace(" ", "_").lower()}.csv'
     write_predictions(predicted_df, output_path)
-    
