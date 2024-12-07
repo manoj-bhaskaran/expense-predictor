@@ -63,10 +63,12 @@ def get_last_day_of_current_quarter():
 if args.future_date:
     try:
         future_date = datetime.strptime(args.future_date, '%d/%m/%Y').strftime('%Y-%m-%d')
+        future_date_for_function = datetime.strptime(args.future_date, '%d/%m/%Y').strftime('%d-%m-%Y')
     except ValueError:
         raise ValueError("Incorrect date format, should be DD/MM/YYYY")
 else:
     future_date = get_last_day_of_current_quarter().strftime('%Y-%m-%d')
+    future_date_for_function = get_last_day_of_current_quarter().strftime('%d-%m-%Y')
 
 # Define constants
 TRANSACTION_AMOUNT_LABEL = 'Tran Amt'
@@ -134,7 +136,7 @@ for model_name, model in models.items():
     print(f"R-squared: {r2}")
 
     # Prepare future dates for prediction
-    future_df, future_dates = prepare_future_dates(future_date)
+    future_df, future_dates = prepare_future_dates(future_date_for_function)
 
     # Match columns with training data
     future_df = future_df.reindex(columns=X_train.columns, fill_value=0)
