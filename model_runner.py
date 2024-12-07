@@ -50,9 +50,7 @@ else:
 # Construct the Excel file path if excel_file is provided
 if args.excel_file:
     excel_path = os.path.join(args.excel_dir, args.excel_file)
-elif args.excel_dir and not args.excel_file:
-    raise ValueError("Excel directory provided without an Excel file name.")
-else:
+elif not args.excel_file:
     excel_path = None
 
 # Define constants
