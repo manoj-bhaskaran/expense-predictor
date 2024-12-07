@@ -90,11 +90,17 @@ def preprocess_and_append_csv(file_path, excel_path=None):
         # Parse dates with dayfirst=True for dd/mm/yyyy format
         if 'Value Date' in excel_data.columns:
             excel_data['Value Date'] = pd.to_datetime(excel_data['Value Date'], dayfirst=True, errors='coerce')
+
+        # Skip rows with blank dates
+        excel_data = excel_data.dropna(subset=['Value Date'])
         
         # Calculate daily expenses
         excel_data['expense'] = excel_data['Withdrawal Amount (INR )'].fillna(0) * -1 + excel_data['Deposit Amount (INR )'].fillna(0)
         daily_expenses = excel_data.groupby('Value Date')['expense'].sum().reset_index()
         daily_expenses.columns = ['Date', 'expense']
+        
+        # Rename 'expense' column to TRANSACTION_AMOUNT_LABEL for consistency
+        daily_expenses.rename(columns={'expense': TRANSACTION_AMOUNT_LABEL}, inplace=True)
         
         # Append daily expenses to the existing data
         df = pd.concat([df, daily_expenses], ignore_index=True)
@@ -107,6 +113,20 @@ def preprocess_and_append_csv(file_path, excel_path=None):
 
     # Remove duplicates from the combined dataset
     df = df.drop_duplicates(subset=['Date'], keep='last')
+    
+    # Sort data by date
+    df = df.sort_values(by='Date').reset_index(drop=True)
+    
+    # Create a complete date range from the minimum date to the end date (previous day)
+    start_date = df['Date'].min()
+    end_date = datetime.now() - timedelta(days=1)
+    complete_date_range = pd.date_range(start=start_date, end=end_date)
+
+    # Reindex the dataframe to include all dates and fill missing TRANSACTION_AMOUNT_LABEL with 0
+    df = df.set_index('Date').reindex(complete_date_range).fillna({TRANSACTION_AMOUNT_LABEL: 0}).reset_index()
+    df.rename(columns={'index': 'Date'}, inplace=True)
+    
+    # Save the combined data back to the CSV file
     df.to_csv(file_path, index=False)
 
     return preprocess_data(file_path)
