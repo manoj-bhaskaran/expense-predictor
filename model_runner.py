@@ -6,6 +6,9 @@ from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, r2_score, mean_squared_error
 from helpers import preprocess_and_append_csv, prepare_future_dates, write_predictions
 
+# Accept an optional future date input (e.g., from user input or config)
+future_date = '2025-12-31' # Example future date, replace with actual input
+
 # Define constants
 TRANSACTION_AMOUNT_LABEL = 'Tran Amt'
 
@@ -65,7 +68,7 @@ for model_name, model in models.items():
     print(f"R-squared: {r2}")
 
     # Prepare future dates for prediction
-    future_df, future_dates = prepare_future_dates()
+    future_df, future_dates = prepare_future_dates(future_date)
 
     # Match columns with training data
     future_df = future_df.reindex(columns=X_train.columns, fill_value=0)

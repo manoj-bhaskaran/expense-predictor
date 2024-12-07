@@ -1,4 +1,5 @@
 import pandas as pd
+from pandas.tseries.offsets import DateOffset
 from datetime import datetime, timedelta
 
 # Define constants
@@ -8,7 +9,7 @@ DAY_OF_WEEK = 'Day of the Week'
 # Function to get the end date of the current quarter
 def get_quarter_end_date(current_date):
     quarter = (current_date.month - 1) // 3 + 1
-    return datetime(current_date.year, 3 * quarter, 1) + pd.DateOffset(months=1) - pd.DateOffset(days=1)
+    return datetime(current_date.year, 3 * quarter, 1) + DateOffset(months=1) - DateOffset(days=1)
 
 # Function to preprocess input data
 def preprocess_data(file_path):
@@ -64,6 +65,37 @@ def preprocess_data(file_path):
     y_train = df[TRANSACTION_AMOUNT_LABEL]
 
     return x_train, y_train, df
+
+def prepare_future_dates(future_date=None):
+    # Set start_date to the beginning of today
+    start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)  
+    
+    if future_date is None:
+        end_date = get_quarter_end_date(start_date)
+    else:
+        end_date = datetime.strptime(future_date, "%d-%m-%Y")
+        if end_date <= start_date:
+            raise ValueError("Future date must be in the future.")
+        
+    # Create a date range for future predictions
+    future_dates = pd.date_range(start=start_date, end=end_date)
+
+    # Create a DataFrame for future dates
+    future_df = pd.DataFrame({'Date': future_dates})
+
+    # Add 'Day of the Week', 'Month', and 'Day of the Month' columns
+    future_df[DAY_OF_WEEK] = future_df['Date'].dt.day_name()
+    future_df['Month'] = future_df['Date'].dt.month
+    future_df['Day of the Month'] = future_df['Date'].dt.day
+
+    # Convert 'Day of the Week' to categorical for consistency with training data
+    future_df[DAY_OF_WEEK] = future_df[DAY_OF_WEEK].astype('category')
+
+    # Create dummy variables for 'Day of the Week' in the future data
+    future_df = pd.get_dummies(future_df, columns=[DAY_OF_WEEK], drop_first=True)
+
+    return future_df, future_dates
+
 
 # Function to preprocess input data and optionally append data from an Excel file
 def preprocess_and_append_csv(file_path, excel_path=None):
@@ -130,30 +162,6 @@ def preprocess_and_append_csv(file_path, excel_path=None):
     df.to_csv(file_path, index=False)
 
     return preprocess_data(file_path)
-
-# Function to prepare future dates
-def prepare_future_dates():
-    start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)  # Set start_date to the beginning of today
-    end_of_quarter = get_quarter_end_date(start_date)
-
-    # Create a date range for future predictions
-    future_dates = pd.date_range(start=start_date, end=end_of_quarter)
-
-    # Create a DataFrame for future dates
-    future_df = pd.DataFrame({'Date': future_dates})
-
-    # Add 'Day of the Week', 'Month', and 'Day of the Month' columns
-    future_df[DAY_OF_WEEK] = future_df['Date'].dt.day_name()
-    future_df['Month'] = future_df['Date'].dt.month
-    future_df['Day of the Month'] = future_df['Date'].dt.day
-
-    # Convert 'Day of the Week' to categorical for consistency with training data
-    future_df[DAY_OF_WEEK] = future_df[DAY_OF_WEEK].astype('category')
-
-    # Create dummy variables for 'Day of the Week' in the future data
-    future_df = pd.get_dummies(future_df, columns=[DAY_OF_WEEK], drop_first=True)
-
-    return future_df, future_dates
 
 # Function to write predictions to CSV
 def write_predictions(predicted_df, output_path):
