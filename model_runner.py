@@ -50,6 +50,13 @@ models = {
 
 # Loop through models and evaluate
 for model_name, model in models.items():
+    """
+    Train and evaluate each model, and make future predictions.
+
+    Parameters:
+    model_name (str): The name of the machine learning model.
+    model (object): The machine learning model instance.
+    """
     print(f"\n--- {model_name} ---")
 
     # Train the model
