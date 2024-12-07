@@ -8,11 +8,11 @@ Usage:
 
 Command-Line Arguments:
     --future_date : (Optional) The future date for which you want to predict transaction amounts. Format: DD/MM/YYYY
-    --excel_dir   : (Optional) The directory where the Excel file is located. Default: C:\\Users\\manoj\\Downloads
+    --excel_dir   : (Optional) The directory where the Excel file is located. Default: C:\Users\manoj\Downloads
     --excel_file  : (Optional) The name of the Excel file containing additional data.
 
 Example:
-    python model_runner.py --future_date 31/12/2025 --excel_dir C:\\Data --excel_file transactions.xls
+    python model_runner.py --future_date 31/12/2025 --excel_dir C:\Data --excel_file transactions.xls
 
 If no future date is provided, the script will use the last day of the current quarter. If no Excel file name is provided, the script will not use an Excel file.
 """
@@ -43,8 +43,9 @@ if args.future_date:
     except ValueError:
         raise ValueError("Incorrect date format, should be DD/MM/YYYY")
 else:
-    future_date = get_quarter_end_date().strftime('%Y-%m-%d')
-    future_date_for_function = get_quarter_end_date().strftime('%d-%m-%Y')
+    current_date = datetime.now()
+    future_date = get_quarter_end_date(current_date).strftime('%Y-%m-%d')
+    future_date_for_function = get_quarter_end_date(current_date).strftime('%d-%m-%Y')
 
 # Construct the Excel file path if excel_file is provided
 if args.excel_file:
