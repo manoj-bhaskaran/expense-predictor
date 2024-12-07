@@ -24,6 +24,9 @@ def preprocess_data(file_path):
     # Convert 'Date' column to datetime format with dayfirst=True for dd/mm/yyyy format
     df['Date'] = pd.to_datetime(df['Date'], format='%d-%m-%Y', errors='coerce', dayfirst=True)
 
+    # Drop rows with invalid dates
+    df = df.dropna(subset=['Date'])
+
     # Set end date to the previous day of the execution date
     end_date = datetime.now() - timedelta(days=1)
     end_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)  # Ensure end_date is set to the beginning of the day
