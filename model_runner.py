@@ -1,16 +1,16 @@
 """
-Expense Predictor Script
+Expense Predictor Script - model_runner.py
 
 This script processes transaction data to train and evaluate multiple machine learning models. It predicts future transaction amounts for a specified future date. The predictions are saved as CSV files.
 
 Usage:
-    python expense_predictor.py [--future_date DD/MM/YYYY]
+    python model_runner.py [--future_date DD/MM/YYYY]
 
 Command-Line Arguments:
     --future_date : (Optional) The future date for which you want to predict transaction amounts. Format: DD/MM/YYYY
 
 Example:
-    python expense_predictor.py --future_date 31/12/2025
+    python model_runner.py --future_date 31/12/2025
 
 If no future date is provided, the script will use the last day of the current quarter.
 
