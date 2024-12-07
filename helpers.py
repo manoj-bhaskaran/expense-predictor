@@ -22,13 +22,10 @@ def preprocess_data(file_path):
     df[TRANSACTION_AMOUNT_LABEL] = pd.to_numeric(df[TRANSACTION_AMOUNT_LABEL])
 
     # Convert 'Date' column to datetime format with dayfirst=True for dd/mm/yyyy format
-    df['Date'] = pd.to_datetime(df['Date'], dayfirst=True, errors='coerce')
+    df['Date'] = pd.to_datetime(df['Date'], format='%d-%m-%Y', dayfirst=True, errors='coerce')
 
     # Drop rows with invalid dates
     df = df.dropna(subset=['Date'])
-
-    # Remove duplicate dates, keeping only the last instance
-    df = df.drop_duplicates(subset=['Date'], keep='last')
 
     # Set end date to the previous day of the execution date
     end_date = datetime.now() - timedelta(days=1)
@@ -50,6 +47,9 @@ def preprocess_data(file_path):
 
     # Create dummy variables for 'Day of the Week' in the existing data
     df = pd.get_dummies(df, columns=[DAY_OF_WEEK], drop_first=True)
+
+    # Remove duplicate dates, keeping only the last instance
+    df = df.drop_duplicates(subset=['Date'], keep='last')
 
     # Prepare x_train and y_train using the historical data
     x_train = df.drop(['Date', TRANSACTION_AMOUNT_LABEL], axis=1)
@@ -80,7 +80,7 @@ def preprocess_and_append_csv(file_path, excel_path=None):
 
         # Parse dates with dayfirst=True for dd/mm/yyyy format
         if 'Value Date' in excel_data.columns:
-            excel_data['Value Date'] = pd.to_datetime(excel_data['Value Date'], dayfirst=True)
+            excel_data['Value Date'] = pd.to_datetime(excel_data['Value Date'], format='%d-%m-%Y', dayfirst=True, errors='coerce')
         
         # Calculate daily expenses
         excel_data['expense'] = excel_data['Withdrawal Amount (INR )'].fillna(0) * -1 + excel_data['Deposit Amount (INR )'].fillna(0)
@@ -90,9 +90,9 @@ def preprocess_and_append_csv(file_path, excel_path=None):
         # Append daily expenses to the CSV data
         daily_expenses.to_csv(file_path, mode='a', header=False, index=False)
     
-    # Load the combined data and parse dates
+    # Load the combined data and parse dates with the correct format
     df = pd.read_csv(file_path)
-    df['Date'] = pd.to_datetime(df['Date'], dayfirst=True)
+    df['Date'] = pd.to_datetime(df['Date'], format='%d-%m-%Y', dayfirst=True, errors='coerce')
 
     # Remove duplicates from the combined dataset
     df = df.drop_duplicates(subset=['Date'], keep='last')
