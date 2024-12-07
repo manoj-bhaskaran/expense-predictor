@@ -52,6 +52,23 @@ def preprocess_data(file_path):
 
     return x_train, y_train, df
 
+# Function to preprocess input data and optionally append data from an Excel file
+def preprocess_and_append_csv(file_path, excel_path=None):
+    df = pd.read_csv(file_path, parse_dates=['Date'])
+
+    if excel_path:
+        excel_data = pd.read_excel(excel_path, parse_dates=['Value Date'])
+        
+        # Calculate daily expenses
+        excel_data['expense'] = excel_data['Withdrawal Amount (INR )'].fillna(0) * -1 + excel_data['Deposit Amount (INR )'].fillna(0)
+        daily_expenses = excel_data.groupby('Value Date')['expense'].sum().reset_index()
+        daily_expenses.columns = ['Date', 'expense']
+        
+        # Append daily expenses to the CSV data
+        daily_expenses.to_csv(file_path, mode='a', header=False, index=False)
+    
+    return preprocess_data(file_path)
+
 # Function to prepare future dates
 def prepare_future_dates():
     start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)  # Set start_date to the beginning of today

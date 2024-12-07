@@ -4,16 +4,17 @@ from sklearn.linear_model import LinearRegression
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, r2_score, mean_squared_error
-from helpers import preprocess_data, prepare_future_dates, write_predictions
+from helpers import preprocess_and_append_csv, prepare_future_dates, write_predictions
 
 # Define constants
 TRANSACTION_AMOUNT_LABEL = 'Tran Amt'
 
 # Define file path for input data
 file_path = r'D:\Python\Projects\Expense Predictor\trandata.csv'  # Use raw string literal
+excel_path = r'C:\Users\manoj\Dpwnloads\OpTransactionHistory07-12-2024.xls'
 
 # Preprocess input data
-X_train, y_train, df = preprocess_data(file_path)
+X_train, y_train, df = preprocess_and_append_csv(file_path, excel_path)  # Optional Excel path
 
 # Define a dictionary to hold model details
 models = {
