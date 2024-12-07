@@ -11,10 +11,9 @@ TRANSACTION_AMOUNT_LABEL = 'Tran Amt'
 
 # Define file path for input data
 file_path = r'D:\Python\Projects\Expense Predictor\trandata.csv'  # Use raw string literal
-excel_path = r'C:\Users\manoj\Downloads\OpTransactionHistory07-12-2024.xls'
 
 # Preprocess input data
-X_train, y_train, df = preprocess_and_append_csv(file_path, excel_path)  # Optional Excel path
+X_train, y_train, df = preprocess_and_append_csv(file_path, excel_path=r'C:\Users\manoj\Downloads\OpTransactionHistory07-12-2024.xls')  # Optional Excel path
 
 # Define a dictionary to hold model details
 models = {
@@ -31,7 +30,7 @@ models = {
         max_depth=10,
         min_samples_split=10,
         min_samples_leaf=5,
-        max_features="auto",  # Add max_features parameter
+        max_features="sqrt",  # Changed max_features from "auto" to "sqrt"
         ccp_alpha=0.01,  # Added ccp_alpha parameter
         random_state=42
     ),
