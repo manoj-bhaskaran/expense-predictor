@@ -21,8 +21,8 @@ def preprocess_data(file_path):
     # Convert TRANSACTION_AMOUNT_LABEL column to numeric type
     df[TRANSACTION_AMOUNT_LABEL] = pd.to_numeric(df[TRANSACTION_AMOUNT_LABEL])
 
-    # Convert 'Date' column to datetime format
-    df['Date'] = pd.to_datetime(df['Date'], format='%d-%m-%Y')
+    # Convert 'Date' column to datetime format with dayfirst=True for dd/mm/yyyy format
+    df['Date'] = pd.to_datetime(df['Date'], format='%d-%m-%Y', errors='coerce', dayfirst=True)
 
     # Set end date to the previous day of the execution date
     end_date = datetime.now() - timedelta(days=1)
@@ -53,7 +53,7 @@ def preprocess_data(file_path):
 
 # Function to preprocess input data and optionally append data from an Excel file
 def preprocess_and_append_csv(file_path, excel_path=None):
-    df = pd.read_csv(file_path, parse_dates=['Date'])
+    df = pd.read_csv(file_path, parse_dates=['Date'], dayfirst=True)
 
     if excel_path:
         # If the file is .xls, use xlrd; if .xlsx, use openpyxl
@@ -72,7 +72,7 @@ def preprocess_and_append_csv(file_path, excel_path=None):
         # Display the columns to check for correct naming
         print(f"Columns in the sheet: {excel_data.columns}")
 
-        # Parse dates with dayfirst=True
+        # Parse dates with dayfirst=True for dd/mm/yyyy format
         if 'Value Date' in excel_data.columns:
             excel_data['Value Date'] = pd.to_datetime(excel_data['Value Date'], dayfirst=True)
         
