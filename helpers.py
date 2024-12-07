@@ -27,6 +27,9 @@ def preprocess_data(file_path):
     # Drop rows with invalid dates
     df = df.dropna(subset=['Date'])
 
+    # Remove duplicate dates, keeping only the last instance
+    df = df.drop_duplicates(subset=['Date'], keep='last')
+
     # Set end date to the previous day of the execution date
     end_date = datetime.now() - timedelta(days=1)
     end_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)  # Ensure end_date is set to the beginning of the day
@@ -56,7 +59,7 @@ def preprocess_data(file_path):
 
 # Function to preprocess input data and optionally append data from an Excel file
 def preprocess_and_append_csv(file_path, excel_path=None):
-    df = pd.read_csv(file_path, parse_dates=['Date'], dayfirst=True, errors='coerce')
+    df = pd.read_csv(file_path)
 
     if excel_path:
         # If the file is .xls, use xlrd; if .xlsx, use openpyxl
@@ -77,7 +80,7 @@ def preprocess_and_append_csv(file_path, excel_path=None):
 
         # Parse dates with dayfirst=True for dd/mm/yyyy format
         if 'Value Date' in excel_data.columns:
-            excel_data['Value Date'] = pd.to_datetime(excel_data['Value Date'], dayfirst=True, errors='coerce')
+            excel_data['Value Date'] = pd.to_datetime(excel_data['Value Date'], dayfirst=True)
         
         # Calculate daily expenses
         excel_data['expense'] = excel_data['Withdrawal Amount (INR )'].fillna(0) * -1 + excel_data['Deposit Amount (INR )'].fillna(0)
@@ -87,8 +90,11 @@ def preprocess_and_append_csv(file_path, excel_path=None):
         # Append daily expenses to the CSV data
         daily_expenses.to_csv(file_path, mode='a', header=False, index=False)
     
-    # Load the combined data and remove duplicates
-    df = pd.read_csv(file_path, parse_dates=['Date'], dayfirst=True, errors='coerce')
+    # Load the combined data and parse dates
+    df = pd.read_csv(file_path)
+    df['Date'] = pd.to_datetime(df['Date'], dayfirst=True)
+
+    # Remove duplicates from the combined dataset
     df = df.drop_duplicates(subset=['Date'], keep='last')
     df.to_csv(file_path, index=False)
 
