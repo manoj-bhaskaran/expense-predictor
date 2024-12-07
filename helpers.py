@@ -51,6 +51,9 @@ def preprocess_data(file_path):
     # Create dummy variables for 'Day of the Week' in the existing data
     df = pd.get_dummies(df, columns=[DAY_OF_WEEK], drop_first=True)
 
+    # Remove duplicate dates again after reindexing
+    df = df.drop_duplicates(subset=['Date'], keep='last')
+
     # Prepare x_train and y_train using the historical data
     x_train = df.drop(['Date', TRANSACTION_AMOUNT_LABEL], axis=1)
     y_train = df[TRANSACTION_AMOUNT_LABEL]
