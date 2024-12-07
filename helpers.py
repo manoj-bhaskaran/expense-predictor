@@ -52,13 +52,19 @@ def preprocess_data(file_path):
 
     return x_train, y_train, df
 
-# Function to prepare future dates
-def prepare_future_dates():
-    start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)  # Set start_date to the beginning of today
-    end_of_quarter = get_quarter_end_date(start_date)
+def prepare_future_dates(future_date=None):
+    # Set start_date to the beginning of today
+    start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)  
+    
+    if future_date is None:
+        end_date = get_quarter_end_date(start_date)
+    else:
+        end_date = datetime.strptime(future_date, "%Y-%m-%d")
+        if end_date <= start_date:
+            raise ValueError("Future date must be in the future.")
 
     # Create a date range for future predictions
-    future_dates = pd.date_range(start=start_date, end=end_of_quarter)
+    future_dates = pd.date_range(start=start_date, end=end_date)
 
     # Create a DataFrame for future dates
     future_df = pd.DataFrame({'Date': future_dates})
