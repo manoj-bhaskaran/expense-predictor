@@ -1,9 +1,8 @@
-from datetime import datetime, timedelta
 import pandas as pd
+from datetime import datetime, timedelta
 
 # Define constants
 TRANSACTION_AMOUNT_LABEL = 'Tran Amt'
-# Define a constant for 'Day of the Week'
 DAY_OF_WEEK = 'Day of the Week'
 
 # Function to get the end date of the current quarter
@@ -22,15 +21,29 @@ def preprocess_data(file_path):
     # Convert TRANSACTION_AMOUNT_LABEL column to numeric type
     df[TRANSACTION_AMOUNT_LABEL] = pd.to_numeric(df[TRANSACTION_AMOUNT_LABEL])
 
-    # Convert 'Date' column to datetime format
-    df['Date'] = pd.to_datetime(df['Date'], format='%d-%m-%Y')
+    # Drop rows with empty dates
+    df = df.dropna(subset=['Date'])
+
+    # Convert 'Date' column to datetime format with dayfirst=True for dd/mm/yyyy format
+    df['Date'] = pd.to_datetime(df['Date'], dayfirst=True, errors='coerce')
+
+    # Drop rows with invalid dates
+    df = df.dropna(subset=['Date'])
+
+    # Remove duplicate dates, keeping only the last instance
+    df = df.drop_duplicates(subset=['Date'], keep='last')
 
     # Set end date to the previous day of the execution date
     end_date = datetime.now() - timedelta(days=1)
     end_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)  # Ensure end_date is set to the beginning of the day
 
+    # Ensure start date is not NaT
+    start_date = df['Date'].min()
+    if pd.isna(start_date) or pd.isna(end_date):
+        raise ValueError("Invalid start or end date found. Please check the data.")
+
     # Create a complete date range from the minimum date to the end date (previous day)
-    complete_date_range = pd.date_range(start=df['Date'].min(), end=end_date)
+    complete_date_range = pd.date_range(start=start_date, end=end_date)
 
     # Reindex the dataframe to include all dates and fill missing TRANSACTION_AMOUNT_LABEL with 0
     df = df.set_index('Date').reindex(complete_date_range).fillna({TRANSACTION_AMOUNT_LABEL: 0}).reset_index()
@@ -59,9 +72,75 @@ def prepare_future_dates(future_date=None):
     if future_date is None:
         end_date = get_quarter_end_date(start_date)
     else:
-        end_date = datetime.strptime(future_date, "%Y-%m-%d")
+        end_date = datetime.strptime(future_date, "%d-%m-%Y")
         if end_date <= start_date:
             raise ValueError("Future date must be in the future.")
+
+# Function to preprocess input data and optionally append data from an Excel file
+def preprocess_and_append_csv(file_path, excel_path=None):
+    # Load the existing data
+    df = pd.read_csv(file_path)
+
+    if excel_path:
+        # If the file is .xls, use xlrd; if .xlsx, use openpyxl
+        engine = 'xlrd' if excel_path.endswith('.xls') else 'openpyxl'
+        
+        # Verify sheet names and read the correct sheet
+        sheet_names = pd.ExcelFile(excel_path, engine=engine).sheet_names
+        print(f"Available sheets: {sheet_names}")
+        
+        # Read the first sheet and skip rows to start reading from the correct row
+        excel_data = pd.read_excel(excel_path, sheet_name=sheet_names[0], engine=engine, skiprows=12)
+        
+        # Rename columns to ensure no leading/trailing spaces
+        excel_data.columns = excel_data.columns.str.strip()
+
+        # Display the columns to check for correct naming
+        print(f"Columns in the sheet: {excel_data.columns}")
+
+        # Parse dates with dayfirst=True for dd/mm/yyyy format
+        if 'Value Date' in excel_data.columns:
+            excel_data['Value Date'] = pd.to_datetime(excel_data['Value Date'], dayfirst=True, errors='coerce')
+
+        # Skip rows with blank dates
+        excel_data = excel_data.dropna(subset=['Value Date'])
+        
+        # Calculate daily expenses
+        excel_data['expense'] = excel_data['Withdrawal Amount (INR )'].fillna(0) * -1 + excel_data['Deposit Amount (INR )'].fillna(0)
+        daily_expenses = excel_data.groupby('Value Date')['expense'].sum().reset_index()
+        daily_expenses.columns = ['Date', 'expense']
+        
+        # Rename 'expense' column to TRANSACTION_AMOUNT_LABEL for consistency
+        daily_expenses.rename(columns={'expense': TRANSACTION_AMOUNT_LABEL}, inplace=True)
+        
+        # Append daily expenses to the existing data
+        df = pd.concat([df, daily_expenses], ignore_index=True)
+
+    # Drop rows with empty dates
+    df = df.dropna(subset=['Date'])
+
+    # Parse dates with dayfirst=True for dd/mm/yyyy format
+    df['Date'] = pd.to_datetime(df['Date'], dayfirst=True, errors='coerce')
+
+    # Remove duplicates from the combined dataset
+    df = df.drop_duplicates(subset=['Date'], keep='last')
+    
+    # Sort data by date
+    df = df.sort_values(by='Date').reset_index(drop=True)
+    
+    # Create a complete date range from the minimum date to the end date (previous day)
+    start_date = df['Date'].min()
+    end_date = datetime.now() - timedelta(days=1)
+    complete_date_range = pd.date_range(start=start_date, end=end_date)
+
+    # Reindex the dataframe to include all dates and fill missing TRANSACTION_AMOUNT_LABEL with 0
+    df = df.set_index('Date').reindex(complete_date_range).fillna({TRANSACTION_AMOUNT_LABEL: 0}).reset_index()
+    df.rename(columns={'index': 'Date'}, inplace=True)
+    
+    # Save the combined data back to the CSV file
+    df.to_csv(file_path, index=False)
+
+    return preprocess_data(file_path)
 
     # Create a date range for future predictions
     future_dates = pd.date_range(start=start_date, end=end_date)
