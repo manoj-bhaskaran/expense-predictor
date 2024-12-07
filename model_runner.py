@@ -8,11 +8,11 @@ Usage:
 
 Command-Line Arguments:
     --future_date : (Optional) The future date for which you want to predict transaction amounts. Format: DD/MM/YYYY
-    --excel_dir   : (Optional) The directory where the Excel file is located. Default: C:\Users\manoj\Downloads
+    --excel_dir   : (Optional) The directory where the Excel file is located. Default: C:\\Users\\manoj\\Downloads
     --excel_file  : (Optional) The name of the Excel file containing additional data.
 
 Example:
-    python model_runner.py --future_date 31/12/2025 --excel_dir C:\Data --excel_file transactions.xls
+    python model_runner.py --future_date 31/12/2025 --excel_dir C:\\Data --excel_file transactions.xls
 
 If no future date is provided, the script will use the last day of the current quarter. If no Excel file name is provided, the script will not use an Excel file.
 """
@@ -31,7 +31,7 @@ import os
 # Set up command-line argument parsing
 parser = argparse.ArgumentParser(description='Expense Predictor')
 parser.add_argument('--future_date', type=str, help='Future date for prediction (e.g., 31/12/2025)')
-parser.add_argument('--excel_dir', type=str, default=r'C:\Users\manoj\Downloads', help='Directory where the Excel file is located')
+parser.add_argument('--excel_dir', type=str, default=r'C:\\Users\\manoj\\Downloads', help='Directory where the Excel file is located')
 parser.add_argument('--excel_file', type=str, help='Name of the Excel file containing additional data')
 args = parser.parse_args()
 
@@ -58,7 +58,7 @@ else:
 TRANSACTION_AMOUNT_LABEL = 'Tran Amt'
 
 # Define file path for input data
-file_path = r'D:\Python\Projects\Expense Predictor\trandata.csv'  # Use raw string literal
+file_path = r'D:\\Python\\Projects\\Expense Predictor\\trandata.csv'  # Use raw string literal
 
 # Preprocess input data
 X_train, y_train, df = preprocess_and_append_csv(file_path, excel_path=excel_path)  # Optional Excel path
@@ -135,5 +135,5 @@ for model_name, model in models.items():
     predicted_df = pd.DataFrame({'Date': future_dates, f'Predicted {TRANSACTION_AMOUNT_LABEL}': y_predict})
 
     # Save predictions to a CSV file
-    output_path = rf'D:\Python\Projects\Expense Predictor\future_predictions_{model_name.replace(" ", "_").lower()}.csv'
+    output_path = rf'D:\\Python\\Projects\\Expense Predictor\\future_predictions_{model_name.replace(" ", "_").lower()}.csv'
     write_predictions(predicted_df, output_path)
