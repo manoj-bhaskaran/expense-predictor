@@ -21,18 +21,29 @@ def preprocess_data(file_path):
     # Convert TRANSACTION_AMOUNT_LABEL column to numeric type
     df[TRANSACTION_AMOUNT_LABEL] = pd.to_numeric(df[TRANSACTION_AMOUNT_LABEL])
 
+    # Drop rows with empty dates
+    df = df.dropna(subset=['Date'])
+
     # Convert 'Date' column to datetime format with dayfirst=True for dd/mm/yyyy format
-    df['Date'] = pd.to_datetime(df['Date'], format='%d-%m-%Y', dayfirst=True, errors='coerce')
+    df['Date'] = pd.to_datetime(df['Date'], dayfirst=True, errors='coerce')
 
     # Drop rows with invalid dates
     df = df.dropna(subset=['Date'])
+
+    # Remove duplicate dates, keeping only the last instance
+    df = df.drop_duplicates(subset=['Date'], keep='last')
 
     # Set end date to the previous day of the execution date
     end_date = datetime.now() - timedelta(days=1)
     end_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)  # Ensure end_date is set to the beginning of the day
 
+    # Ensure start date is not NaT
+    start_date = df['Date'].min()
+    if pd.isna(start_date) or pd.isna(end_date):
+        raise ValueError("Invalid start or end date found. Please check the data.")
+
     # Create a complete date range from the minimum date to the end date (previous day)
-    complete_date_range = pd.date_range(start=df['Date'].min(), end=end_date)
+    complete_date_range = pd.date_range(start=start_date, end=end_date)
 
     # Reindex the dataframe to include all dates and fill missing TRANSACTION_AMOUNT_LABEL with 0
     df = df.set_index('Date').reindex(complete_date_range).fillna({TRANSACTION_AMOUNT_LABEL: 0}).reset_index()
@@ -48,9 +59,6 @@ def preprocess_data(file_path):
     # Create dummy variables for 'Day of the Week' in the existing data
     df = pd.get_dummies(df, columns=[DAY_OF_WEEK], drop_first=True)
 
-    # Remove duplicate dates, keeping only the last instance
-    df = df.drop_duplicates(subset=['Date'], keep='last')
-
     # Prepare x_train and y_train using the historical data
     x_train = df.drop(['Date', TRANSACTION_AMOUNT_LABEL], axis=1)
     y_train = df[TRANSACTION_AMOUNT_LABEL]
@@ -59,6 +67,7 @@ def preprocess_data(file_path):
 
 # Function to preprocess input data and optionally append data from an Excel file
 def preprocess_and_append_csv(file_path, excel_path=None):
+    # Load the existing data
     df = pd.read_csv(file_path)
 
     if excel_path:
@@ -80,19 +89,21 @@ def preprocess_and_append_csv(file_path, excel_path=None):
 
         # Parse dates with dayfirst=True for dd/mm/yyyy format
         if 'Value Date' in excel_data.columns:
-            excel_data['Value Date'] = pd.to_datetime(excel_data['Value Date'], format='%d-%m-%Y', dayfirst=True, errors='coerce')
+            excel_data['Value Date'] = pd.to_datetime(excel_data['Value Date'], dayfirst=True, errors='coerce')
         
         # Calculate daily expenses
         excel_data['expense'] = excel_data['Withdrawal Amount (INR )'].fillna(0) * -1 + excel_data['Deposit Amount (INR )'].fillna(0)
         daily_expenses = excel_data.groupby('Value Date')['expense'].sum().reset_index()
         daily_expenses.columns = ['Date', 'expense']
         
-        # Append daily expenses to the CSV data
-        daily_expenses.to_csv(file_path, mode='a', header=False, index=False)
-    
-    # Load the combined data and parse dates with the correct format
-    df = pd.read_csv(file_path)
-    df['Date'] = pd.to_datetime(df['Date'], format='%d-%m-%Y', dayfirst=True, errors='coerce')
+        # Append daily expenses to the existing data
+        df = pd.concat([df, daily_expenses], ignore_index=True)
+
+    # Drop rows with empty dates
+    df = df.dropna(subset=['Date'])
+
+    # Parse dates with dayfirst=True for dd/mm/yyyy format
+    df['Date'] = pd.to_datetime(df['Date'], dayfirst=True, errors='coerce')
 
     # Remove duplicates from the combined dataset
     df = df.drop_duplicates(subset=['Date'], keep='last')
