@@ -4,7 +4,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, r2_score, mean_squared_error
-from helpers import preprocess_data, prepare_future_dates, write_predictions
+from helpers import preprocess_and_append_csv, prepare_future_dates, write_predictions
 
 # Define constants
 TRANSACTION_AMOUNT_LABEL = 'Tran Amt'
@@ -13,7 +13,7 @@ TRANSACTION_AMOUNT_LABEL = 'Tran Amt'
 file_path = r'D:\Python\Projects\Expense Predictor\trandata.csv'  # Use raw string literal
 
 # Preprocess input data
-X_train, y_train, df = preprocess_data(file_path)
+X_train, y_train, df = preprocess_and_append_csv(file_path, excel_path=r'C:\Users\manoj\Downloads\OpTransactionHistory07-12-2024.xls')  # Optional Excel path
 
 # Define a dictionary to hold model details
 models = {
@@ -30,7 +30,7 @@ models = {
         max_depth=10,
         min_samples_split=10,
         min_samples_leaf=5,
-        max_features="auto",  # Add max_features parameter
+        max_features="sqrt",  # Changed max_features from "auto" to "sqrt"
         ccp_alpha=0.01,  # Added ccp_alpha parameter
         random_state=42
     ),
@@ -82,4 +82,3 @@ for model_name, model in models.items():
     # Save predictions to a CSV file
     output_path = rf'D:\Python\Projects\Expense Predictor\future_predictions_{model_name.replace(" ", "_").lower()}.csv'
     write_predictions(predicted_df, output_path)
-    
