@@ -1,9 +1,8 @@
-from datetime import datetime, timedelta
 import pandas as pd
+from datetime import datetime, timedelta
 
 # Define constants
 TRANSACTION_AMOUNT_LABEL = 'Tran Amt'
-# Define a constant for 'Day of the Week'
 DAY_OF_WEEK = 'Day of the Week'
 
 # Function to get the end date of the current quarter
@@ -57,7 +56,9 @@ def preprocess_and_append_csv(file_path, excel_path=None):
     df = pd.read_csv(file_path, parse_dates=['Date'])
 
     if excel_path:
-        excel_data = pd.read_excel(excel_path, parse_dates=['Value Date'])
+        # If the file is .xls, use xlrd; if .xlsx, use openpyxl
+        engine = 'xlrd' if excel_path.endswith('.xls') else 'openpyxl'
+        excel_data = pd.read_excel(excel_path, parse_dates=['Value Date'], engine=engine)
         
         # Calculate daily expenses
         excel_data['expense'] = excel_data['Withdrawal Amount (INR )'].fillna(0) * -1 + excel_data['Deposit Amount (INR )'].fillna(0)
