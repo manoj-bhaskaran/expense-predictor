@@ -4,31 +4,17 @@ Expense Predictor Script - model_runner.py
 This script processes transaction data to train and evaluate multiple machine learning models. It predicts future transaction amounts for a specified future date. The predictions are saved as CSV files.
 
 Usage:
-    python model_runner.py [--future_date DD/MM/YYYY]
+    python model_runner.py [--future_date DD/MM/YYYY] [--excel_dir EXCEL_DIRECTORY] [--excel_file EXCEL_FILENAME]
 
 Command-Line Arguments:
     --future_date : (Optional) The future date for which you want to predict transaction amounts. Format: DD/MM/YYYY
+    --excel_dir   : (Optional) The directory where the Excel file is located. Default: C:\Users\manoj\Downloads
+    --excel_file  : (Optional) The name of the Excel file containing additional data.
 
 Example:
-    python model_runner.py --future_date 31/12/2025
+    python model_runner.py --future_date 31/12/2025 --excel_dir C:\Data --excel_file transactions.xls
 
-If no future date is provided, the script will use the last day of the current quarter.
-
-Steps:
-1. Import Libraries and Parse Arguments:
-   - The script imports necessary libraries and sets up command-line argument parsing for future_date.
-   
-2. Preprocess Input Data:
-   - The script preprocesses input data using a helper function.
-
-3. Define and Train Models:
-   - Various machine learning models (Linear Regression, Decision Tree, Random Forest, Gradient Boosting) are defined and trained on the preprocessed data.
-
-4. Evaluate Models:
-   - Each model is evaluated using metrics like Root Mean Squared Error (RMSE), Mean Absolute Error (MAE), and R-squared.
-
-5. Make Predictions for Future Dates:
-   - The script prepares future dates and makes predictions using the trained models. Predictions are saved as CSV files.
+If no future date is provided, the script will use the last day of the current quarter. If no Excel file name is provided, the script will not use an Excel file.
 """
 
 import pandas as pd
@@ -37,27 +23,17 @@ from sklearn.linear_model import LinearRegression
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, r2_score, mean_squared_error
-from helpers import preprocess_and_append_csv, prepare_future_dates, write_predictions
+from helpers import preprocess_and_append_csv, prepare_future_dates, write_predictions, get_quarter_end_date
 import argparse
-from datetime import datetime, timedelta
+from datetime import datetime
+import os
 
 # Set up command-line argument parsing
 parser = argparse.ArgumentParser(description='Expense Predictor')
 parser.add_argument('--future_date', type=str, help='Future date for prediction (e.g., 31/12/2025)')
+parser.add_argument('--excel_dir', type=str, default=r'C:\Users\manoj\Downloads', help='Directory where the Excel file is located')
+parser.add_argument('--excel_file', type=str, help='Name of the Excel file containing additional data')
 args = parser.parse_args()
-
-# Function to calculate the last day of the current quarter
-def get_last_day_of_current_quarter():
-    today = datetime.today()
-    current_month = today.month
-    if current_month <= 3:
-        return datetime(today.year, 3, 31)
-    elif current_month <= 6:
-        return datetime(today.year, 6, 30)
-    elif current_month <= 9:
-        return datetime(today.year, 9, 30)
-    else:
-        return datetime(today.year, 12, 31)
 
 # Use the command-line argument for future_date and convert format if needed
 if args.future_date:
@@ -67,8 +43,16 @@ if args.future_date:
     except ValueError:
         raise ValueError("Incorrect date format, should be DD/MM/YYYY")
 else:
-    future_date = get_last_day_of_current_quarter().strftime('%Y-%m-%d')
-    future_date_for_function = get_last_day_of_current_quarter().strftime('%d-%m-%Y')
+    future_date = get_quarter_end_date().strftime('%Y-%m-%d')
+    future_date_for_function = get_quarter_end_date().strftime('%d-%m-%Y')
+
+# Construct the Excel file path if excel_file is provided
+if args.excel_file:
+    excel_path = os.path.join(args.excel_dir, args.excel_file)
+elif args.excel_dir and not args.excel_file:
+    raise ValueError("Excel directory provided without an Excel file name.")
+else:
+    excel_path = None
 
 # Define constants
 TRANSACTION_AMOUNT_LABEL = 'Tran Amt'
@@ -77,7 +61,7 @@ TRANSACTION_AMOUNT_LABEL = 'Tran Amt'
 file_path = r'D:\Python\Projects\Expense Predictor\trandata.csv'  # Use raw string literal
 
 # Preprocess input data
-X_train, y_train, df = preprocess_and_append_csv(file_path, excel_path=r'C:\Users\manoj\Downloads\OpTransactionHistory07-12-2024.xls')  # Optional Excel path
+X_train, y_train, df = preprocess_and_append_csv(file_path, excel_path=excel_path)  # Optional Excel path
 
 # Define a dictionary to hold model details
 models = {
