@@ -63,8 +63,18 @@ def preprocess_and_append_csv(file_path, excel_path=None):
         sheet_names = pd.ExcelFile(excel_path, engine=engine).sheet_names
         print(f"Available sheets: {sheet_names}")
         
-        # Read the first sheet assuming it has the correct data
-        excel_data = pd.read_excel(excel_path, parse_dates=['Value Date'], sheet_name=sheet_names[0], engine=engine)
+        # Read the first sheet and skip rows to start reading from the correct row
+        excel_data = pd.read_excel(excel_path, sheet_name=sheet_names[0], engine=engine, skiprows=12)
+        
+        # Rename columns to ensure no leading/trailing spaces
+        excel_data.columns = excel_data.columns.str.strip()
+
+        # Display the columns to check for correct naming
+        print(f"Columns in the sheet: {excel_data.columns}")
+
+        # Parse dates manually if 'Value Date' is present
+        if 'Value Date' in excel_data.columns:
+            excel_data['Value Date'] = pd.to_datetime(excel_data['Value Date'])
         
         # Calculate daily expenses
         excel_data['expense'] = excel_data['Withdrawal Amount (INR )'].fillna(0) * -1 + excel_data['Deposit Amount (INR )'].fillna(0)
