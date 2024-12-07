@@ -58,7 +58,13 @@ def preprocess_and_append_csv(file_path, excel_path=None):
     if excel_path:
         # If the file is .xls, use xlrd; if .xlsx, use openpyxl
         engine = 'xlrd' if excel_path.endswith('.xls') else 'openpyxl'
-        excel_data = pd.read_excel(excel_path, parse_dates=['Value Date'], engine=engine)
+        
+        # Verify sheet names and read the correct sheet
+        sheet_names = pd.ExcelFile(excel_path, engine=engine).sheet_names
+        print(f"Available sheets: {sheet_names}")
+        
+        # Read the first sheet assuming it has the correct data
+        excel_data = pd.read_excel(excel_path, parse_dates=['Value Date'], sheet_name=sheet_names[0], engine=engine)
         
         # Calculate daily expenses
         excel_data['expense'] = excel_data['Withdrawal Amount (INR )'].fillna(0) * -1 + excel_data['Deposit Amount (INR )'].fillna(0)
