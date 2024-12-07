@@ -72,9 +72,9 @@ def preprocess_and_append_csv(file_path, excel_path=None):
         # Display the columns to check for correct naming
         print(f"Columns in the sheet: {excel_data.columns}")
 
-        # Parse dates manually if 'Value Date' is present
+        # Parse dates with dayfirst=True
         if 'Value Date' in excel_data.columns:
-            excel_data['Value Date'] = pd.to_datetime(excel_data['Value Date'])
+            excel_data['Value Date'] = pd.to_datetime(excel_data['Value Date'], dayfirst=True)
         
         # Calculate daily expenses
         excel_data['expense'] = excel_data['Withdrawal Amount (INR )'].fillna(0) * -1 + excel_data['Deposit Amount (INR )'].fillna(0)
