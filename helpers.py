@@ -27,6 +27,9 @@ def preprocess_data(file_path):
     # Drop rows with invalid dates
     df = df.dropna(subset=['Date'])
 
+    # Remove duplicate dates, keeping only the last instance
+    df = df.drop_duplicates(subset=['Date'], keep='last')
+
     # Set end date to the previous day of the execution date
     end_date = datetime.now() - timedelta(days=1)
     end_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)  # Ensure end_date is set to the beginning of the day
