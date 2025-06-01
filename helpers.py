@@ -2,6 +2,7 @@ import pandas as pd
 from pandas.tseries.offsets import DateOffset
 from datetime import datetime, timedelta
 import xlrd
+import python_logging_framework as plog
 
 # Define constants
 TRANSACTION_AMOUNT_LABEL = 'Tran Amt'
@@ -110,11 +111,11 @@ def preprocess_and_append_csv(file_path, excel_path=None):
     if excel_path:
         engine = 'xlrd' if excel_path.endswith('.xls') else 'openpyxl'
         sheet_names = pd.ExcelFile(excel_path, engine=engine).sheet_names
-        print(f"Available sheets: {sheet_names}")
-        
+        plog.log_info(f"Available sheets: {sheet_names}")
+
         excel_data = pd.read_excel(excel_path, sheet_name=sheet_names[0], engine=engine, skiprows=12)
         excel_data.columns = excel_data.columns.str.strip()
-        print(f"Columns in the sheet: {excel_data.columns}")
+        plog.log_info(f"Columns in the sheet: {excel_data.columns.tolist()}")
 
         if 'Value Date' in excel_data.columns:
             excel_data['Value Date'] = pd.to_datetime(excel_data['Value Date'], dayfirst=True, errors='coerce')
@@ -153,3 +154,4 @@ def write_predictions(predicted_df, output_path):
     """
     predicted_df.to_csv(output_path, index=False)
     print(f"Predictions saved to {output_path}")
+    plog.log_info(f"Predictions saved to {output_path}")

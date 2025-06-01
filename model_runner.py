@@ -27,6 +27,7 @@ from helpers import preprocess_and_append_csv, prepare_future_dates, write_predi
 import argparse
 from datetime import datetime
 import os
+import python_logging_framework as plog
 
 # Set up command-line argument parsing
 parser = argparse.ArgumentParser(description='Expense Predictor')
@@ -35,41 +36,44 @@ parser.add_argument('--excel_dir', type=str, default=r'C:\Users\manoj\Downloads'
 parser.add_argument('--excel_file', type=str, help='Name of the Excel file containing additional data')
 args = parser.parse_args()
 
-# Use the command-line argument for future_date and convert format if needed
+plog.initialise_logger(log_file_path="auto", level="INFO")
+
 if args.future_date:
     try:
         future_date = datetime.strptime(args.future_date, '%d/%m/%Y').strftime('%Y-%m-%d')
         future_date_for_function = datetime.strptime(args.future_date, '%d/%m/%Y').strftime('%d-%m-%Y')
     except ValueError:
-        raise ValueError("Incorrect date format, should be DD/MM/YYYY")
+        plog.log_error("Incorrect date format, should be DD/MM/YYYY")
+        raise
 else:
     current_date = datetime.now()
     future_date = get_quarter_end_date(current_date).strftime('%Y-%m-%d')
     future_date_for_function = get_quarter_end_date(current_date).strftime('%d-%m-%Y')
 
-# Construct the Excel file path if excel_file is provided
 if args.excel_file:
     excel_path = os.path.join(args.excel_dir, args.excel_file)
 elif not args.excel_file:
     excel_path = None
 
-# Define constants
 TRANSACTION_AMOUNT_LABEL = 'Tran Amt'
+file_path = r'D:\Python\Projects\Expense Predictor\trandata.csv'
 
-# Define file path for input data
-file_path = r'D:\Python\Projects\Expense Predictor\trandata.csv'  # Use raw string literal
+# Preprocesses the transaction CSV and optionally appends Excel data.
+# Returns:
+#   X_train: Features for model training
+#   y_train: Target variable for model training
+#   df:      Full DataFrame after preprocessing
+X_train, y_train, df = preprocess_and_append_csv(file_path, excel_path=excel_path)
 
-# Preprocess input data
-X_train, y_train, df = preprocess_and_append_csv(file_path, excel_path=excel_path)  # Optional Excel path
-
-# Define a dictionary to hold model details
+# Dictionary of models to train and evaluate.
+# Each key is a model name, value is an instantiated regressor.
 models = {
     "Linear Regression": LinearRegression(),
     "Decision Tree": DecisionTreeRegressor(
         max_depth=5,
         min_samples_split=10,
         min_samples_leaf=5,
-        ccp_alpha=0.01,  # Added ccp_alpha parameter
+        ccp_alpha=0.01,
         random_state=42
     ),
     "Random Forest": RandomForestRegressor(
@@ -77,8 +81,8 @@ models = {
         max_depth=10,
         min_samples_split=10,
         min_samples_leaf=5,
-        max_features="sqrt",  # Changed max_features from "auto" to "sqrt"
-        ccp_alpha=0.01,  # Added ccp_alpha parameter
+        max_features="sqrt",
+        ccp_alpha=0.01,
         random_state=42
     ),
     "Gradient Boosting": GradientBoostingRegressor(
@@ -87,52 +91,37 @@ models = {
         max_depth=5,
         min_samples_split=10,
         min_samples_leaf=5,
-        max_features="sqrt",  # Add max_features parameter
+        max_features="sqrt",
         random_state=42
     ),
 }
 
-# Loop through models and evaluate
+# Train, evaluate, and predict for each model
 for model_name, model in models.items():
-    """
-    Train and evaluate each model, and make future predictions.
+    plog.log_info(f"--- {model_name} ---")
 
-    Parameters:
-    model_name (str): The name of the machine learning model.
-    model (object): The machine learning model instance.
-    """
-    print(f"\n--- {model_name} ---")
-
-    # Train the model
+    # Fit the model on training data
     model.fit(X_train, y_train)
-
-    # Model performance on training data
     y_train_predictor = model.predict(X_train)
 
-    # Use mean_squared_error to calculate RMSE
+    # Calculate evaluation metrics
     rmse = np.sqrt(mean_squared_error(y_train, y_train_predictor))
     mae = mean_absolute_error(y_train, y_train_predictor)
     r2 = r2_score(y_train, y_train_predictor)
 
-    print(f"Root Mean Squared Error (RMSE): {rmse}")
-    print(f"Mean Absolute Error (MAE): {mae}")
-    print(f"R-squared: {r2}")
+    plog.log_info(f"Root Mean Squared Error (RMSE): {rmse}")
+    plog.log_info(f"Mean Absolute Error (MAE): {mae}")
+    plog.log_info(f"R-squared: {r2}")
 
-    # Prepare future dates for prediction
+    # Prepare future dates/features for prediction
+    # future_df: DataFrame of features for future dates
+    # future_dates: List of future date strings
     future_df, future_dates = prepare_future_dates(future_date_for_function)
-
-    # Match columns with training data
     future_df = future_df.reindex(columns=X_train.columns, fill_value=0)
-
-    # Make predictions for future dates
     y_predict = model.predict(future_df)
-
-    # Round the predicted transaction amounts to two decimal places
     y_predict = np.round(y_predict, 2)
 
-    # Create a new DataFrame to store predictions with the original dates
+    # Create DataFrame with predictions and save to CSV
     predicted_df = pd.DataFrame({'Date': future_dates, f'Predicted {TRANSACTION_AMOUNT_LABEL}': y_predict})
-
-    # Save predictions to a CSV file
     output_path = rf'D:\Python\Projects\Expense Predictor\future_predictions_{model_name.replace(" ", "_").lower()}.csv'
     write_predictions(predicted_df, output_path)
