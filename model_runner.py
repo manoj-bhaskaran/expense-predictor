@@ -37,7 +37,7 @@ parser.add_argument('--excel_dir', type=str, default=r'C:\Users\manoj\Downloads'
 parser.add_argument('--excel_file', type=str, help='Name of the Excel file containing additional data')
 args = parser.parse_args()
 
-plog.initialise_logger(
+logger = plog.initialise_logger(
     script_name='model_runner.py',
     log_dir=r'D:\Python\Projects\Expense Predictor',
     log_level=logging.INFO
@@ -48,7 +48,7 @@ if args.future_date:
         future_date = datetime.strptime(args.future_date, '%d/%m/%Y').strftime('%Y-%m-%d')
         future_date_for_function = datetime.strptime(args.future_date, '%d/%m/%Y').strftime('%d-%m-%Y')
     except ValueError:
-        plog.log_error("Incorrect date format, should be DD/MM/YYYY")
+        plog.log_error(logger, "Incorrect date format, should be DD/MM/YYYY")
         raise
 else:
     current_date = datetime.now()
@@ -103,7 +103,7 @@ models = {
 
 # Train, evaluate, and predict for each model
 for model_name, model in models.items():
-    plog.log_info(f"--- {model_name} ---")
+    plog.log_info(logger, f"--- {model_name} ---")
 
     # Fit the model on training data
     model.fit(X_train, y_train)
@@ -114,9 +114,9 @@ for model_name, model in models.items():
     mae = mean_absolute_error(y_train, y_train_predictor)
     r2 = r2_score(y_train, y_train_predictor)
 
-    plog.log_info(f"Root Mean Squared Error (RMSE): {rmse}")
-    plog.log_info(f"Mean Absolute Error (MAE): {mae}")
-    plog.log_info(f"R-squared: {r2}")
+    plog.log_info(logger, f"Root Mean Squared Error (RMSE): {rmse}")
+    plog.log_info(logger, f"Mean Absolute Error (MAE): {mae}")
+    plog.log_info(logger, f"R-squared: {r2}")
 
     # Prepare future dates/features for prediction
     # future_df: DataFrame of features for future dates
