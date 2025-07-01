@@ -36,7 +36,11 @@ parser.add_argument('--excel_dir', type=str, default=r'C:\Users\manoj\Downloads'
 parser.add_argument('--excel_file', type=str, help='Name of the Excel file containing additional data')
 args = parser.parse_args()
 
-plog.initialise_logger(log_file_path="auto", level="INFO")
+plog.initialise_logger(
+    script_name='model_runner.py',
+    log_dir=r'D:\Python\Projects\Expense Predictor',
+    log_level=plog.INFO
+)
 
 if args.future_date:
     try:
