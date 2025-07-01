@@ -68,7 +68,7 @@ file_path = r'D:\Python\Projects\Expense Predictor\trandata.csv'
 #   X_train: Features for model training
 #   y_train: Target variable for model training
 #   df:      Full DataFrame after preprocessing
-X_train, y_train, df = preprocess_and_append_csv(file_path, excel_path=excel_path)
+X_train, y_train, df = preprocess_and_append_csv(file_path, excel_path=excel_path, logger=logger)
 
 # Dictionary of models to train and evaluate.
 # Each key is a model name, value is an instantiated regressor.
@@ -129,4 +129,4 @@ for model_name, model in models.items():
     # Create DataFrame with predictions and save to CSV
     predicted_df = pd.DataFrame({'Date': future_dates, f'Predicted {TRANSACTION_AMOUNT_LABEL}': y_predict})
     output_path = rf'D:\Python\Projects\Expense Predictor\future_predictions_{model_name.replace(" ", "_").lower()}.csv'
-    write_predictions(predicted_df, output_path)
+    write_predictions(predicted_df, output_path, logger=logger)

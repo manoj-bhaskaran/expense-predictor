@@ -95,13 +95,14 @@ def prepare_future_dates(future_date=None):
 
     return future_df, future_dates
 
-def preprocess_and_append_csv(file_path, excel_path=None):
+def preprocess_and_append_csv(file_path, excel_path=None, logger=None):
     """
     Preprocess input data from a CSV file and optionally append data from an Excel file.
 
     Parameters:
     file_path (str): The file path to the CSV file containing the input data.
     excel_path (str, optional): The file path to the Excel file for additional data. Defaults to None.
+    logger (logging.Logger, optional): Logger instance to record log messages. Defaults to None.
 
     Returns:
     tuple: A tuple containing X_train, y_train, and the processed DataFrame.
@@ -111,11 +112,11 @@ def preprocess_and_append_csv(file_path, excel_path=None):
     if excel_path:
         engine = 'xlrd' if excel_path.endswith('.xls') else 'openpyxl'
         sheet_names = pd.ExcelFile(excel_path, engine=engine).sheet_names
-        plog.log_info(f"Available sheets: {sheet_names}")
+        plog.log_info(logger, f"Available sheets: {sheet_names}")
 
         excel_data = pd.read_excel(excel_path, sheet_name=sheet_names[0], engine=engine, skiprows=12)
         excel_data.columns = excel_data.columns.str.strip()
-        plog.log_info(f"Columns in the sheet: {excel_data.columns.tolist()}")
+        plog.log_info(logger, f"Columns in the sheet: {excel_data.columns.tolist()}")
 
         if 'Value Date' in excel_data.columns:
             excel_data['Value Date'] = pd.to_datetime(excel_data['Value Date'], dayfirst=True, errors='coerce')
@@ -141,17 +142,18 @@ def preprocess_and_append_csv(file_path, excel_path=None):
 
     return preprocess_data(file_path)
 
-def write_predictions(predicted_df, output_path):
+def write_predictions(predicted_df, output_path, logger=None):
     """
     Write predictions to a CSV file.
 
     Parameters:
     predicted_df (DataFrame): The DataFrame containing the predictions.
     output_path (str): The file path to save the predictions.
+    logger (logging.Logger, optional): Logger instance used for logging.
 
     Returns:
     None
     """
     predicted_df.to_csv(output_path, index=False)
     print(f"Predictions saved to {output_path}")
-    plog.log_info(f"Predictions saved to {output_path}")
+    plog.log_info(logger, f"Predictions saved to {output_path}")
