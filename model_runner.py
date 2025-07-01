@@ -28,6 +28,7 @@ import argparse
 from datetime import datetime
 import os
 import python_logging_framework as plog
+import logging
 
 # Set up command-line argument parsing
 parser = argparse.ArgumentParser(description='Expense Predictor')
@@ -39,7 +40,7 @@ args = parser.parse_args()
 plog.initialise_logger(
     script_name='model_runner.py',
     log_dir=r'D:\Python\Projects\Expense Predictor',
-    log_level=plog.INFO
+    log_level=logging.INFO
 )
 
 if args.future_date:
