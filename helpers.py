@@ -180,10 +180,10 @@ def preprocess_and_append_csv(file_path, excel_path=None, logger=None):
             raise KeyError(f"Required columns not found in Excel file. Available columns: {excel_data.columns.tolist()}")
         
         plog.log_info(logger, f"Using columns: '{withdrawal_col}' for withdrawals and '{deposit_col}' for deposits")
+        excel_data['expense'] = excel_data[withdrawal_col].fillna(0) * -1 + excel_data[deposit_col].fillna(0)
         daily_expenses = excel_data.groupby(VALUE_DATE_LABEL)['expense'].sum().reset_index()
         daily_expenses.columns = ['Date', 'expense']
         daily_expenses.rename(columns={'expense': TRANSACTION_AMOUNT_LABEL}, inplace=True)
-        df = pd.concat([df, daily_expenses], ignore_index=True)
         df = pd.concat([df, daily_expenses], ignore_index=True)
 
     df = df.dropna(subset=['Date'])
