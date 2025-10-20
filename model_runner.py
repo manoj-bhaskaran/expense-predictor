@@ -91,14 +91,12 @@ models = {
         random_state=42
     ),
     "Gradient Boosting": GradientBoostingRegressor(
-        n_estimators=1000,
-        learning_rate=0.05,
-        max_depth=3,
-        min_samples_split=30,
-        min_samples_leaf=30,
-        subsample=0.75,
-        max_features=None,   
-        loss="squared_error",  
+        n_estimators=100,
+        learning_rate=0.1,
+        max_depth=5,
+        min_samples_split=10,
+        min_samples_leaf=5,
+        max_features="sqrt",
         random_state=42
     ),
 }
