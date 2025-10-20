@@ -39,7 +39,7 @@ args = parser.parse_args()
 
 logger = plog.initialise_logger(
     script_name='model_runner.py',
-    log_dir=r'D:\Python\Projects\Expense Predictor',
+    log_dir=r'D:\Python\Projects\Expense Predictor\logs',
     log_level=logging.INFO
 )
 

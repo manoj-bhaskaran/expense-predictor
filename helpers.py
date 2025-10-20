@@ -7,6 +7,45 @@ import python_logging_framework as plog
 # Define constants
 TRANSACTION_AMOUNT_LABEL = 'Tran Amt'
 DAY_OF_WEEK = 'Day of the Week'
+VALUE_DATE_LABEL = 'Value Date'
+
+def find_column_name(df_columns, expected_name):
+    """
+    Find a column name that matches the expected name with flexible formatting.
+    
+    This function handles variations in spacing and parentheses formatting
+    (e.g., 'Withdrawal Amount (INR )' vs 'Withdrawal Amount(INR)').
+    
+    Parameters:
+    df_columns (pd.Index): The DataFrame column names to search
+    expected_name (str): The expected column name with potential formatting variations
+    
+    Returns:
+    str: The actual column name found in the DataFrame, or None if not found
+    """
+    # First try exact match
+    if expected_name in df_columns:
+        return expected_name
+    
+    # Normalize the expected name (remove extra spaces around parentheses)
+    normalized_expected = expected_name.replace(' (', '(').replace(' )', ')')
+    
+    # Try normalized version
+    if normalized_expected in df_columns:
+        return normalized_expected
+    
+    # Try with spaces around parentheses
+    spaced_expected = expected_name.replace('(', ' (').replace(')', ' )')
+    if spaced_expected in df_columns:
+        return spaced_expected
+    
+    # If still not found, try fuzzy matching by checking if the base name matches
+    base_name = expected_name.split('(')[0].strip()
+    for col in df_columns:
+        if col.startswith(base_name) and '(' in col:
+            return col
+    
+    return None
 
 def get_quarter_end_date(current_date):
     """
@@ -118,12 +157,31 @@ def preprocess_and_append_csv(file_path, excel_path=None, logger=None):
         excel_data.columns = excel_data.columns.str.strip()
         plog.log_info(logger, f"Columns in the sheet: {excel_data.columns.tolist()}")
 
-        if 'Value Date' in excel_data.columns:
-            excel_data['Value Date'] = pd.to_datetime(excel_data['Value Date'], dayfirst=True, errors='coerce')
+        value_date_col = find_column_name(excel_data.columns, VALUE_DATE_LABEL)
+        if value_date_col is None:
+            plog.log_error(logger, f"{VALUE_DATE_LABEL} column not found. Available columns: {excel_data.columns.tolist()}")
+            raise KeyError(f"{VALUE_DATE_LABEL} column not found in Excel file. Available columns: {excel_data.columns.tolist()}")
+        
+        plog.log_info(logger, f"Using '{value_date_col}' as {VALUE_DATE_LABEL} column")
+        excel_data[value_date_col] = pd.to_datetime(excel_data[value_date_col], dayfirst=True, errors='coerce')
 
-        excel_data = excel_data.dropna(subset=['Value Date'])
-        excel_data['expense'] = excel_data['Withdrawal Amount (INR )'].fillna(0) * -1 + excel_data['Deposit Amount (INR )'].fillna(0)
-        daily_expenses = excel_data.groupby('Value Date')['expense'].sum().reset_index()
+        excel_data = excel_data.dropna(subset=[value_date_col])
+        # Rename to standard VALUE_DATE_LABEL for consistency in downstream processing
+        if value_date_col != VALUE_DATE_LABEL:
+            excel_data = excel_data.rename(columns={value_date_col: VALUE_DATE_LABEL})
+            excel_data = excel_data.rename(columns={value_date_col: 'Value Date'})
+        
+        # Find the actual column names with flexible matching
+        withdrawal_col = find_column_name(excel_data.columns, 'Withdrawal Amount (INR )')
+        deposit_col = find_column_name(excel_data.columns, 'Deposit Amount (INR )')
+        
+        if withdrawal_col is None or deposit_col is None:
+            plog.log_error(logger, f"Required columns not found. Expected: 'Withdrawal Amount (INR )' and 'Deposit Amount (INR )'. Found: {excel_data.columns.tolist()}")
+            raise KeyError(f"Required columns not found in Excel file. Available columns: {excel_data.columns.tolist()}")
+        
+        plog.log_info(logger, f"Using columns: '{withdrawal_col}' for withdrawals and '{deposit_col}' for deposits")
+        excel_data['expense'] = excel_data[withdrawal_col].fillna(0) * -1 + excel_data[deposit_col].fillna(0)
+        daily_expenses = excel_data.groupby(VALUE_DATE_LABEL)['expense'].sum().reset_index()
         daily_expenses.columns = ['Date', 'expense']
         daily_expenses.rename(columns={'expense': TRANSACTION_AMOUNT_LABEL}, inplace=True)
         df = pd.concat([df, daily_expenses], ignore_index=True)
