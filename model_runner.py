@@ -97,6 +97,7 @@ X, y, df = preprocess_and_append_csv(file_path, excel_path=excel_path, logger=lo
 test_size = config['model_evaluation']['test_size']
 random_state = config['model_evaluation']['random_state']
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, shuffle=False, random_state=random_state)
+
 plog.log_info(logger, f"Data split: {len(X_train)} training samples, {len(X_test)} test samples")
 
 # Dictionary of models to train and evaluate.
@@ -164,6 +165,9 @@ for model_name, model in models.items():
     plog.log_info(logger, f"  MAE: {test_mae:.2f}")
     plog.log_info(logger, f"  R-squared: {test_r2:.4f}")
 
+    # Retrain on full dataset for production predictions
+    plog.log_info(logger, f"Retraining {model_name} on full dataset for production predictions")
+    model.fit(X, y)
     # Prepare future dates/features for prediction
     # future_df: DataFrame of features for future dates
     # future_dates: List of future date strings
