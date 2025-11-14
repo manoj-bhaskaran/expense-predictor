@@ -148,13 +148,13 @@ for model_name, model in models.items():
     test_r2 = r2_score(y_test, y_test_pred)
 
     # Log training metrics
-    plog.log_info(logger, f"Training Set Performance:")
+    plog.log_info(logger, "Training Set Performance:")
     plog.log_info(logger, f"  RMSE: {train_rmse:.2f}")
     plog.log_info(logger, f"  MAE: {train_mae:.2f}")
     plog.log_info(logger, f"  R-squared: {train_r2:.4f}")
 
     # Log test set metrics (generalization performance)
-    plog.log_info(logger, f"Test Set Performance:")
+    plog.log_info(logger, "Test Set Performance:")
     plog.log_info(logger, f"  RMSE: {test_rmse:.2f}")
     plog.log_info(logger, f"  MAE: {test_mae:.2f}")
     plog.log_info(logger, f"  R-squared: {test_r2:.4f}")
