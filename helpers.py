@@ -186,7 +186,6 @@ def preprocess_and_append_csv(file_path, excel_path=None, logger=None):
         # Rename to standard VALUE_DATE_LABEL for consistency in downstream processing
         if value_date_col != VALUE_DATE_LABEL:
             excel_data = excel_data.rename(columns={value_date_col: VALUE_DATE_LABEL})
-            excel_data = excel_data.rename(columns={value_date_col: 'Value Date'})
 
         # Find the actual column names with flexible matching
         withdrawal_col = find_column_name(excel_data.columns, 'Withdrawal Amount (INR )')

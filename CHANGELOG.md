@@ -5,6 +5,16 @@ All notable changes to the Expense Predictor project will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2025-11-14
+
+### Fixed
+
+- **Inconsistent Column Renaming** ([#41](https://github.com/manoj-bhaskaran/expense-predictor/issues/41))
+  - Fixed duplicate column rename operation in `preprocess_and_append_csv` function (helpers.py:187-189)
+  - Removed redundant second rename that attempted to rename an already-renamed column
+  - The bug caused silent failures when processing Excel data with non-standard column names
+  - Column is now correctly renamed once from the detected column name to VALUE_DATE_LABEL
+
 ## [1.0.2] - 2025-11-14
 
 ### Fixed
@@ -182,6 +192,7 @@ When reporting issues, please include:
 
 ---
 
+[1.0.3]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.0.3
 [1.0.2]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.0.2
 [1.0.1]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.0.1
 [1.0.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.0.0
