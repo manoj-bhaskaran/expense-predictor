@@ -5,6 +5,7 @@ import xlrd
 import python_logging_framework as plog
 from config import config
 import os
+from security import sanitize_dataframe_for_csv, create_backup, confirm_overwrite
 
 # Define constants
 TRANSACTION_AMOUNT_LABEL = 'Tran Amt'
@@ -58,6 +59,10 @@ def validate_excel_file(file_path, logger=None):
     """
     Validate that Excel file exists and has a valid format.
 
+    WARNING: Excel files from untrusted sources may contain malicious formulas or macros.
+    Only process Excel files from trusted sources. This function does not validate
+    or sanitize Excel cell contents for potential security threats.
+
     Parameters:
     file_path (str): Path to the Excel file
     logger (logging.Logger, optional): Logger instance for logging messages
@@ -66,6 +71,10 @@ def validate_excel_file(file_path, logger=None):
     FileNotFoundError: If the Excel file does not exist
     ValueError: If the file is not a valid Excel format
     """
+    # Security warning
+    plog.log_info(logger, f"WARNING: Processing Excel file from: {file_path}")
+    plog.log_info(logger, "Ensure this file is from a trusted source. Excel files may contain formulas or macros.")
+
     # Check if file exists
     if not os.path.exists(file_path):
         plog.log_error(logger, f"Excel file not found: {file_path}")
@@ -357,17 +366,51 @@ def preprocess_and_append_csv(file_path, excel_path=None, logger=None):
     # Process the dataframe directly without modifying the input file
     return _process_dataframe(df, logger=logger)
 
-def write_predictions(predicted_df, output_path, logger=None):
+def write_predictions(predicted_df, output_path, logger=None, skip_confirmation=False):
     """
-    Write predictions to a CSV file.
+    Write predictions to a CSV file with security measures.
+
+    This function:
+    - Sanitizes data to prevent CSV injection attacks
+    - Creates a backup if the file already exists
+    - Optionally asks for user confirmation before overwriting
 
     Parameters:
     predicted_df (DataFrame): The DataFrame containing the predictions.
     output_path (str): The file path to save the predictions.
     logger (logging.Logger, optional): Logger instance used for logging.
+    skip_confirmation (bool): If True, skip user confirmation for overwriting. Default: False.
 
     Returns:
     None
+
+    Raises:
+    IOError: If backup creation or file writing fails
     """
-    predicted_df.to_csv(output_path, index=False)
-    plog.log_info(logger, f"Predictions saved to {output_path}")
+    # Check if file exists and handle accordingly
+    if os.path.exists(output_path) and not skip_confirmation:
+        # Ask for confirmation
+        if not confirm_overwrite(output_path, logger):
+            plog.log_info(logger, f"Skipped writing to {output_path}")
+            return
+
+        # Create backup before overwriting
+        try:
+            backup_path = create_backup(output_path, logger)
+            if backup_path:
+                plog.log_info(logger, f"Created backup: {backup_path}")
+        except IOError as e:
+            plog.log_error(logger, f"Failed to create backup, aborting write: {e}")
+            raise
+
+    # Sanitize data to prevent CSV injection
+    plog.log_info(logger, "Sanitizing data to prevent CSV injection")
+    sanitized_df = sanitize_dataframe_for_csv(predicted_df)
+
+    # Write to CSV
+    try:
+        sanitized_df.to_csv(output_path, index=False)
+        plog.log_info(logger, f"Predictions saved to {output_path}")
+    except (IOError, OSError) as e:
+        plog.log_error(logger, f"Failed to write predictions to {output_path}: {e}")
+        raise IOError(f"Failed to write predictions: {e}")

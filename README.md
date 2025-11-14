@@ -7,10 +7,12 @@ A machine learning-based expense prediction system that analyzes historical tran
 - **Multiple ML Models**: Supports Linear Regression, Decision Tree, Random Forest, and Gradient Boosting algorithms
 - **Flexible Data Input**: Works with CSV transaction data and optionally integrates Excel bank statements
 - **Robust Input Validation**: Validates file existence, format, required columns, and date ranges before processing
+- **Security Features**: Path injection protection, file extension validation, CSV injection prevention, and automatic backups
 - **Automated Predictions**: Generates predictions for custom future dates or automatically for the current quarter end
 - **Comprehensive Logging**: Built-in logging framework for tracking operations and debugging
 - **Performance Metrics**: Evaluates models using RMSE, MAE, and R-squared metrics
 - **Portable**: Supports both absolute and relative file paths for flexible deployment
+- **Data Protection**: Automatic backups and user confirmation before overwriting files
 
 ## Requirements
 
@@ -119,6 +121,7 @@ python model_runner.py \
 | `--excel_file` | Name of Excel file with additional data | None |
 | `--log_dir` | Directory for log files | `logs` |
 | `--output_dir` | Directory for prediction output files | `.` (current directory) |
+| `--skip_confirmation` | Skip confirmation prompts when overwriting files (for automation) | False |
 
 ### Input Data Format
 
@@ -163,6 +166,7 @@ Each file contains:
 expense-predictor/
 ├── model_runner.py          # Main script for model training and prediction
 ├── helpers.py               # Helper functions for data preprocessing
+├── security.py              # Security utilities (path validation, sanitization)
 ├── config.py                # Configuration loader module
 ├── config.yaml              # Configuration file for hyperparameters
 ├── requirements.txt         # Production dependencies
@@ -242,6 +246,73 @@ python model_runner.py --data_file trandata.csv --log_dir ./my_logs
 
 Most helper functions accept an optional `logger` parameter. When called from `model_runner.py`, the logger is passed through the call chain. Functions can also operate without a logger (logger=None) for standalone usage.
 
+## Security
+
+The application includes comprehensive security features to protect against common attack vectors:
+
+### Path Injection Protection
+
+All user-provided file paths are validated and sanitized to prevent path traversal attacks:
+- Paths are resolved to absolute paths using `pathlib.Path().resolve()`
+- Path traversal patterns (`../`) are detected and rejected
+- Paths are normalized to prevent directory escaping
+- Invalid paths are rejected with clear error messages
+
+This applies to all path arguments: `--data_file`, `--excel_dir`, `--excel_file`, `--log_dir`, and `--output_dir`.
+
+### File Extension Validation
+
+The application validates file extensions before processing:
+- CSV files must have `.csv` extension
+- Excel files must have `.xls` or `.xlsx` extension
+- Files with invalid extensions are rejected before processing
+- Reduces risk of processing unexpected or malicious file types
+
+### CSV Injection Prevention
+
+All prediction output files are sanitized to prevent CSV injection attacks:
+- Dangerous formula characters (`=`, `+`, `-`, `@`, tabs, newlines) are escaped
+- Values that could be interpreted as formulas are prefixed with a single quote
+- Protects users who open prediction CSVs in Excel or other spreadsheet applications
+- Prevents potential code execution when CSVs are opened
+
+### File Overwriting Protection
+
+The application protects against accidental data loss:
+- **Automatic Backups**: Creates timestamped backups before overwriting existing files
+- **User Confirmation**: Prompts for confirmation before overwriting prediction files
+- **Fail-Safe**: If backup creation fails, the write operation is aborted
+- **Automation Support**: Use `--skip_confirmation` to disable prompts for batch processing
+
+Example with confirmation prompts:
+```bash
+python model_runner.py --data_file trandata.csv
+# Will prompt: "File 'future_predictions_linear_regression.csv' already exists. Overwrite? [y/N]:"
+```
+
+Example for automated workflows (no prompts):
+```bash
+python model_runner.py --data_file trandata.csv --skip_confirmation
+# Overwrites without confirmation, but still creates backups
+```
+
+### Excel File Security Warning
+
+When processing Excel files, the application logs security warnings:
+- Reminds users that Excel files may contain malicious formulas or macros
+- Encourages processing only Excel files from trusted sources
+- Warns about potential security risks in the log files
+
+**Important**: Only process Excel files from trusted sources. The application cannot detect or prevent malicious Excel formulas or macros.
+
+### Best Practices
+
+1. **Use Trusted Data Sources**: Only process CSV and Excel files from trusted sources
+2. **Review Logs**: Check log files for security warnings and validation messages
+3. **Backup Important Data**: The application creates backups, but maintain your own backups too
+4. **Validate Paths**: Be cautious when using absolute paths from user input
+5. **Automated Workflows**: Use `--skip_confirmation` only in controlled environments
+
 ## Development
 
 ### Running Tests
@@ -312,6 +383,15 @@ After modifying `config.yaml`, simply run the script again - no code changes nee
 
 **Issue**: Different Excel file format (different skiprows)
 - **Solution**: Edit `config.yaml` and change the `skiprows` value under `data_processing` to match your bank statement format.
+
+**Issue**: `ValueError: Path traversal detected` or `ValueError: Invalid file extension`
+- **Solution**: These are security protections. Ensure you're using valid file paths without `../` patterns and that files have correct extensions (.csv, .xls, or .xlsx).
+
+**Issue**: File overwrite confirmation prompts blocking automation
+- **Solution**: Use the `--skip_confirmation` flag to disable prompts: `python model_runner.py --data_file trandata.csv --skip_confirmation`
+
+**Issue**: Cannot find backup files
+- **Solution**: Backup files are created with timestamps in the same directory as the output file. Look for files with `.backup_YYYYMMDD_HHMMSS` suffix.
 
 ## Contributing
 

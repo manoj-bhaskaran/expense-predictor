@@ -5,6 +5,108 @@ All notable changes to the Expense Predictor project will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2025-11-14
+
+### Added
+
+- **Security Module** ([#48](https://github.com/manoj-bhaskaran/expense-predictor/issues/48))
+  - Created new `security.py` module with comprehensive security utilities
+  - Path validation and sanitization functions to prevent path injection attacks
+  - File extension validation for CSV and Excel files
+  - CSV injection prevention through value sanitization
+  - Backup creation before file modifications
+  - User confirmation prompts for file overwrites
+
+- **Path Validation** ([#48](https://github.com/manoj-bhaskaran/expense-predictor/issues/48))
+  - `validate_and_resolve_path()`: Core path validation with security checks
+  - `validate_file_path()`: File-specific validation with extension checking
+  - `validate_directory_path()`: Directory validation with auto-creation option
+  - Detects and prevents path traversal attacks (../ patterns)
+  - Normalizes and resolves all file paths to absolute paths
+  - Validates file extensions against allowed lists (security.py:28-86)
+
+- **CSV Injection Prevention** ([#48](https://github.com/manoj-bhaskaran/expense-predictor/issues/48))
+  - `sanitize_csv_value()`: Sanitizes individual values before CSV output
+  - `sanitize_dataframe_for_csv()`: Sanitizes entire DataFrames
+  - Prevents formula injection by escaping dangerous characters (=, +, -, @)
+  - Applied automatically to all prediction CSV outputs (security.py:138-181)
+
+- **File Protection** ([#48](https://github.com/manoj-bhaskaran/expense-predictor/issues/48))
+  - `create_backup()`: Creates timestamped backups before overwriting files
+  - `confirm_overwrite()`: Interactive confirmation prompts for file overwrites
+  - Automatic backup creation in `write_predictions()` (helpers.py:389-396)
+  - User confirmation required before overwriting existing files (helpers.py:382-387)
+
+- **Command-Line Options** ([#48](https://github.com/manoj-bhaskaran/expense-predictor/issues/48))
+  - `--skip_confirmation`: New flag to skip confirmation prompts for automation
+  - Useful for batch processing and CI/CD pipelines (model_runner.py:55)
+
+### Changed
+
+- **Enhanced Security in model_runner.py** ([#48](https://github.com/manoj-bhaskaran/expense-predictor/issues/48))
+  - All file and directory paths now validated before use
+  - Excel directory and file paths validated with extension checks (model_runner.py:84-98)
+  - Data file path validated with CSV extension check (model_runner.py:104-120)
+  - Log directory path validated and safely created (model_runner.py:57-64)
+  - Output directory path validated and safely created (model_runner.py:218-233)
+  - Script exits gracefully with clear error messages on invalid paths
+
+- **Enhanced Security in helpers.py** ([#48](https://github.com/manoj-bhaskaran/expense-predictor/issues/48))
+  - `write_predictions()` now includes backup and sanitization (helpers.py:361-408)
+  - Added `skip_confirmation` parameter with default False (backward compatible)
+  - CSV data sanitized before writing to prevent injection attacks
+  - Backup created automatically before overwriting existing files
+  - User prompted for confirmation before overwriting (unless skipped)
+
+- **Excel File Validation** ([#48](https://github.com/manoj-bhaskaran/expense-predictor/issues/48))
+  - Added security warning for Excel files from untrusted sources (helpers.py:74-76)
+  - Logs warning about potential malicious formulas or macros
+  - Reminds users to only process Excel files from trusted sources
+
+- **Updated Documentation** ([#48](https://github.com/manoj-bhaskaran/expense-predictor/issues/48))
+  - model_runner.py docstring updated with security features section
+  - Added examples for automated mode with --skip_confirmation
+  - Enhanced command-line argument documentation
+
+### Security
+
+- **Path Injection Protection** ([#48](https://github.com/manoj-bhaskaran/expense-predictor/issues/48))
+  - All user-provided paths (--excel_dir, --excel_file, --data_file, --log_dir, --output_dir) validated
+  - Path traversal attacks prevented through resolution and pattern detection
+  - Paths normalized to absolute paths using `pathlib.Path().resolve()`
+  - Invalid paths rejected with clear error messages
+
+- **File Extension Validation** ([#48](https://github.com/manoj-bhaskaran/expense-predictor/issues/48))
+  - CSV files must have .csv extension
+  - Excel files must have .xls or .xlsx extension
+  - Invalid extensions rejected before processing
+  - Reduces risk of processing unexpected file types
+
+- **CSV Injection Mitigation** ([#48](https://github.com/manoj-bhaskaran/expense-predictor/issues/48))
+  - All CSV output sanitized to prevent formula execution in spreadsheet applications
+  - Dangerous formula characters (=, +, -, @, tabs, newlines) escaped with single quote
+  - Protects users opening prediction CSVs in Excel or other spreadsheet tools
+
+- **File Overwriting Protection** ([#48](https://github.com/manoj-bhaskaran/expense-predictor/issues/48))
+  - Automatic timestamped backups created before overwriting files
+  - User confirmation required before overwriting (prevents accidental data loss)
+  - Backup creation failures prevent the write operation (fail-safe)
+  - Can be disabled with --skip_confirmation for automation
+
+- **Excel File Warning** ([#48](https://github.com/manoj-bhaskaran/expense-predictor/issues/48))
+  - Warning logged when processing Excel files
+  - Reminds users about potential malicious formulas or macros
+  - Encourages processing only trusted Excel files
+
+### Improved
+
+- **Error Handling**: More specific error messages for path validation failures
+- **Security Posture**: Multiple layers of defense against common attack vectors
+- **User Experience**: Clear warnings and confirmations for potentially destructive operations
+- **Automation Support**: --skip_confirmation flag enables unattended operation
+- **Code Organization**: Security utilities centralized in dedicated module
+- **Logging**: Enhanced logging of security checks and validations
+
 ## [1.3.1] - 2025-11-14
 
 ### Improved
@@ -332,6 +434,7 @@ When reporting issues, please include:
 
 ---
 
+[1.4.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.4.0
 [1.3.1]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.3.1
 [1.3.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.3.0
 [1.2.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.2.0
