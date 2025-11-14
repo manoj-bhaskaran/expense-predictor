@@ -71,7 +71,7 @@ else:
 
 if args.excel_file:
     excel_path = os.path.join(args.excel_dir, args.excel_file)
-elif not args.excel_file:
+else:
     excel_path = None
 
 TRANSACTION_AMOUNT_LABEL = 'Tran Amt'
