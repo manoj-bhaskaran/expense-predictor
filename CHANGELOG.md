@@ -5,6 +5,126 @@ All notable changes to the Expense Predictor project will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2025-11-14
+
+### Improved
+
+- **Categorical Handling Efficiency** ([#47](https://github.com/manoj-bhaskaran/expense-predictor/issues/47))
+  - Optimized categorical conversion in `prepare_future_dates()` to happen during column creation (helpers.py:279)
+  - Changed from two-step process (create then convert) to single-step conversion
+  - Eliminates intermediate object-type Series creation, improving memory efficiency
+  - No functional changes, purely performance optimization
+
+## [1.3.0] - 2025-11-14
+
+### Changed
+
+- **Standardized Logging Approach** ([#46](https://github.com/manoj-bhaskaran/expense-predictor/issues/46))
+  - Replaced all `print()` statements with `plog` logging calls for consistency
+  - Removed 4 print() statements in config.py (config.py:67-72) - now use plog.log_error() and plog.log_info()
+  - Removed duplicate print() statement in helpers.py (helpers.py:367) that was redundant with plog call
+  - Enhanced `_process_dataframe()` with comprehensive logging (helpers.py:184-237)
+  - Added logging for data conversion, cleaning, date range creation, and feature engineering steps
+  - All logging now consistently uses `python_logging_framework` (plog) library
+
+### Improved
+
+- **Logging Consistency**: Unified logging approach across all modules (config.py, helpers.py, model_runner.py)
+- **Observability**: Added detailed logging in data processing pipeline for better debugging and monitoring
+- **Code Quality**: Eliminated mixed logging approaches (no more print() for operational messages)
+- **Data Processing Visibility**: Users can now track data transformation steps through log files
+  - Data type conversions and validations
+  - Row counts after cleaning operations
+  - Date range filling operations
+  - Feature engineering progress
+
+### Documentation
+
+- **README.md**: Significantly expanded Logging section with comprehensive documentation
+  - Added logging framework details and log levels
+  - Documented what gets logged in each component
+  - Added examples of log file location and customization
+  - Explained logger parameter usage pattern
+  - Included detailed breakdown of logged operations (model training, data processing, configuration, errors)
+
+## [1.2.0] - 2025-11-14
+
+### Added
+
+- **Comprehensive Input Validation** ([#45](https://github.com/manoj-bhaskaran/expense-predictor/issues/45))
+  - Added `validate_csv_file()` function to check CSV file existence and required columns (helpers.py:14-55)
+  - Added `validate_excel_file()` function to validate Excel file existence and format (helpers.py:57-94)
+  - Added `validate_date_range()` function to validate date ranges in data (helpers.py:96-131)
+  - CSV validation checks for file existence, file type, and required columns ('Date', 'Tran Amt')
+  - Excel validation checks for file existence, valid extensions (.xls, .xlsx), and file integrity
+  - Date range validation checks for valid dates, prevents all-NaT data, and ensures data isn't all future dates
+  - All validation functions integrated with logging framework for detailed error reporting
+
+### Changed
+
+- **Function Signatures**
+  - Updated `preprocess_data()` to include logger parameter and call validation (helpers.py:232-247)
+  - Updated `_process_dataframe()` to include logger parameter and date range validation (helpers.py:184-230)
+  - Updated `preprocess_and_append_csv()` to call CSV and Excel validation before processing (helpers.py:276-352)
+  - Added comprehensive error messages with file paths and available columns when validation fails
+
+### Improved
+
+- **Error Handling**: Early validation prevents cryptic errors later in processing
+- **User Experience**: Clear, actionable error messages when input files are invalid
+- **Data Quality**: Ensures required columns exist before attempting data processing
+- **Robustness**: Validates file formats and detects corrupted Excel files before processing
+- **Debugging**: All validations log detailed information for troubleshooting
+
+## [1.1.0] - 2025-11-14
+
+### Added
+
+- **Configuration System** ([#44](https://github.com/manoj-bhaskaran/expense-predictor/issues/44))
+  - Added `config.yaml` file for centralizing all configurable parameters
+  - Created `config.py` module to load and manage configuration
+  - All magic numbers and hyperparameters are now configurable without code changes
+  - Configuration includes detailed comments explaining each parameter
+  - Graceful fallback to sensible defaults if config.yaml is missing or invalid
+
+- **Configurable Parameters**
+  - **Data Processing**: `skiprows` (default: 12) - customizable for different bank statement formats
+  - **Model Evaluation**: `test_size` (default: 0.2) and `random_state` (default: 42)
+  - **Decision Tree**: All hyperparameters (max_depth, min_samples_split, min_samples_leaf, ccp_alpha, random_state)
+  - **Random Forest**: All hyperparameters (n_estimators, max_depth, min_samples_split, min_samples_leaf, max_features, ccp_alpha, random_state)
+  - **Gradient Boosting**: All hyperparameters (n_estimators, learning_rate, max_depth, min_samples_split, min_samples_leaf, max_features, random_state)
+
+### Changed
+
+- **Code Structure**
+  - Refactored model_runner.py to load hyperparameters from configuration (model_runner.py:97-131)
+  - Refactored helpers.py to load skiprows from configuration (helpers.py:174)
+  - Added PyYAML dependency to requirements.txt
+
+### Documentation
+
+- Updated README.md with comprehensive configuration documentation
+  - Added new "Configuration" section explaining config.yaml usage
+  - Added "Model Tuning" section with tips for hyperparameter optimization
+  - Updated project structure to include config.py and config.yaml
+  - Enhanced troubleshooting section with configuration-related issues
+
+### Improved
+
+- **User Experience**: Users can now tune model parameters without editing code
+- **Maintainability**: All magic numbers centralized in one location
+- **Flexibility**: Easy to experiment with different hyperparameter combinations
+- **Documentation**: Each parameter in config.yaml includes explanatory comments
+
+## [1.0.5] - 2025-11-14
+
+### Changed
+
+- **Code Quality** ([#43](https://github.com/manoj-bhaskaran/expense-predictor/issues/43))
+  - Removed redundant condition in model_runner.py:74
+  - Simplified `elif not args.excel_file:` to `else:` for cleaner code
+  - No functional changes, improves code readability
+
 ## [1.0.4] - 2025-11-14
 
 ### Fixed
@@ -212,6 +332,11 @@ When reporting issues, please include:
 
 ---
 
+[1.3.1]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.3.1
+[1.3.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.3.0
+[1.2.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.2.0
+[1.1.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.1.0
+[1.0.5]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.0.5
 [1.0.4]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.0.4
 [1.0.3]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.0.3
 [1.0.2]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.0.2

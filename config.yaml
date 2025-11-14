@@ -1,0 +1,96 @@
+# Expense Predictor Configuration File
+# This file contains all configurable parameters for the expense prediction system.
+# You can modify these values to customize the behavior of the models and data processing.
+
+# Data Processing Configuration
+data_processing:
+  # Number of rows to skip when reading Excel files (bank statement specific)
+  # Default: 12 (common for many bank statement formats)
+  skiprows: 12
+
+# Model Evaluation Configuration
+model_evaluation:
+  # Proportion of data to use for testing (0.0 to 1.0)
+  # Default: 0.2 (20% of data used for testing, 80% for training)
+  test_size: 0.2
+
+  # Random seed for reproducibility
+  # Default: 42
+  random_state: 42
+
+# Model Hyperparameters
+# These parameters control the behavior and complexity of each machine learning model
+
+# Decision Tree Regressor Configuration
+decision_tree:
+  # Maximum depth of the tree (controls model complexity)
+  # Lower values prevent overfitting, higher values allow more complex patterns
+  max_depth: 5
+
+  # Minimum samples required to split an internal node
+  # Higher values prevent overfitting by requiring more data to make splits
+  min_samples_split: 10
+
+  # Minimum samples required at a leaf node
+  # Higher values create simpler models with smoother predictions
+  min_samples_leaf: 5
+
+  # Complexity parameter for pruning (0.0 to 1.0)
+  # Higher values result in more pruning and simpler trees
+  ccp_alpha: 0.01
+
+  # Random seed for reproducibility
+  random_state: 42
+
+# Random Forest Regressor Configuration
+random_forest:
+  # Number of trees in the forest
+  # More trees generally improve performance but increase computation time
+  n_estimators: 100
+
+  # Maximum depth of each tree
+  # Lower values prevent overfitting
+  max_depth: 10
+
+  # Minimum samples required to split an internal node
+  min_samples_split: 10
+
+  # Minimum samples required at a leaf node
+  min_samples_leaf: 5
+
+  # Number of features to consider when looking for the best split
+  # Options: "sqrt" (square root of total features), "log2", or a number
+  max_features: "sqrt"
+
+  # Complexity parameter for pruning
+  ccp_alpha: 0.01
+
+  # Random seed for reproducibility
+  random_state: 42
+
+# Gradient Boosting Regressor Configuration
+gradient_boosting:
+  # Number of boosting stages (trees) to perform
+  # More stages can improve performance but risk overfitting
+  n_estimators: 100
+
+  # Learning rate (step size shrinkage)
+  # Lower values require more estimators but can improve generalization
+  # Typical range: 0.01 to 0.3
+  learning_rate: 0.1
+
+  # Maximum depth of each tree
+  # Lower values prevent overfitting
+  max_depth: 5
+
+  # Minimum samples required to split an internal node
+  min_samples_split: 10
+
+  # Minimum samples required at a leaf node
+  min_samples_leaf: 5
+
+  # Number of features to consider when looking for the best split
+  max_features: "sqrt"
+
+  # Random seed for reproducibility
+  random_state: 42
