@@ -3,6 +3,7 @@ from pandas.tseries.offsets import DateOffset
 from datetime import datetime, timedelta
 import xlrd
 import python_logging_framework as plog
+from config import config
 
 # Define constants
 TRANSACTION_AMOUNT_LABEL = 'Tran Amt'
@@ -170,7 +171,8 @@ def preprocess_and_append_csv(file_path, excel_path=None, logger=None):
         sheet_names = pd.ExcelFile(excel_path, engine=engine).sheet_names
         plog.log_info(logger, f"Available sheets: {sheet_names}")
 
-        excel_data = pd.read_excel(excel_path, sheet_name=sheet_names[0], engine=engine, skiprows=12)
+        skiprows = config['data_processing']['skiprows']
+        excel_data = pd.read_excel(excel_path, sheet_name=sheet_names[0], engine=engine, skiprows=skiprows)
         excel_data.columns = excel_data.columns.str.strip()
         plog.log_info(logger, f"Columns in the sheet: {excel_data.columns.tolist()}")
 

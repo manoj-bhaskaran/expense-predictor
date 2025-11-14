@@ -49,7 +49,40 @@ pip install -r requirements-dev.txt
 
 ## Configuration
 
-The project can be configured using command-line arguments. No environment variables are strictly required, but you can create a `.env` file based on `.env.example` for custom default paths.
+The project supports two types of configuration:
+
+### 1. Model and Data Processing Configuration (config.yaml)
+
+The `config.yaml` file allows you to customize model hyperparameters and data processing settings without modifying code. This file is automatically loaded when the application starts.
+
+**Configuration Categories:**
+
+- **Data Processing**: Control Excel file parsing (e.g., `skiprows` for bank statements)
+- **Model Evaluation**: Set train/test split ratio and random seed for reproducibility
+- **Model Hyperparameters**: Fine-tune each machine learning model's parameters
+
+**Example configuration:**
+```yaml
+data_processing:
+  skiprows: 12  # Number of header rows to skip in Excel files
+
+model_evaluation:
+  test_size: 0.2      # 20% of data for testing
+  random_state: 42    # Seed for reproducibility
+
+decision_tree:
+  max_depth: 5
+  min_samples_split: 10
+  # ... more parameters
+```
+
+See `config.yaml` for the complete list of configurable parameters with detailed explanations.
+
+**Note:** If `config.yaml` is missing or invalid, the system will use sensible defaults and continue running.
+
+### 2. Runtime Configuration (Command-Line Arguments)
+
+Command-line arguments control file paths and runtime behavior. No environment variables are strictly required, but you can create a `.env` file based on `.env.example` for custom default paths.
 
 ## Usage
 
@@ -129,6 +162,8 @@ Each file contains:
 expense-predictor/
 ├── model_runner.py          # Main script for model training and prediction
 ├── helpers.py               # Helper functions for data preprocessing
+├── config.py                # Configuration loader module
+├── config.yaml              # Configuration file for hyperparameters
 ├── requirements.txt         # Production dependencies
 ├── requirements-dev.txt     # Development dependencies
 ├── .env.example            # Example environment configuration
@@ -191,6 +226,23 @@ The project follows PEP 8 style guidelines. Use a linter to check code quality:
 flake8 model_runner.py helpers.py
 ```
 
+## Model Tuning
+
+To improve prediction accuracy, you can tune the model hyperparameters in `config.yaml`:
+
+1. **Adjust test_size**: Change the train/test split ratio (default: 0.2)
+2. **Tune Decision Tree**: Modify `max_depth`, `min_samples_split`, etc.
+3. **Tune Random Forest**: Adjust `n_estimators`, `max_depth`, etc.
+4. **Tune Gradient Boosting**: Change `learning_rate`, `n_estimators`, etc.
+
+After modifying `config.yaml`, simply run the script again - no code changes needed!
+
+**Tips for tuning:**
+- Lower `max_depth` values prevent overfitting
+- Higher `min_samples_split` and `min_samples_leaf` create simpler models
+- Increase `n_estimators` for better performance (at the cost of training time)
+- Lower `learning_rate` (with more estimators) often improves generalization
+
 ## Troubleshooting
 
 ### Common Issues
@@ -201,11 +253,14 @@ flake8 model_runner.py helpers.py
 **Issue**: `ValueError: Incorrect date format`
 - **Solution**: Ensure dates are in DD/MM/YYYY format when using `--future_date`
 
-**Issue**: Import errors for `python_logging_framework`
+**Issue**: Import errors for `python_logging_framework` or `yaml`
 - **Solution**: Ensure all dependencies are installed: `pip install -r requirements.txt`
 
 **Issue**: Predictions seem inaccurate
-- **Solution**: Check that your training data has sufficient historical data (at least several months recommended). Review log files for model performance metrics.
+- **Solution**: Check that your training data has sufficient historical data (at least several months recommended). Review log files for model performance metrics. Try tuning hyperparameters in `config.yaml`.
+
+**Issue**: Different Excel file format (different skiprows)
+- **Solution**: Edit `config.yaml` and change the `skiprows` value under `data_processing` to match your bank statement format.
 
 ## Contributing
 

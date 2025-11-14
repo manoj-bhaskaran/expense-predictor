@@ -33,6 +33,7 @@ from datetime import datetime
 import os
 import python_logging_framework as plog
 import logging
+from config import config
 
 # Get the directory where this script is located
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -89,41 +90,44 @@ else:
 #   df: Full DataFrame after preprocessing
 X, y, df = preprocess_and_append_csv(file_path, excel_path=excel_path, logger=logger)
 
-# Split data into training and test sets (80/20 split)
-# test_size=0.2 means 20% of data is used for testing
+# Split data into training and test sets (configurable split ratio)
+# test_size from config (default: 0.2 means 20% of data is used for testing)
 # shuffle=False preserves temporal order to avoid data leakage (train on past, test on future)
-# random_state=42 ensures reproducible splits
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False, random_state=42)
+# random_state from config ensures reproducible splits
+test_size = config['model_evaluation']['test_size']
+random_state = config['model_evaluation']['random_state']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, shuffle=False, random_state=random_state)
 plog.log_info(logger, f"Data split: {len(X_train)} training samples, {len(X_test)} test samples")
 
 # Dictionary of models to train and evaluate.
 # Each key is a model name, value is an instantiated regressor.
+# Hyperparameters are loaded from config.yaml for easy tuning.
 models = {
     "Linear Regression": LinearRegression(),
     "Decision Tree": DecisionTreeRegressor(
-        max_depth=5,
-        min_samples_split=10,
-        min_samples_leaf=5,
-        ccp_alpha=0.01,
-        random_state=42
+        max_depth=config['decision_tree']['max_depth'],
+        min_samples_split=config['decision_tree']['min_samples_split'],
+        min_samples_leaf=config['decision_tree']['min_samples_leaf'],
+        ccp_alpha=config['decision_tree']['ccp_alpha'],
+        random_state=config['decision_tree']['random_state']
     ),
     "Random Forest": RandomForestRegressor(
-        n_estimators=100,
-        max_depth=10,
-        min_samples_split=10,
-        min_samples_leaf=5,
-        max_features="sqrt",
-        ccp_alpha=0.01,
-        random_state=42
+        n_estimators=config['random_forest']['n_estimators'],
+        max_depth=config['random_forest']['max_depth'],
+        min_samples_split=config['random_forest']['min_samples_split'],
+        min_samples_leaf=config['random_forest']['min_samples_leaf'],
+        max_features=config['random_forest']['max_features'],
+        ccp_alpha=config['random_forest']['ccp_alpha'],
+        random_state=config['random_forest']['random_state']
     ),
     "Gradient Boosting": GradientBoostingRegressor(
-        n_estimators=100,
-        learning_rate=0.1,
-        max_depth=5,
-        min_samples_split=10,
-        min_samples_leaf=5,
-        max_features="sqrt",
-        random_state=42
+        n_estimators=config['gradient_boosting']['n_estimators'],
+        learning_rate=config['gradient_boosting']['learning_rate'],
+        max_depth=config['gradient_boosting']['max_depth'],
+        min_samples_split=config['gradient_boosting']['min_samples_split'],
+        min_samples_leaf=config['gradient_boosting']['min_samples_leaf'],
+        max_features=config['gradient_boosting']['max_features'],
+        random_state=config['gradient_boosting']['random_state']
     ),
 }
 

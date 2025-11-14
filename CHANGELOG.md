@@ -5,6 +5,46 @@ All notable changes to the Expense Predictor project will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-11-14
+
+### Added
+
+- **Configuration System** ([#44](https://github.com/manoj-bhaskaran/expense-predictor/issues/44))
+  - Added `config.yaml` file for centralizing all configurable parameters
+  - Created `config.py` module to load and manage configuration
+  - All magic numbers and hyperparameters are now configurable without code changes
+  - Configuration includes detailed comments explaining each parameter
+  - Graceful fallback to sensible defaults if config.yaml is missing or invalid
+
+- **Configurable Parameters**
+  - **Data Processing**: `skiprows` (default: 12) - customizable for different bank statement formats
+  - **Model Evaluation**: `test_size` (default: 0.2) and `random_state` (default: 42)
+  - **Decision Tree**: All hyperparameters (max_depth, min_samples_split, min_samples_leaf, ccp_alpha, random_state)
+  - **Random Forest**: All hyperparameters (n_estimators, max_depth, min_samples_split, min_samples_leaf, max_features, ccp_alpha, random_state)
+  - **Gradient Boosting**: All hyperparameters (n_estimators, learning_rate, max_depth, min_samples_split, min_samples_leaf, max_features, random_state)
+
+### Changed
+
+- **Code Structure**
+  - Refactored model_runner.py to load hyperparameters from configuration (model_runner.py:97-131)
+  - Refactored helpers.py to load skiprows from configuration (helpers.py:174)
+  - Added PyYAML dependency to requirements.txt
+
+### Documentation
+
+- Updated README.md with comprehensive configuration documentation
+  - Added new "Configuration" section explaining config.yaml usage
+  - Added "Model Tuning" section with tips for hyperparameter optimization
+  - Updated project structure to include config.py and config.yaml
+  - Enhanced troubleshooting section with configuration-related issues
+
+### Improved
+
+- **User Experience**: Users can now tune model parameters without editing code
+- **Maintainability**: All magic numbers centralized in one location
+- **Flexibility**: Easy to experiment with different hyperparameter combinations
+- **Documentation**: Each parameter in config.yaml includes explanatory comments
+
 ## [1.0.5] - 2025-11-14
 
 ### Changed
@@ -221,6 +261,7 @@ When reporting issues, please include:
 
 ---
 
+[1.1.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.1.0
 [1.0.5]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.0.5
 [1.0.4]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.0.4
 [1.0.3]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.0.3
