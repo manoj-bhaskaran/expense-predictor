@@ -196,13 +196,16 @@ def _process_dataframe(df, logger=None):
     tuple: A tuple containing X_train, y_train, and the processed DataFrame.
     """
     if not pd.to_numeric(df[TRANSACTION_AMOUNT_LABEL], errors='coerce').notnull().all():
+        plog.log_error(logger, f"The '{TRANSACTION_AMOUNT_LABEL}' column contains non-numeric values")
         raise ValueError(f"The '{TRANSACTION_AMOUNT_LABEL}' column contains non-numeric values. Please check the data.")
 
+    plog.log_info(logger, "Converting transaction amounts to numeric values")
     df[TRANSACTION_AMOUNT_LABEL] = pd.to_numeric(df[TRANSACTION_AMOUNT_LABEL])
     df = df.dropna(subset=['Date'])
     df['Date'] = pd.to_datetime(df['Date'], dayfirst=True, errors='coerce')
     df = df.dropna(subset=['Date'])
     df = df.drop_duplicates(subset=['Date'], keep='last')
+    plog.log_info(logger, f"Data cleaning completed. Rows after cleaning: {len(df)}")
 
     # Validate date range
     validate_date_range(df, logger=logger)
@@ -212,17 +215,22 @@ def _process_dataframe(df, logger=None):
 
     start_date = df['Date'].min()
     if pd.isna(start_date) or pd.isna(end_date):
+        plog.log_error(logger, "Invalid start or end date found in data")
         raise ValueError("Invalid start or end date found. Please check the data.")
 
+    plog.log_info(logger, f"Creating complete date range from {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
     complete_date_range = pd.date_range(start=start_date, end=end_date)
     df = df.set_index('Date').reindex(complete_date_range).fillna({TRANSACTION_AMOUNT_LABEL: 0}).reset_index()
     df.rename(columns={'index': 'Date'}, inplace=True)
+    plog.log_info(logger, f"Date range filled. Total rows: {len(df)}")
 
+    plog.log_info(logger, "Engineering features: day of week, month, day of month")
     df[DAY_OF_WEEK] = df['Date'].dt.day_name()
     df['Month'] = df['Date'].dt.month
     df['Day of the Month'] = df['Date'].dt.day
 
     df = pd.get_dummies(df, columns=[DAY_OF_WEEK], drop_first=True)
+    plog.log_info(logger, f"Feature engineering completed. Total features: {len(df.columns) - 2}")
 
     x_train = df.drop(['Date', TRANSACTION_AMOUNT_LABEL], axis=1)
     y_train = df[TRANSACTION_AMOUNT_LABEL]
@@ -364,5 +372,4 @@ def write_predictions(predicted_df, output_path, logger=None):
     None
     """
     predicted_df.to_csv(output_path, index=False)
-    print(f"Predictions saved to {output_path}")
     plog.log_info(logger, f"Predictions saved to {output_path}")
