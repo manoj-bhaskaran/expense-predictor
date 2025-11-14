@@ -5,6 +5,16 @@ All notable changes to the Expense Predictor project will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2025-11-14
+
+### Improved
+
+- **Categorical Handling Efficiency** ([#47](https://github.com/manoj-bhaskaran/expense-predictor/issues/47))
+  - Optimized categorical conversion in `prepare_future_dates()` to happen during column creation (helpers.py:279)
+  - Changed from two-step process (create then convert) to single-step conversion
+  - Eliminates intermediate object-type Series creation, improving memory efficiency
+  - No functional changes, purely performance optimization
+
 ## [1.3.0] - 2025-11-14
 
 ### Changed
@@ -322,6 +332,7 @@ When reporting issues, please include:
 
 ---
 
+[1.3.1]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.3.1
 [1.3.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.3.0
 [1.2.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.2.0
 [1.1.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.1.0

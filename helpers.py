@@ -276,11 +276,9 @@ def prepare_future_dates(future_date=None):
     future_dates = pd.date_range(start=start_date, end=end_date)
     future_df = pd.DataFrame({'Date': future_dates})
 
-    future_df[DAY_OF_WEEK] = future_df['Date'].dt.day_name()
+    future_df[DAY_OF_WEEK] = future_df['Date'].dt.day_name().astype('category')
     future_df['Month'] = future_df['Date'].dt.month
     future_df['Day of the Month'] = future_df['Date'].dt.day
-
-    future_df[DAY_OF_WEEK] = future_df[DAY_OF_WEEK].astype('category')
     future_df = pd.get_dummies(future_df, columns=[DAY_OF_WEEK], drop_first=True)
 
     return future_df, future_dates
