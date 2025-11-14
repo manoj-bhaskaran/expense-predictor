@@ -26,6 +26,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, r2_score, mean_squared_error
+from sklearn.model_selection import train_test_split
 from helpers import preprocess_and_append_csv, prepare_future_dates, write_predictions, get_quarter_end_date
 import argparse
 from datetime import datetime
@@ -83,10 +84,17 @@ else:
 
 # Preprocesses the transaction CSV and optionally appends Excel data.
 # Returns:
-#   X_train: Features for model training
-#   y_train: Target variable for model training
-#   df:      Full DataFrame after preprocessing
-X_train, y_train, df = preprocess_and_append_csv(file_path, excel_path=excel_path, logger=logger)
+#   X: Features for model training
+#   y: Target variable for model training
+#   df: Full DataFrame after preprocessing
+X, y, df = preprocess_and_append_csv(file_path, excel_path=excel_path, logger=logger)
+
+# Split data into training and test sets (80/20 split)
+# test_size=0.2 means 20% of data is used for testing
+# shuffle=False preserves temporal order to avoid data leakage (train on past, test on future)
+# random_state=42 ensures reproducible splits
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False, random_state=42)
+plog.log_info(logger, f"Data split: {len(X_train)} training samples, {len(X_test)} test samples")
 
 # Dictionary of models to train and evaluate.
 # Each key is a model name, value is an instantiated regressor.
@@ -125,16 +133,32 @@ for model_name, model in models.items():
 
     # Fit the model on training data
     model.fit(X_train, y_train)
-    y_train_predictor = model.predict(X_train)
 
-    # Calculate evaluation metrics
-    rmse = np.sqrt(mean_squared_error(y_train, y_train_predictor))
-    mae = mean_absolute_error(y_train, y_train_predictor)
-    r2 = r2_score(y_train, y_train_predictor)
+    # Predict on both training and test sets
+    y_train_pred = model.predict(X_train)
+    y_test_pred = model.predict(X_test)
 
-    plog.log_info(logger, f"Root Mean Squared Error (RMSE): {rmse}")
-    plog.log_info(logger, f"Mean Absolute Error (MAE): {mae}")
-    plog.log_info(logger, f"R-squared: {r2}")
+    # Calculate training set metrics
+    train_rmse = np.sqrt(mean_squared_error(y_train, y_train_pred))
+    train_mae = mean_absolute_error(y_train, y_train_pred)
+    train_r2 = r2_score(y_train, y_train_pred)
+
+    # Calculate test set metrics
+    test_rmse = np.sqrt(mean_squared_error(y_test, y_test_pred))
+    test_mae = mean_absolute_error(y_test, y_test_pred)
+    test_r2 = r2_score(y_test, y_test_pred)
+
+    # Log training metrics
+    plog.log_info(logger, "Training Set Performance:")
+    plog.log_info(logger, f"  RMSE: {train_rmse:.2f}")
+    plog.log_info(logger, f"  MAE: {train_mae:.2f}")
+    plog.log_info(logger, f"  R-squared: {train_r2:.4f}")
+
+    # Log test set metrics (generalization performance)
+    plog.log_info(logger, "Test Set Performance:")
+    plog.log_info(logger, f"  RMSE: {test_rmse:.2f}")
+    plog.log_info(logger, f"  MAE: {test_mae:.2f}")
+    plog.log_info(logger, f"  R-squared: {test_r2:.4f}")
 
     # Prepare future dates/features for prediction
     # future_df: DataFrame of features for future dates

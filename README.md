@@ -152,10 +152,14 @@ The system performs the following preprocessing steps:
 
 ## Model Performance
 
-The script evaluates each model using:
+The script uses an 80/20 train/test split to evaluate each model's generalization performance. Each model is evaluated using:
 - **RMSE (Root Mean Squared Error)**: Measures prediction accuracy
 - **MAE (Mean Absolute Error)**: Average absolute prediction error
 - **R-squared**: Proportion of variance explained by the model
+
+Performance metrics are reported separately for:
+- **Training Set**: Shows how well the model fits the training data
+- **Test Set**: Shows true generalization performance on unseen data
 
 Check the log files in the `logs/` directory for detailed performance metrics.
 
