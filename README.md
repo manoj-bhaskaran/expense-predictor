@@ -14,6 +14,7 @@ A machine learning-based expense prediction system that analyzes historical tran
 ## Requirements
 
 - Python 3.7 or higher
+- Git (required for installing dependencies from GitHub)
 - See `requirements.txt` for package dependencies
 
 ## Installation
@@ -33,6 +34,8 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
 ### 3. Install dependencies
+
+**Note:** Git must be installed on your system as some dependencies are installed directly from GitHub repositories.
 
 ```bash
 pip install -r requirements.txt

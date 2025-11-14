@@ -2,3 +2,4 @@ numpy
 pandas
 scikit-learn
 xlrd
+git+https://github.com/manoj-bhaskaran/My-Scripts.git@main

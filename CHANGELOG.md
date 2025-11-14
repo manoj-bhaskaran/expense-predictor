@@ -5,6 +5,16 @@ All notable changes to the Expense Predictor project will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2025-11-14
+
+### Fixed
+
+- **Dependency Management**
+  - Resolved external local dependency issue in requirements.txt
+  - Replaced hard-coded local path `-e "D:\\My Scripts"` with GitHub reference
+  - Added `python_logging_framework` as a proper Git dependency from `manoj-bhaskaran/My-Scripts` repository
+  - Ensures the project can be installed by other users without local path dependencies
+
 ## [1.0.0] - 2025-11-14
 
 ### Added
@@ -139,7 +149,7 @@ Planned features for future releases:
 If you encounter any bugs or have feature requests, please open an issue on the [GitHub repository](https://github.com/manoj-bhaskaran/expense-predictor/issues).
 
 When reporting issues, please include:
-- Version number (1.0.0)
+- Version number
 - Operating system and Python version
 - Complete error messages
 - Steps to reproduce the issue
@@ -153,4 +163,5 @@ When reporting issues, please include:
 
 ---
 
+[1.0.1]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.0.1
 [1.0.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.0.0
