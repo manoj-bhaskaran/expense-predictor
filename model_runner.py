@@ -4,15 +4,18 @@ Expense Predictor Script - model_runner.py
 This script processes transaction data to train and evaluate multiple machine learning models. It predicts future transaction amounts for a specified future date. The predictions are saved as CSV files.
 
 Usage:
-    python model_runner.py [--future_date DD/MM/YYYY] [--excel_dir EXCEL_DIRECTORY] [--excel_file EXCEL_FILENAME]
+    python model_runner.py [--future_date DD/MM/YYYY] [--excel_dir EXCEL_DIRECTORY] [--excel_file EXCEL_FILENAME] [--data_file DATA_FILE] [--log_dir LOG_DIRECTORY] [--output_dir OUTPUT_DIRECTORY]
 
 Command-Line Arguments:
     --future_date : (Optional) The future date for which you want to predict transaction amounts. Format: DD/MM/YYYY
-    --excel_dir   : (Optional) The directory where the Excel file is located. Default: C:\\Users\\manoj\\Downloads
+    --excel_dir   : (Optional) The directory where the Excel file is located. Default: current directory
     --excel_file  : (Optional) The name of the Excel file containing additional data.
+    --data_file   : (Optional) The path to the CSV file containing transaction data. Default: trandata.csv
+    --log_dir     : (Optional) The directory where log files will be saved. Default: logs/
+    --output_dir  : (Optional) The directory where prediction files will be saved. Default: current directory
 
 Example:
-    python model_runner.py --future_date 31/12/2025 --excel_dir C:\\Data --excel_file transactions.xls
+    python model_runner.py --future_date 31/12/2025 --excel_dir ./data --excel_file transactions.xls --data_file ./trandata.csv
 
 If no future date is provided, the script will use the last day of the current quarter. If no Excel file name is provided, the script will not use an Excel file.
 """
@@ -30,16 +33,26 @@ import os
 import python_logging_framework as plog
 import logging
 
+# Get the directory where this script is located
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # Set up command-line argument parsing
 parser = argparse.ArgumentParser(description='Expense Predictor')
 parser.add_argument('--future_date', type=str, help='Future date for prediction (e.g., 31/12/2025)')
-parser.add_argument('--excel_dir', type=str, default=r'C:\Users\manoj\Downloads', help='Directory where the Excel file is located')
+parser.add_argument('--excel_dir', type=str, default='.', help='Directory where the Excel file is located')
 parser.add_argument('--excel_file', type=str, help='Name of the Excel file containing additional data')
+parser.add_argument('--data_file', type=str, default='trandata.csv', help='Path to the CSV file containing transaction data')
+parser.add_argument('--log_dir', type=str, default='logs', help='Directory where log files will be saved')
+parser.add_argument('--output_dir', type=str, default='.', help='Directory where prediction files will be saved')
 args = parser.parse_args()
+
+# Create log directory if it doesn't exist
+log_dir_path = os.path.join(SCRIPT_DIR, args.log_dir) if not os.path.isabs(args.log_dir) else args.log_dir
+os.makedirs(log_dir_path, exist_ok=True)
 
 logger = plog.initialise_logger(
     script_name='model_runner.py',
-    log_dir=r'D:\Python\Projects\Expense Predictor\logs',
+    log_dir=log_dir_path,
     log_level=logging.INFO
 )
 
@@ -61,7 +74,12 @@ elif not args.excel_file:
     excel_path = None
 
 TRANSACTION_AMOUNT_LABEL = 'Tran Amt'
-file_path = r'D:\Python\Projects\Expense Predictor\trandata.csv'
+
+# Handle data file path - support both absolute and relative paths
+if os.path.isabs(args.data_file):
+    file_path = args.data_file
+else:
+    file_path = os.path.join(SCRIPT_DIR, args.data_file)
 
 # Preprocesses the transaction CSV and optionally appends Excel data.
 # Returns:
@@ -128,5 +146,14 @@ for model_name, model in models.items():
 
     # Create DataFrame with predictions and save to CSV
     predicted_df = pd.DataFrame({'Date': future_dates, f'Predicted {TRANSACTION_AMOUNT_LABEL}': y_predict})
-    output_path = rf'D:\Python\Projects\Expense Predictor\future_predictions_{model_name.replace(" ", "_").lower()}.csv'
+
+    # Handle output directory - support both absolute and relative paths
+    if os.path.isabs(args.output_dir):
+        output_dir = args.output_dir
+    else:
+        output_dir = os.path.join(SCRIPT_DIR, args.output_dir)
+
+    os.makedirs(output_dir, exist_ok=True)
+    output_filename = f'future_predictions_{model_name.replace(" ", "_").lower()}.csv'
+    output_path = os.path.join(output_dir, output_filename)
     write_predictions(predicted_df, output_path, logger=logger)
