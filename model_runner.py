@@ -4,18 +4,29 @@ Expense Predictor Script - model_runner.py
 This script processes transaction data to train and evaluate multiple machine learning models. It predicts future transaction amounts for a specified future date. The predictions are saved as CSV files.
 
 Usage:
-    python model_runner.py [--future_date DD/MM/YYYY] [--excel_dir EXCEL_DIRECTORY] [--excel_file EXCEL_FILENAME] [--data_file DATA_FILE] [--log_dir LOG_DIRECTORY] [--output_dir OUTPUT_DIRECTORY]
+    python model_runner.py [--future_date DD/MM/YYYY] [--excel_dir EXCEL_DIRECTORY] [--excel_file EXCEL_FILENAME] [--data_file DATA_FILE] [--log_dir LOG_DIRECTORY] [--output_dir OUTPUT_DIRECTORY] [--skip_confirmation]
 
 Command-Line Arguments:
-    --future_date : (Optional) The future date for which you want to predict transaction amounts. Format: DD/MM/YYYY
-    --excel_dir   : (Optional) The directory where the Excel file is located. Default: current directory
-    --excel_file  : (Optional) The name of the Excel file containing additional data.
-    --data_file   : (Optional) The path to the CSV file containing transaction data. Default: trandata.csv
-    --log_dir     : (Optional) The directory where log files will be saved. Default: logs/
-    --output_dir  : (Optional) The directory where prediction files will be saved. Default: current directory
+    --future_date        : (Optional) The future date for which you want to predict transaction amounts. Format: DD/MM/YYYY
+    --excel_dir          : (Optional) The directory where the Excel file is located. Default: current directory
+    --excel_file         : (Optional) The name of the Excel file containing additional data.
+    --data_file          : (Optional) The path to the CSV file containing transaction data. Default: trandata.csv
+    --log_dir            : (Optional) The directory where log files will be saved. Default: logs/
+    --output_dir         : (Optional) The directory where prediction files will be saved. Default: current directory
+    --skip_confirmation  : (Optional) Skip confirmation prompts for overwriting files. Useful for automated workflows.
 
 Example:
     python model_runner.py --future_date 31/12/2025 --excel_dir ./data --excel_file transactions.xls --data_file ./trandata.csv
+
+Example (automated mode, no prompts):
+    python model_runner.py --future_date 31/12/2025 --data_file ./trandata.csv --skip_confirmation
+
+Security Features:
+    - Path validation to prevent path traversal attacks
+    - File extension validation for CSV and Excel files
+    - CSV injection prevention in output files
+    - Automatic backups before overwriting existing files
+    - User confirmation prompts for file overwrites (unless --skip_confirmation is used)
 
 If no future date is provided, the script will use the last day of the current quarter. If no Excel file name is provided, the script will not use an Excel file.
 """
@@ -34,6 +45,12 @@ import os
 import python_logging_framework as plog
 import logging
 from config import config
+from security import (
+    validate_file_path,
+    validate_directory_path,
+    ALLOWED_CSV_EXTENSIONS,
+    ALLOWED_EXCEL_EXTENSIONS
+)
 
 # Get the directory where this script is located
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -46,11 +63,17 @@ parser.add_argument('--excel_file', type=str, help='Name of the Excel file conta
 parser.add_argument('--data_file', type=str, default='trandata.csv', help='Path to the CSV file containing transaction data')
 parser.add_argument('--log_dir', type=str, default='logs', help='Directory where log files will be saved')
 parser.add_argument('--output_dir', type=str, default='.', help='Directory where prediction files will be saved')
+parser.add_argument('--skip_confirmation', action='store_true', help='Skip confirmation prompts for overwriting files (useful for automation)')
 args = parser.parse_args()
 
-# Create log directory if it doesn't exist
-log_dir_path = os.path.join(SCRIPT_DIR, args.log_dir) if not os.path.isabs(args.log_dir) else args.log_dir
-os.makedirs(log_dir_path, exist_ok=True)
+# Validate and create log directory with security checks
+try:
+    log_dir_path_str = os.path.join(SCRIPT_DIR, args.log_dir) if not os.path.isabs(args.log_dir) else args.log_dir
+    log_dir_path_obj = validate_directory_path(log_dir_path_str, create_if_missing=True)
+    log_dir_path = str(log_dir_path_obj)
+except (ValueError, FileNotFoundError) as e:
+    print(f"Error: Invalid log directory path: {e}")
+    exit(1)
 
 logger = plog.initialise_logger(
     script_name='model_runner.py',
@@ -71,17 +94,42 @@ else:
     future_date_for_function = get_quarter_end_date(current_date).strftime('%d-%m-%Y')
 
 if args.excel_file:
-    excel_path = os.path.join(args.excel_dir, args.excel_file)
+    # Validate excel_dir and excel_file with security checks
+    try:
+        excel_dir_path = validate_directory_path(args.excel_dir, must_exist=True, logger=logger)
+        excel_file_str = os.path.join(str(excel_dir_path), args.excel_file)
+        excel_file_path = validate_file_path(
+            excel_file_str,
+            allowed_extensions=ALLOWED_EXCEL_EXTENSIONS,
+            must_exist=True,
+            logger=logger
+        )
+        excel_path = str(excel_file_path)
+    except (ValueError, FileNotFoundError) as e:
+        plog.log_error(logger, f"Invalid Excel file path: {e}")
+        raise
 else:
     excel_path = None
 
 TRANSACTION_AMOUNT_LABEL = 'Tran Amt'
 
-# Handle data file path - support both absolute and relative paths
-if os.path.isabs(args.data_file):
-    file_path = args.data_file
-else:
-    file_path = os.path.join(SCRIPT_DIR, args.data_file)
+# Validate data file path with security checks
+try:
+    if os.path.isabs(args.data_file):
+        data_file_str = args.data_file
+    else:
+        data_file_str = os.path.join(SCRIPT_DIR, args.data_file)
+
+    data_file_path = validate_file_path(
+        data_file_str,
+        allowed_extensions=ALLOWED_CSV_EXTENSIONS,
+        must_exist=True,
+        logger=logger
+    )
+    file_path = str(data_file_path)
+except (ValueError, FileNotFoundError) as e:
+    plog.log_error(logger, f"Invalid data file path: {e}")
+    raise
 
 # Preprocesses the transaction CSV and optionally appends Excel data.
 # Returns:
@@ -179,13 +227,22 @@ for model_name, model in models.items():
     # Create DataFrame with predictions and save to CSV
     predicted_df = pd.DataFrame({'Date': future_dates, f'Predicted {TRANSACTION_AMOUNT_LABEL}': y_predict})
 
-    # Handle output directory - support both absolute and relative paths
-    if os.path.isabs(args.output_dir):
-        output_dir = args.output_dir
-    else:
-        output_dir = os.path.join(SCRIPT_DIR, args.output_dir)
+    # Validate and create output directory with security checks
+    try:
+        if os.path.isabs(args.output_dir):
+            output_dir_str = args.output_dir
+        else:
+            output_dir_str = os.path.join(SCRIPT_DIR, args.output_dir)
 
-    os.makedirs(output_dir, exist_ok=True)
+        output_dir_path = validate_directory_path(
+            output_dir_str,
+            create_if_missing=True,
+            logger=logger
+        )
+        output_dir = str(output_dir_path)
+    except (ValueError, FileNotFoundError) as e:
+        plog.log_error(logger, f"Invalid output directory path: {e}")
+        raise
     output_filename = f'future_predictions_{model_name.replace(" ", "_").lower()}.csv'
     output_path = os.path.join(output_dir, output_filename)
-    write_predictions(predicted_df, output_path, logger=logger)
+    write_predictions(predicted_df, output_path, logger=logger, skip_confirmation=args.skip_confirmation)
