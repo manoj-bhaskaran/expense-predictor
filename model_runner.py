@@ -159,6 +159,9 @@ for model_name, model in models.items():
     plog.log_info(logger, f"  MAE: {test_mae:.2f}")
     plog.log_info(logger, f"  R-squared: {test_r2:.4f}")
 
+    # Retrain on full dataset for production predictions
+    plog.log_info(logger, f"Retraining {model_name} on full dataset for production predictions")
+    model.fit(X, y)
     # Prepare future dates/features for prediction
     # future_df: DataFrame of features for future dates
     # future_dates: List of future date strings
