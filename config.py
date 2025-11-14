@@ -7,6 +7,7 @@ All configurable parameters (magic numbers, hyperparameters) are centralized her
 
 import os
 import yaml
+import python_logging_framework as plog
 
 # Get the directory where this script is located
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -64,12 +65,12 @@ def load_config():
                 # Merge with defaults to ensure all keys exist
                 return _merge_configs(DEFAULT_CONFIG, config)
         except Exception as e:
-            print(f"Warning: Could not load config.yaml: {e}")
-            print("Using default configuration.")
+            plog.log_error(None, f"Could not load config.yaml: {e}")
+            plog.log_info(None, "Using default configuration.")
             return DEFAULT_CONFIG
     else:
-        print(f"Warning: config.yaml not found at {CONFIG_FILE}")
-        print("Using default configuration.")
+        plog.log_info(None, f"config.yaml not found at {CONFIG_FILE}")
+        plog.log_info(None, "Using default configuration.")
         return DEFAULT_CONFIG
 
 

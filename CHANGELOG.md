@@ -5,6 +5,38 @@ All notable changes to the Expense Predictor project will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2025-11-14
+
+### Changed
+
+- **Standardized Logging Approach** ([#46](https://github.com/manoj-bhaskaran/expense-predictor/issues/46))
+  - Replaced all `print()` statements with `plog` logging calls for consistency
+  - Removed 4 print() statements in config.py (config.py:67-72) - now use plog.log_error() and plog.log_info()
+  - Removed duplicate print() statement in helpers.py (helpers.py:367) that was redundant with plog call
+  - Enhanced `_process_dataframe()` with comprehensive logging (helpers.py:184-237)
+  - Added logging for data conversion, cleaning, date range creation, and feature engineering steps
+  - All logging now consistently uses `python_logging_framework` (plog) library
+
+### Improved
+
+- **Logging Consistency**: Unified logging approach across all modules (config.py, helpers.py, model_runner.py)
+- **Observability**: Added detailed logging in data processing pipeline for better debugging and monitoring
+- **Code Quality**: Eliminated mixed logging approaches (no more print() for operational messages)
+- **Data Processing Visibility**: Users can now track data transformation steps through log files
+  - Data type conversions and validations
+  - Row counts after cleaning operations
+  - Date range filling operations
+  - Feature engineering progress
+
+### Documentation
+
+- **README.md**: Significantly expanded Logging section with comprehensive documentation
+  - Added logging framework details and log levels
+  - Documented what gets logged in each component
+  - Added examples of log file location and customization
+  - Explained logger parameter usage pattern
+  - Included detailed breakdown of logged operations (model training, data processing, configuration, errors)
+
 ## [1.2.0] - 2025-11-14
 
 ### Added
@@ -290,6 +322,7 @@ When reporting issues, please include:
 
 ---
 
+[1.3.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.3.0
 [1.2.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.2.0
 [1.1.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.1.0
 [1.0.5]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.0.5

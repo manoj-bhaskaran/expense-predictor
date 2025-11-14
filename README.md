@@ -201,11 +201,46 @@ Check the log files in the `logs/` directory for detailed performance metrics.
 
 ## Logging
 
-Logs are automatically saved to the `logs/` directory with timestamps. Log files include:
-- Model training progress
-- Data preprocessing steps
-- Error messages and warnings
-- Prediction results
+The project uses a consistent logging approach throughout, powered by the `python_logging_framework` (plog) library. All logging is standardized to ensure comprehensive tracking and debugging capabilities.
+
+### Logging Framework
+
+- **Unified Logging**: All components use `plog` for consistent logging behavior
+- **Log Levels**:
+  - `plog.log_info()` - Informational messages (successful operations, progress tracking)
+  - `plog.log_error()` - Error conditions and failures
+- **Automatic Log Files**: Logs are saved to the `logs/` directory with timestamps
+- **Configuration Loading**: Even configuration warnings are logged using plog
+
+### What Gets Logged
+
+Log files include detailed information about:
+- **Model Training**: Training progress, model performance metrics (RMSE, MAE, R²)
+- **Data Processing**:
+  - Data validation results (file checks, column validation, date range validation)
+  - Data cleaning operations (rows cleaned, duplicates removed)
+  - Feature engineering steps (features created, transformations applied)
+  - Date range processing (start/end dates, missing date filling)
+- **Configuration**: Config file loading status, parameter usage
+- **File Operations**: File reads, prediction outputs, data validation
+- **Error Messages**: Detailed error information with context for debugging
+- **Warnings**: Configuration fallbacks, data quality issues
+
+### Log File Location
+
+By default, logs are saved to:
+```
+logs/model_runner.py_YYYY-MM-DD_HH-MM-SS.log
+```
+
+You can customize the log directory using the `--log_dir` command-line argument:
+```bash
+python model_runner.py --data_file trandata.csv --log_dir ./my_logs
+```
+
+### Logger Parameter
+
+Most helper functions accept an optional `logger` parameter. When called from `model_runner.py`, the logger is passed through the call chain. Functions can also operate without a logger (logger=None) for standalone usage.
 
 ## Development
 
