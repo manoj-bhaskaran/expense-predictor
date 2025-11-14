@@ -4,11 +4,131 @@ from datetime import datetime, timedelta
 import xlrd
 import python_logging_framework as plog
 from config import config
+import os
 
 # Define constants
 TRANSACTION_AMOUNT_LABEL = 'Tran Amt'
 DAY_OF_WEEK = 'Day of the Week'
 VALUE_DATE_LABEL = 'Value Date'
+
+def validate_csv_file(file_path, logger=None):
+    """
+    Validate that CSV file exists and has required columns.
+
+    Parameters:
+    file_path (str): Path to the CSV file
+    logger (logging.Logger, optional): Logger instance for logging messages
+
+    Raises:
+    FileNotFoundError: If the CSV file does not exist
+    ValueError: If required columns are missing
+    """
+    # Check if file exists
+    if not os.path.exists(file_path):
+        plog.log_error(logger, f"CSV file not found: {file_path}")
+        raise FileNotFoundError(f"CSV file not found: {file_path}")
+
+    # Check if it's a file (not a directory)
+    if not os.path.isfile(file_path):
+        plog.log_error(logger, f"Path is not a file: {file_path}")
+        raise ValueError(f"Path is not a file: {file_path}")
+
+    # Try to read the CSV and check for required columns
+    try:
+        df = pd.read_csv(file_path, nrows=0)  # Read only headers
+        columns = df.columns.tolist()
+
+        # Check for required columns
+        required_columns = ['Date', TRANSACTION_AMOUNT_LABEL]
+        missing_columns = [col for col in required_columns if col not in columns]
+
+        if missing_columns:
+            plog.log_error(logger, f"Missing required columns in CSV: {missing_columns}. Found columns: {columns}")
+            raise ValueError(f"Missing required columns in CSV file: {missing_columns}. Found columns: {columns}")
+
+        plog.log_info(logger, f"CSV file validation passed: {file_path}")
+    except pd.errors.EmptyDataError:
+        plog.log_error(logger, f"CSV file is empty: {file_path}")
+        raise ValueError(f"CSV file is empty: {file_path}")
+    except pd.errors.ParserError as e:
+        plog.log_error(logger, f"CSV file parsing error: {e}")
+        raise ValueError(f"CSV file is not properly formatted: {e}")
+
+def validate_excel_file(file_path, logger=None):
+    """
+    Validate that Excel file exists and has a valid format.
+
+    Parameters:
+    file_path (str): Path to the Excel file
+    logger (logging.Logger, optional): Logger instance for logging messages
+
+    Raises:
+    FileNotFoundError: If the Excel file does not exist
+    ValueError: If the file is not a valid Excel format
+    """
+    # Check if file exists
+    if not os.path.exists(file_path):
+        plog.log_error(logger, f"Excel file not found: {file_path}")
+        raise FileNotFoundError(f"Excel file not found: {file_path}")
+
+    # Check if it's a file (not a directory)
+    if not os.path.isfile(file_path):
+        plog.log_error(logger, f"Path is not a file: {file_path}")
+        raise ValueError(f"Path is not a file: {file_path}")
+
+    # Check file extension
+    valid_extensions = ['.xls', '.xlsx']
+    file_extension = os.path.splitext(file_path)[1].lower()
+
+    if file_extension not in valid_extensions:
+        plog.log_error(logger, f"Invalid Excel file format: {file_extension}. Expected: {valid_extensions}")
+        raise ValueError(f"Invalid Excel file format: {file_extension}. Expected one of: {valid_extensions}")
+
+    # Try to open the Excel file to ensure it's valid
+    try:
+        engine = 'xlrd' if file_path.endswith('.xls') else 'openpyxl'
+        pd.ExcelFile(file_path, engine=engine)
+        plog.log_info(logger, f"Excel file validation passed: {file_path}")
+    except Exception as e:
+        plog.log_error(logger, f"Excel file is corrupted or invalid: {e}")
+        raise ValueError(f"Excel file is corrupted or cannot be read: {e}")
+
+def validate_date_range(df, logger=None):
+    """
+    Validate date range in the DataFrame.
+
+    Parameters:
+    df (pd.DataFrame): DataFrame with 'Date' column
+    logger (logging.Logger, optional): Logger instance for logging messages
+
+    Raises:
+    ValueError: If date range is invalid
+    """
+    if 'Date' not in df.columns:
+        plog.log_error(logger, "Date column not found in DataFrame")
+        raise ValueError("Date column not found in DataFrame")
+
+    # Check if there are any valid dates
+    if df['Date'].isna().all():
+        plog.log_error(logger, "No valid dates found in the data")
+        raise ValueError("No valid dates found in the data")
+
+    start_date = df['Date'].min()
+    end_date = df['Date'].max()
+
+    # Check for NaT (Not a Time) values
+    if pd.isna(start_date) or pd.isna(end_date):
+        plog.log_error(logger, "Invalid dates found in the data (NaT values)")
+        raise ValueError("Invalid dates found in the data. Please ensure all dates are properly formatted.")
+
+    # Check if dates are in the future (beyond today)
+    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    if start_date > today:
+        plog.log_error(logger, f"Data contains only future dates. Start date: {start_date}, Today: {today}")
+        raise ValueError(f"Data contains only future dates. Start date: {start_date.strftime('%Y-%m-%d')}")
+
+    # Log date range info
+    plog.log_info(logger, f"Date range validation passed. Start: {start_date.strftime('%Y-%m-%d')}, End: {end_date.strftime('%Y-%m-%d')}")
 
 def find_column_name(df_columns, expected_name):
     """
@@ -61,7 +181,7 @@ def get_quarter_end_date(current_date):
     quarter = (current_date.month - 1) // 3 + 1
     return datetime(current_date.year, 3 * quarter, 1) + DateOffset(months=1) - DateOffset(days=1)
 
-def _process_dataframe(df):
+def _process_dataframe(df, logger=None):
     """
     Process a DataFrame for training (internal helper function).
 
@@ -70,6 +190,7 @@ def _process_dataframe(df):
 
     Parameters:
     df (pd.DataFrame): DataFrame with 'Date' and transaction amount columns.
+    logger (logging.Logger, optional): Logger instance to record log messages. Defaults to None.
 
     Returns:
     tuple: A tuple containing X_train, y_train, and the processed DataFrame.
@@ -82,6 +203,9 @@ def _process_dataframe(df):
     df['Date'] = pd.to_datetime(df['Date'], dayfirst=True, errors='coerce')
     df = df.dropna(subset=['Date'])
     df = df.drop_duplicates(subset=['Date'], keep='last')
+
+    # Validate date range
+    validate_date_range(df, logger=logger)
 
     end_date = datetime.now() - timedelta(days=1)
     end_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -105,18 +229,22 @@ def _process_dataframe(df):
 
     return x_train, y_train, df
 
-def preprocess_data(file_path):
+def preprocess_data(file_path, logger=None):
     """
     Preprocess input data from a CSV file.
 
     Parameters:
     file_path (str): The file path to the CSV file containing the input data.
+    logger (logging.Logger, optional): Logger instance to record log messages. Defaults to None.
 
     Returns:
     tuple: A tuple containing X_train, y_train, and the processed DataFrame.
     """
+    # Validate CSV file before reading
+    validate_csv_file(file_path, logger=logger)
+
     df = pd.read_csv(file_path)
-    return _process_dataframe(df)
+    return _process_dataframe(df, logger=logger)
 
 def prepare_future_dates(future_date=None):
     """
@@ -164,9 +292,14 @@ def preprocess_and_append_csv(file_path, excel_path=None, logger=None):
     Returns:
     tuple: A tuple containing X_train, y_train, and the processed DataFrame.
     """
+    # Validate CSV file before reading
+    validate_csv_file(file_path, logger=logger)
+
     df = pd.read_csv(file_path)
 
     if excel_path:
+        # Validate Excel file before reading
+        validate_excel_file(excel_path, logger=logger)
         engine = 'xlrd' if excel_path.endswith('.xls') else 'openpyxl'
         sheet_names = pd.ExcelFile(excel_path, engine=engine).sheet_names
         plog.log_info(logger, f"Available sheets: {sheet_names}")
@@ -216,7 +349,7 @@ def preprocess_and_append_csv(file_path, excel_path=None, logger=None):
     df.rename(columns={'index': 'Date'}, inplace=True)
 
     # Process the dataframe directly without modifying the input file
-    return _process_dataframe(df)
+    return _process_dataframe(df, logger=logger)
 
 def write_predictions(predicted_df, output_path, logger=None):
     """

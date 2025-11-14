@@ -6,6 +6,7 @@ A machine learning-based expense prediction system that analyzes historical tran
 
 - **Multiple ML Models**: Supports Linear Regression, Decision Tree, Random Forest, and Gradient Boosting algorithms
 - **Flexible Data Input**: Works with CSV transaction data and optionally integrates Excel bank statements
+- **Robust Input Validation**: Validates file existence, format, required columns, and date ranges before processing
 - **Automated Predictions**: Generates predictions for custom future dates or automatically for the current quarter end
 - **Comprehensive Logging**: Built-in logging framework for tracking operations and debugging
 - **Performance Metrics**: Evaluates models using RMSE, MAE, and R-squared metrics
@@ -246,6 +247,21 @@ After modifying `config.yaml`, simply run the script again - no code changes nee
 ## Troubleshooting
 
 ### Common Issues
+
+**Issue**: `FileNotFoundError: CSV file not found` or `FileNotFoundError: Excel file not found`
+- **Solution**: Verify the file path is correct. Use absolute paths or ensure relative paths are correct from the script's directory. Check that the file exists and you have read permissions.
+
+**Issue**: `ValueError: Missing required columns in CSV file`
+- **Solution**: Ensure your CSV file contains both 'Date' and 'Tran Amt' columns. Check the column names match exactly (case-sensitive). The error message will show which columns were found.
+
+**Issue**: `ValueError: Invalid Excel file format`
+- **Solution**: Ensure the file has a .xls or .xlsx extension and is a valid Excel file. The script only supports Excel formats, not other spreadsheet formats like .ods or .csv.
+
+**Issue**: `ValueError: No valid dates found in the data`
+- **Solution**: Check that your Date column contains valid date values. Ensure dates are properly formatted and not all empty/null values.
+
+**Issue**: `ValueError: Data contains only future dates`
+- **Solution**: The training data must contain historical (past) dates. The script cannot train on future dates only.
 
 **Issue**: `KeyError` when reading Excel files
 - **Solution**: Ensure Excel file has correct column names. The script supports flexible column name matching, but column headers should include "Value Date", "Withdrawal Amount", and "Deposit Amount"
