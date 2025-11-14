@@ -5,6 +5,25 @@ All notable changes to the Expense Predictor project will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2025-11-14
+
+### Fixed
+
+- **Data Mutation Side Effect** ([#40](https://github.com/manoj-bhaskaran/expense-predictor/issues/40))
+  - Fixed `preprocess_and_append_csv` function in helpers.py that was destructively overwriting input CSV files
+  - Refactored data processing logic into `_process_dataframe` helper function
+  - The function now processes data in-memory without modifying original files
+  - Eliminates unexpected behavior and data loss
+  - Allows reprocessing with different parameters without data loss
+  - Improves code maintainability and follows principle of least surprise
+
+### Changed
+
+- **Code Structure**
+  - Extracted core dataframe processing logic into `_process_dataframe` internal helper function
+  - Both `preprocess_data` and `preprocess_and_append_csv` now use the shared helper
+  - Improved documentation to clarify non-destructive behavior
+
 ## [1.0.1] - 2025-11-14
 
 ### Fixed
@@ -163,5 +182,6 @@ When reporting issues, please include:
 
 ---
 
+[1.0.2]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.0.2
 [1.0.1]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.0.1
 [1.0.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.0.0

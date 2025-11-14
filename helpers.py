@@ -60,18 +60,19 @@ def get_quarter_end_date(current_date):
     quarter = (current_date.month - 1) // 3 + 1
     return datetime(current_date.year, 3 * quarter, 1) + DateOffset(months=1) - DateOffset(days=1)
 
-def preprocess_data(file_path):
+def _process_dataframe(df):
     """
-    Preprocess input data from a CSV file.
+    Process a DataFrame for training (internal helper function).
+
+    This function performs the core data processing operations without
+    reading or writing files, making it reusable and non-destructive.
 
     Parameters:
-    file_path (str): The file path to the CSV file containing the input data.
+    df (pd.DataFrame): DataFrame with 'Date' and transaction amount columns.
 
     Returns:
     tuple: A tuple containing X_train, y_train, and the processed DataFrame.
     """
-    df = pd.read_csv(file_path)
-
     if not pd.to_numeric(df[TRANSACTION_AMOUNT_LABEL], errors='coerce').notnull().all():
         raise ValueError(f"The '{TRANSACTION_AMOUNT_LABEL}' column contains non-numeric values. Please check the data.")
 
@@ -102,6 +103,19 @@ def preprocess_data(file_path):
     y_train = df[TRANSACTION_AMOUNT_LABEL]
 
     return x_train, y_train, df
+
+def preprocess_data(file_path):
+    """
+    Preprocess input data from a CSV file.
+
+    Parameters:
+    file_path (str): The file path to the CSV file containing the input data.
+
+    Returns:
+    tuple: A tuple containing X_train, y_train, and the processed DataFrame.
+    """
+    df = pd.read_csv(file_path)
+    return _process_dataframe(df)
 
 def prepare_future_dates(future_date=None):
     """
@@ -138,6 +152,9 @@ def preprocess_and_append_csv(file_path, excel_path=None, logger=None):
     """
     Preprocess input data from a CSV file and optionally append data from an Excel file.
 
+    This function reads data from the CSV file and optionally merges it with Excel data,
+    then processes it for training. The original CSV file is NOT modified.
+
     Parameters:
     file_path (str): The file path to the CSV file containing the input data.
     excel_path (str, optional): The file path to the Excel file for additional data. Defaults to None.
@@ -161,7 +178,7 @@ def preprocess_and_append_csv(file_path, excel_path=None, logger=None):
         if value_date_col is None:
             plog.log_error(logger, f"{VALUE_DATE_LABEL} column not found. Available columns: {excel_data.columns.tolist()}")
             raise KeyError(f"{VALUE_DATE_LABEL} column not found in Excel file. Available columns: {excel_data.columns.tolist()}")
-        
+
         plog.log_info(logger, f"Using '{value_date_col}' as {VALUE_DATE_LABEL} column")
         excel_data[value_date_col] = pd.to_datetime(excel_data[value_date_col], dayfirst=True, errors='coerce')
 
@@ -170,15 +187,15 @@ def preprocess_and_append_csv(file_path, excel_path=None, logger=None):
         if value_date_col != VALUE_DATE_LABEL:
             excel_data = excel_data.rename(columns={value_date_col: VALUE_DATE_LABEL})
             excel_data = excel_data.rename(columns={value_date_col: 'Value Date'})
-        
+
         # Find the actual column names with flexible matching
         withdrawal_col = find_column_name(excel_data.columns, 'Withdrawal Amount (INR )')
         deposit_col = find_column_name(excel_data.columns, 'Deposit Amount (INR )')
-        
+
         if withdrawal_col is None or deposit_col is None:
             plog.log_error(logger, f"Required columns not found. Expected: 'Withdrawal Amount (INR )' and 'Deposit Amount (INR )'. Found: {excel_data.columns.tolist()}")
             raise KeyError(f"Required columns not found in Excel file. Available columns: {excel_data.columns.tolist()}")
-        
+
         plog.log_info(logger, f"Using columns: '{withdrawal_col}' for withdrawals and '{deposit_col}' for deposits")
         excel_data['expense'] = excel_data[withdrawal_col].fillna(0) * -1 + excel_data[deposit_col].fillna(0)
         daily_expenses = excel_data.groupby(VALUE_DATE_LABEL)['expense'].sum().reset_index()
@@ -196,9 +213,9 @@ def preprocess_and_append_csv(file_path, excel_path=None, logger=None):
     complete_date_range = pd.date_range(start=start_date, end=end_date)
     df = df.set_index('Date').reindex(complete_date_range).fillna({TRANSACTION_AMOUNT_LABEL: 0}).reset_index()
     df.rename(columns={'index': 'Date'}, inplace=True)
-    df.to_csv(file_path, index=False)
 
-    return preprocess_data(file_path)
+    # Process the dataframe directly without modifying the input file
+    return _process_dataframe(df)
 
 def write_predictions(predicted_df, output_path, logger=None):
     """
