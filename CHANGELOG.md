@@ -5,6 +5,26 @@ All notable changes to the Expense Predictor project will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - 2025-11-14
+
+### Fixed
+
+- **Train/Test Split Implementation** ([#42](https://github.com/manoj-bhaskaran/expense-predictor/issues/42))
+  - Introduced proper train/test split (80/20) for model evaluation (model_runner.py:95-96)
+  - Models are now evaluated on held-out test data instead of training data only
+  - Added separate performance metrics for training and test sets
+  - Fixed overfitting risk detection by reporting true generalization performance
+  - Test set metrics now accurately reflect model performance on unseen data
+  - Training set metrics still logged for comparison and overfitting detection
+
+### Changed
+
+- **Model Evaluation**
+  - Evaluation metrics now calculated on both training and test sets
+  - Log output now includes separate sections for "Training Set Performance" and "Test Set Performance"
+  - Added informative logging about data split sizes
+  - Improved metric formatting with 2 decimal places for RMSE/MAE and 4 for R-squared
+
 ## [1.0.3] - 2025-11-14
 
 ### Fixed
@@ -192,6 +212,7 @@ When reporting issues, please include:
 
 ---
 
+[1.0.4]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.0.4
 [1.0.3]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.0.3
 [1.0.2]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.0.2
 [1.0.1]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.0.1
