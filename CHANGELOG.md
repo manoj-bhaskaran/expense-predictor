@@ -5,6 +5,35 @@ All notable changes to the Expense Predictor project will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-11-14
+
+### Added
+
+- **Comprehensive Input Validation** ([#45](https://github.com/manoj-bhaskaran/expense-predictor/issues/45))
+  - Added `validate_csv_file()` function to check CSV file existence and required columns (helpers.py:14-55)
+  - Added `validate_excel_file()` function to validate Excel file existence and format (helpers.py:57-94)
+  - Added `validate_date_range()` function to validate date ranges in data (helpers.py:96-131)
+  - CSV validation checks for file existence, file type, and required columns ('Date', 'Tran Amt')
+  - Excel validation checks for file existence, valid extensions (.xls, .xlsx), and file integrity
+  - Date range validation checks for valid dates, prevents all-NaT data, and ensures data isn't all future dates
+  - All validation functions integrated with logging framework for detailed error reporting
+
+### Changed
+
+- **Function Signatures**
+  - Updated `preprocess_data()` to include logger parameter and call validation (helpers.py:232-247)
+  - Updated `_process_dataframe()` to include logger parameter and date range validation (helpers.py:184-230)
+  - Updated `preprocess_and_append_csv()` to call CSV and Excel validation before processing (helpers.py:276-352)
+  - Added comprehensive error messages with file paths and available columns when validation fails
+
+### Improved
+
+- **Error Handling**: Early validation prevents cryptic errors later in processing
+- **User Experience**: Clear, actionable error messages when input files are invalid
+- **Data Quality**: Ensures required columns exist before attempting data processing
+- **Robustness**: Validates file formats and detects corrupted Excel files before processing
+- **Debugging**: All validations log detailed information for troubleshooting
+
 ## [1.1.0] - 2025-11-14
 
 ### Added
@@ -261,6 +290,7 @@ When reporting issues, please include:
 
 ---
 
+[1.2.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.2.0
 [1.1.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.1.0
 [1.0.5]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.0.5
 [1.0.4]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.0.4
