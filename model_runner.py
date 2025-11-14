@@ -92,7 +92,7 @@ X, y, df = preprocess_and_append_csv(file_path, excel_path=excel_path, logger=lo
 # Split data into training and test sets (80/20 split)
 # test_size=0.2 means 20% of data is used for testing
 # random_state=42 ensures reproducible splits
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, shuffle=False)
 plog.log_info(logger, f"Data split: {len(X_train)} training samples, {len(X_test)} test samples")
 
 # Dictionary of models to train and evaluate.
