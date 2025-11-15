@@ -15,6 +15,9 @@ from exceptions import ConfigurationError
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_FILE = os.path.join(SCRIPT_DIR, 'config.yaml')
 
+# Message constants
+_DEFAULT_CONFIG_MSG = "Using default configuration."
+
 # Default configuration (used as fallback if config.yaml is not found or incomplete)
 DEFAULT_CONFIG = {
     'data_processing': {
@@ -69,12 +72,12 @@ def load_config() -> Dict[str, Any]:
         except (FileNotFoundError, PermissionError) as e:
             # File access issues (permissions, file deleted between check and open)
             plog.log_error(None, f"Could not access config.yaml: {e}")
-            plog.log_info(None, "Using default configuration.")
+            plog.log_info(None, _DEFAULT_CONFIG_MSG)
             return DEFAULT_CONFIG
         except yaml.YAMLError as e:
             # Invalid YAML syntax
             plog.log_error(None, f"Invalid YAML in config.yaml: {e}")
-            plog.log_info(None, "Using default configuration.")
+            plog.log_info(None, _DEFAULT_CONFIG_MSG)
             return DEFAULT_CONFIG
         except Exception as e:
             # Unexpected errors - log and re-raise to avoid hiding bugs
@@ -83,7 +86,7 @@ def load_config() -> Dict[str, Any]:
             raise ConfigurationError(f"Unexpected error loading config.yaml: {e}") from e
     else:
         plog.log_info(None, f"config.yaml not found at {CONFIG_FILE}")
-        plog.log_info(None, "Using default configuration.")
+        plog.log_info(None, _DEFAULT_CONFIG_MSG)
         return DEFAULT_CONFIG
 
 
