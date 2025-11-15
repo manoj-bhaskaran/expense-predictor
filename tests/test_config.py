@@ -43,7 +43,7 @@ class TestLoadConfig:
 
             # Should have merged with defaults
             assert result['data_processing']['skiprows'] == 20
-            assert result['model_evaluation']['test_size'] == 0.3
+            assert abs(result['model_evaluation']['test_size'] - 0.3) < 0.001
             assert result['model_evaluation']['random_state'] == 99
         finally:
             os.remove(temp_file)
@@ -171,7 +171,7 @@ class TestDefaultConfig:
     def test_default_config_values(self):
         """Test DEFAULT_CONFIG has reasonable default values."""
         assert DEFAULT_CONFIG['data_processing']['skiprows'] == 12
-        assert DEFAULT_CONFIG['model_evaluation']['test_size'] == 0.2
+        assert abs(DEFAULT_CONFIG['model_evaluation']['test_size'] - 0.2) < 0.001
         assert DEFAULT_CONFIG['model_evaluation']['random_state'] == 42
 
         # Check model defaults are positive

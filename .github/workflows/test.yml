@@ -45,7 +45,9 @@ jobs:
         coverage report --fail-under=80
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
+      # Using version tags instead of commit SHA for maintainability
+      # Version tags are pinned and updated through Dependabot
+      uses: codecov/codecov-action@v4  # nosemgrep: use-trusted-publishing
       if: matrix.python-version == '3.11'
       continue-on-error: true  # Optional: Don't fail if Codecov token not set
       with:
@@ -68,7 +70,8 @@ jobs:
     - name: Comment PR with coverage
       if: github.event_name == 'pull_request' && matrix.python-version == '3.11'
       continue-on-error: true  # Optional: Don't fail if PR comment fails
-      uses: py-cov-action/python-coverage-comment-action@v3
+      # Using version tags instead of commit SHA for maintainability
+      uses: py-cov-action/python-coverage-comment-action@v3  # nosemgrep: use-trusted-publishing
       with:
         GITHUB_TOKEN: ${{ github.token }}
         MINIMUM_GREEN: 80

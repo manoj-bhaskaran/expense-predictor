@@ -336,7 +336,7 @@ class TestWritePredictions:
         # Create initial file
         write_predictions(predicted_df, output_path, logger=mock_logger, skip_confirmation=True)
         initial_df = pd.read_csv(output_path)
-        assert initial_df['Predicted Tran Amt'].iloc[0] == 100.0
+        assert abs(initial_df['Predicted Tran Amt'].iloc[0] - 100.0) < 0.001
 
         # Overwrite with new data
         new_predicted_df = pd.DataFrame({
@@ -347,7 +347,7 @@ class TestWritePredictions:
 
         # Check that file was updated
         result_df = pd.read_csv(output_path)
-        assert result_df['Predicted Tran Amt'].iloc[0] == 300.0
+        assert abs(result_df['Predicted Tran Amt'].iloc[0] - 300.0) < 0.001
 
         # Backup creation is tested separately in security module tests
 
