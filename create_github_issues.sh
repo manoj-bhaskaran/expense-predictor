@@ -167,12 +167,7 @@ check_issues_directory() {
 ################################################################################
 
 get_all_labels_from_templates() {
-    """
-    Extract all unique labels from all issue templates.
-
-    Returns:
-        Comma-separated list of unique labels
-    """
+ 
     local all_labels=""
 
     while IFS= read -r file; do
@@ -254,15 +249,7 @@ check_and_create_labels() {
 }
 
 get_label_color() {
-    """
-    Get appropriate color for a label based on its name/type.
 
-    Args:
-        $1: Label name
-
-    Returns:
-        Hex color code (without #)
-    """
     local label=$1
 
     case "$label" in
