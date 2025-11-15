@@ -22,6 +22,7 @@ from helpers import (
     validate_date_range,
     find_column_name,
     get_quarter_end_date,
+    get_training_date_range,
     preprocess_data,
     prepare_future_dates,
     write_predictions,
@@ -203,6 +204,122 @@ class TestGetQuarterEndDate:
         result = get_quarter_end_date(test_date)
         expected = datetime(2023, 12, 31)
         assert result == expected
+
+
+class TestGetTrainingDateRange:
+    """Tests for get_training_date_range function."""
+
+    def test_get_training_date_range_valid_data(self, sample_dataframe, mock_logger):
+        """Test getting date range with valid data."""
+        result = get_training_date_range(sample_dataframe, logger=mock_logger)
+
+        # Check that result is a DatetimeIndex
+        assert isinstance(result, pd.DatetimeIndex)
+
+        # Check that start date matches the minimum date in the DataFrame
+        expected_start = sample_dataframe['Date'].min()
+        assert result[0] == expected_start
+
+        # Check that end date is yesterday
+        expected_end = datetime.now() - timedelta(days=1)
+        expected_end = expected_end.replace(hour=0, minute=0, second=0, microsecond=0)
+        assert result[-1] == expected_end
+
+    def test_get_training_date_range_custom_column(self, mock_logger):
+        """Test getting date range with custom column name."""
+        df = pd.DataFrame({
+            'CustomDate': pd.date_range(start='2024-01-01', periods=10),
+            'Tran Amt': [100] * 10
+        })
+
+        result = get_training_date_range(df, date_column='CustomDate', logger=mock_logger)
+
+        # Check that result uses the custom column
+        assert isinstance(result, pd.DatetimeIndex)
+        assert result[0] == df['CustomDate'].min()
+
+    def test_get_training_date_range_without_logger(self, sample_dataframe):
+        """Test getting date range without logger."""
+        result = get_training_date_range(sample_dataframe)
+
+        # Check that function works without logger
+        assert isinstance(result, pd.DatetimeIndex)
+        assert result[0] == sample_dataframe['Date'].min()
+
+    def test_get_training_date_range_nat_start_date(self, mock_logger):
+        """Test getting date range with NaT start date."""
+        df = pd.DataFrame({
+            'Date': [pd.NaT, pd.NaT],
+            'Tran Amt': [100, 200]
+        })
+
+        with pytest.raises(ValueError, match="Invalid start or end date found"):
+            get_training_date_range(df, logger=mock_logger)
+
+    def test_get_training_date_range_excludes_today(self, mock_logger):
+        """Test that date range excludes today."""
+        # Create DataFrame with dates including today
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        dates = pd.date_range(start=today - timedelta(days=10), end=today, freq='D')
+        df = pd.DataFrame({
+            'Date': dates,
+            'Tran Amt': [100] * len(dates)
+        })
+
+        result = get_training_date_range(df, logger=mock_logger)
+
+        # Check that today is NOT in the range
+        assert today not in result
+
+        # Check that yesterday IS in the range
+        yesterday = today - timedelta(days=1)
+        assert yesterday in result
+
+    def test_get_training_date_range_time_normalized(self, mock_logger):
+        """Test that end date has time normalized to midnight."""
+        df = pd.DataFrame({
+            'Date': pd.date_range(start='2024-01-01', periods=5),
+            'Tran Amt': [100] * 5
+        })
+
+        result = get_training_date_range(df, logger=mock_logger)
+
+        # Check that the end date has time normalized
+        end_date = result[-1]
+        assert end_date.hour == 0
+        assert end_date.minute == 0
+        assert end_date.second == 0
+        assert end_date.microsecond == 0
+
+    def test_get_training_date_range_continuous_range(self, mock_logger):
+        """Test that the returned date range is continuous."""
+        df = pd.DataFrame({
+            'Date': pd.date_range(start='2024-01-01', periods=10),
+            'Tran Amt': [100] * 10
+        })
+
+        result = get_training_date_range(df, logger=mock_logger)
+
+        # Check that there are no gaps in the date range
+        expected_length = (result[-1] - result[0]).days + 1
+        assert len(result) == expected_length
+
+    def test_get_training_date_range_single_date(self, mock_logger):
+        """Test getting date range with single date in DataFrame."""
+        single_date = (datetime.now() - timedelta(days=30)).replace(hour=0, minute=0, second=0, microsecond=0)
+        df = pd.DataFrame({
+            'Date': [single_date],
+            'Tran Amt': [100]
+        })
+
+        result = get_training_date_range(df, logger=mock_logger)
+
+        # Check that range starts from the single date
+        assert result[0] == single_date
+
+        # Check that range ends at yesterday
+        yesterday = (datetime.now() - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        assert result[-1] == yesterday
 
 
 class TestPreprocessData:
