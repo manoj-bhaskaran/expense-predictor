@@ -1,0 +1,35 @@
+# Coverage configuration for expense-predictor
+
+[run]
+source = .
+omit =
+    tests/*
+    setup.py
+    */site-packages/*
+    */__pycache__/*
+    .venv/*
+    venv/*
+
+[report]
+# Exclude lines from coverage
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    @abstractmethod
+
+# Show lines that weren't covered
+show_missing = True
+
+# Fail if coverage is below threshold
+# Starting with 40% for initial testing setup
+fail_under = 40
+
+[html]
+directory = htmlcov
+
+[xml]
+output = coverage.xml

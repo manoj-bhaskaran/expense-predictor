@@ -171,11 +171,19 @@ expense-predictor/
 ├── config.yaml              # Configuration file for hyperparameters
 ├── requirements.txt         # Production dependencies
 ├── requirements-dev.txt     # Development dependencies
+├── pytest.ini               # Pytest configuration
+├── .coveragerc             # Coverage configuration
 ├── .env.example            # Example environment configuration
 ├── README.md               # This file
 ├── LICENSE                 # MIT License
 ├── CHANGELOG.md            # Version history
 ├── DATA.md                 # Data format documentation
+├── tests/                  # Test suite
+│   ├── conftest.py         # Pytest fixtures and configuration
+│   ├── test_helpers.py     # Unit tests for helpers.py
+│   ├── test_model_runner.py # Integration tests for ML pipeline
+│   ├── test_data/          # Sample data files for testing
+│   └── fixtures/           # Expected outputs for validation
 └── .github/
     └── dependabot.yml      # Dependency management configuration
 ```
@@ -317,20 +325,84 @@ When processing Excel files, the application logs security warnings:
 
 ### Running Tests
 
-```bash
-# Install development dependencies first
-pip install -r requirements-dev.txt
+The project includes a comprehensive test suite with unit and integration tests.
 
-# Run tests (when test suite is available)
-pytest tests/
+#### Install Test Dependencies
+
+```bash
+# Install development dependencies (includes pytest, pytest-cov, pytest-mock)
+pip install -r requirements-dev.txt
 ```
+
+#### Run All Tests
+
+```bash
+# Run all tests with coverage report
+pytest tests/
+
+# Run with verbose output
+pytest tests/ -v
+
+# Run with short traceback
+pytest tests/ --tb=short
+```
+
+#### Run Specific Test Suites
+
+```bash
+# Run only unit tests for helpers.py
+pytest tests/test_helpers.py -v
+
+# Run only integration tests
+pytest tests/test_model_runner.py -v
+
+# Run specific test class
+pytest tests/test_helpers.py::TestFindColumnName -v
+
+# Run specific test function
+pytest tests/test_helpers.py::TestFindColumnName::test_find_column_name_exact_match -v
+```
+
+#### Coverage Reports
+
+```bash
+# Generate coverage report in terminal
+pytest tests/ --cov=. --cov-report=term-missing
+
+# Generate HTML coverage report
+pytest tests/ --cov=. --cov-report=html
+# Open htmlcov/index.html in browser
+
+# Generate XML coverage report (for CI/CD)
+pytest tests/ --cov=. --cov-report=xml
+```
+
+#### Test Coverage
+
+Current test coverage: **43%**
+
+- Unit tests: 44 tests covering helpers.py functions
+- Integration tests: 13 tests covering the ML pipeline
+- Total: 57 tests
+
+**Tested Components:**
+- File validation (CSV and Excel)
+- Date range validation
+- Column name matching
+- Quarter-end date calculations
+- Data preprocessing pipeline
+- Model training (Linear Regression, Decision Tree, Random Forest, Gradient Boosting)
+- Train/test splitting
+- Model evaluation metrics
+- Future prediction generation
+- CSV output and security
 
 ### Code Style
 
 The project follows PEP 8 style guidelines. Use a linter to check code quality:
 
 ```bash
-flake8 model_runner.py helpers.py
+flake8 model_runner.py helpers.py security.py config.py
 ```
 
 ## Model Tuning
