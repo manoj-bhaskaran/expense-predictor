@@ -193,9 +193,7 @@ get_all_labels_from_templates() {
 }
 
 check_and_create_labels() {
-    """
-    Check if labels exist in the repository and create missing ones.
-    """
+
     print_step "Checking and creating labels..."
 
     # Get all labels from templates
