@@ -192,6 +192,60 @@ def get_quarter_end_date(current_date: datetime) -> datetime:
     quarter = (current_date.month - 1) // 3 + 1
     return datetime(current_date.year, 3 * quarter, 1) + DateOffset(months=1) - DateOffset(days=1)
 
+def get_training_date_range(
+    df: pd.DataFrame,
+    date_column: str = 'Date',
+    logger: Optional[logging.Logger] = None
+) -> pd.DatetimeIndex:
+    """
+    Get the complete date range for training data.
+
+    Creates a complete date range from the earliest date in the data
+    to yesterday (excluding today to avoid incomplete data).
+
+    The function excludes today's data from the training range because:
+    - Today's data is typically incomplete (day hasn't ended yet)
+    - Training on incomplete data could introduce bias
+    - Historical patterns are more reliable for training
+
+    Parameters:
+    df (pd.DataFrame): DataFrame containing the date column
+    date_column (str): Name of the date column (default: 'Date')
+    logger (logging.Logger, optional): Logger instance for logging messages
+
+    Returns:
+    pd.DatetimeIndex: Complete date range for training from earliest date to yesterday
+
+    Raises:
+    ValueError: If date range is invalid (NaT values found)
+
+    Example:
+    >>> df = pd.DataFrame({'Date': pd.date_range('2024-01-01', periods=10)})
+    >>> date_range = get_training_date_range(df)
+    >>> # Returns date range from 2024-01-01 to yesterday
+    """
+    # Calculate end date (yesterday at midnight)
+    # Exclude today to avoid training on incomplete data
+    end_date = datetime.now() - timedelta(days=1)
+    end_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    # Get start date from data
+    start_date = df[date_column].min()
+
+    # Validate dates
+    if pd.isna(start_date) or pd.isna(end_date):
+        plog.log_error(logger, "Invalid start or end date found in data")
+        raise ValueError("Invalid start or end date found. Please check the data.")
+
+    # Log the range
+    plog.log_info(
+        logger,
+        f"Creating complete date range from {start_date.strftime('%Y-%m-%d')} "
+        f"to {end_date.strftime('%Y-%m-%d')}"
+    )
+
+    return pd.date_range(start=start_date, end=end_date)
+
 def _process_dataframe(df: pd.DataFrame, logger: Optional[logging.Logger] = None) -> Tuple[pd.DataFrame, pd.Series, pd.DataFrame]:
     """
     Process a DataFrame for training (internal helper function).
@@ -221,16 +275,8 @@ def _process_dataframe(df: pd.DataFrame, logger: Optional[logging.Logger] = None
     # Validate date range
     validate_date_range(df, logger=logger)
 
-    end_date = datetime.now() - timedelta(days=1)
-    end_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
-
-    start_date = df['Date'].min()
-    if pd.isna(start_date) or pd.isna(end_date):
-        plog.log_error(logger, "Invalid start or end date found in data")
-        raise ValueError("Invalid start or end date found. Please check the data.")
-
-    plog.log_info(logger, f"Creating complete date range from {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
-    complete_date_range = pd.date_range(start=start_date, end=end_date)
+    # Use helper function to get complete date range for training
+    complete_date_range = get_training_date_range(df, logger=logger)
     df = df.set_index('Date').reindex(complete_date_range).fillna({TRANSACTION_AMOUNT_LABEL: 0}).reset_index()
     df.rename(columns={'index': 'Date'}, inplace=True)
     plog.log_info(logger, f"Date range filled. Total rows: {len(df)}")
@@ -359,9 +405,8 @@ def preprocess_and_append_csv(file_path: str, excel_path: Optional[str] = None, 
     df = df.drop_duplicates(subset=['Date'], keep='last')
     df = df.sort_values(by='Date').reset_index(drop=True)
 
-    start_date = df['Date'].min()
-    end_date = datetime.now() - timedelta(days=1)
-    complete_date_range = pd.date_range(start=start_date, end=end_date)
+    # Use helper function to get complete date range for training
+    complete_date_range = get_training_date_range(df, logger=logger)
     df = df.set_index('Date').reindex(complete_date_range).fillna({TRANSACTION_AMOUNT_LABEL: 0}).reset_index()
     df.rename(columns={'index': 'Date'}, inplace=True)
 
