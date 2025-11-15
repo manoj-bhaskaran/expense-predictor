@@ -45,7 +45,8 @@ determine_priority() {
 }
 
 count=0
-for file in $(find "$ISSUES_DIR" -name "*.md" -type f | sort); do
+# Only process issue templates (issue_*.md), exclude README and other docs
+for file in $(find "$ISSUES_DIR" -name "issue_*.md" -type f | sort); do
     ((count++))
     filename=$(basename "$file")
     title=$(extract_title "$file")

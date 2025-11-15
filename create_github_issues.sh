@@ -150,10 +150,11 @@ check_issues_directory() {
         exit 1
     fi
 
-    local issue_count=$(find "$ISSUES_DIR" -name "*.md" -type f | wc -l)
+    local issue_count=$(find "$ISSUES_DIR" -name "issue_*.md" -type f | wc -l)
 
     if [ "$issue_count" -eq 0 ]; then
         print_error "No issue templates found in ${ISSUES_DIR}"
+        print_info "Looking for files matching: issue_*.md"
         exit 1
     fi
 
@@ -395,9 +396,10 @@ main() {
     echo ""
 
     # Sort files to ensure consistent order
+    # Only process issue templates (issue_*.md), exclude README and other docs
     while IFS= read -r file; do
         create_issue "$file"
-    done < <(find "$ISSUES_DIR" -name "*.md" -type f | sort)
+    done < <(find "$ISSUES_DIR" -name "issue_*.md" -type f | sort)
 
     # Final summary
     print_separator
