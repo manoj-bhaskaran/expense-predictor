@@ -523,21 +523,46 @@ create_issue() {
         print_info "Command: ${gh_command}"
     fi
 
-    # Execute the command
+    # Execute the command with timeout
     local issue_url=""
     local temp_output=$(mktemp)
+    local exit_code
 
-    if [ -n "$all_labels" ]; then
-        gh issue create --repo "$REPO" --title "$title" --body-file "$file" --label "$all_labels" > "$temp_output" 2>&1
+    if command -v timeout &> /dev/null; then
+        # Linux timeout
+        if [ -n "$all_labels" ]; then
+            timeout 60s gh issue create --repo "$REPO" --title "$title" --body-file "$file" --label "$all_labels" > "$temp_output" 2>&1
+        else
+            timeout 60s gh issue create --repo "$REPO" --title "$title" --body-file "$file" > "$temp_output" 2>&1
+        fi
+        exit_code=$?
+    elif command -v gtimeout &> /dev/null; then
+        # macOS gtimeout
+        if [ -n "$all_labels" ]; then
+            gtimeout 60s gh issue create --repo "$REPO" --title "$title" --body-file "$file" --label "$all_labels" > "$temp_output" 2>&1
+        else
+            gtimeout 60s gh issue create --repo "$REPO" --title "$title" --body-file "$file" > "$temp_output" 2>&1
+        fi
+        exit_code=$?
     else
-        gh issue create --repo "$REPO" --title "$title" --body-file "$file" > "$temp_output" 2>&1
+        # No timeout available
+        print_warning "No timeout available, command might hang..."
+        if [ -n "$all_labels" ]; then
+            gh issue create --repo "$REPO" --title "$title" --body-file "$file" --label "$all_labels" > "$temp_output" 2>&1
+        else
+            gh issue create --repo "$REPO" --title "$title" --body-file "$file" > "$temp_output" 2>&1
+        fi
+        exit_code=$?
     fi
 
-    local exit_code=$?
     issue_url=$(cat "$temp_output")
     rm -f "$temp_output"
 
-    if [ $exit_code -eq 0 ] && [ -n "$issue_url" ]; then
+    if [ $exit_code -eq 124 ]; then
+        print_error "Timed out creating issue (60s limit)"
+        print_error "GitHub API may be unreachable. Check your network connection."
+        ((FAILED_COUNT++))
+    elif [ $exit_code -eq 0 ] && [ -n "$issue_url" ]; then
         print_success "Created: ${issue_url}"
         ((CREATED_COUNT++))
     elif [ $exit_code -eq 0 ]; then
