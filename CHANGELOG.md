@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.1] - 2025-11-15
+
+### Fixed
+
+- **Coverage Documentation Update** ([#77](https://github.com/manoj-bhaskaran/expense-predictor/issues/77))
+  - Updated README.md with current test coverage: **88%** (was documented as 82.66%)
+  - Updated coverage breakdown to reflect latest test results:
+    - `helpers.py`: Now **88%** (up from 76%)
+  - Verified CI/CD coverage threshold (80%) is met and passing
+  - Confirmed all 131 tests pass successfully
+  - Clarified that coverage mismatch issue from #77 was already resolved in v1.10.0
+  - No code changes needed - coverage already exceeds requirements
+
+### Changed
+
+- **Version Alignment** ([#77](https://github.com/manoj-bhaskaran/expense-predictor/issues/77))
+  - Updated setup.py version to 1.10.0 to match CHANGELOG
+
 ## [1.10.0] - 2025-11-15
 
 ### Fixed
