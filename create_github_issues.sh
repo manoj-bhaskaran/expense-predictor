@@ -259,7 +259,7 @@ check_and_create_labels() {
         ((current++))
         # Trim whitespace
         label=$(echo "$label" | xargs)
-
+        print_info $label
         # Skip empty labels
         if [ -z "$label" ]; then
             continue
