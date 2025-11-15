@@ -1,4 +1,5 @@
-#!/bin/bash
+```bash
+#!/usr/bin/env bash
 
 ################################################################################
 # Script: create_github_issues.sh
@@ -85,7 +86,8 @@ check_gh_cli() {
         exit 1
     fi
 
-    local gh_version=$(gh --version | head -n 1)
+    local gh_version
+    gh_version=$(gh --version | head -n 1)
     print_success "GitHub CLI found: ${gh_version}"
 }
 
@@ -101,7 +103,8 @@ check_gh_auth() {
         exit 1
     fi
 
-    local auth_user=$(gh auth status 2>&1 | grep "Logged in" | sed 's/.*as \(.*\) (.*/\1/')
+    local auth_user
+    auth_user=$(gh auth status 2>&1 | grep "Logged in" | sed 's/.*as \(.*\) (.*/\1/')
     print_success "Authenticated as: ${auth_user}"
 }
 
@@ -115,7 +118,8 @@ detect_repo() {
 
     # Try to detect from git remote
     if git remote get-url origin &> /dev/null; then
-        local remote_url=$(git remote get-url origin)
+        local remote_url
+        remote_url=$(git remote get-url origin)
 
         # Extract owner/repo from various Git URL formats
         if [[ $remote_url =~ github\.com[:/]([^/]+)/([^/\.]+) ]]; then
@@ -134,7 +138,7 @@ detect_repo() {
 ask_for_repo() {
     echo ""
     echo -e "${YELLOW}Please enter the repository in format OWNER/REPO:${NC}"
-    read -p "Repository: " REPO
+    read -r -p "Repository: " REPO
 
     if [ -z "$REPO" ]; then
         print_error "Repository is required"
@@ -152,7 +156,8 @@ check_issues_directory() {
         exit 1
     fi
 
-    local issue_count=$(find "$ISSUES_DIR" -name "issue_*.md" -type f | wc -l)
+    local issue_count
+    issue_count=$(find "$ISSUES_DIR" -name "issue_*.md" -type f | wc -l)
 
     if [ "$issue_count" -eq 0 ]; then
         print_error "No issue templates found in ${ISSUES_DIR}"
@@ -168,12 +173,13 @@ check_issues_directory() {
 ################################################################################
 
 get_all_labels_from_templates() {
- 
     local all_labels=""
 
     while IFS= read -r file; do
-        local md_labels=$(extract_labels_from_markdown "$file")
-        local priority=$(determine_priority_label "$file")
+        local md_labels
+        local priority
+        md_labels=$(extract_labels_from_markdown "$file")
+        priority=$(determine_priority_label "$file")
 
         if [ -n "$md_labels" ]; then
             all_labels="${all_labels},${md_labels}"
@@ -184,16 +190,16 @@ get_all_labels_from_templates() {
     done < <(find "$ISSUES_DIR" -name "issue_*.md" -type f)
 
     # Remove leading comma and get unique labels
-    all_labels=$(echo "$all_labels" | sed 's/^,//' | tr ',' '\n' | sort -u | tr '\n' ',' | sed 's/,$//')
+    all_labels=$(echo "$all_labels" | sed 's/^,//' | tr ',' '\n' | sed '/^$/d' | sort -u | tr '\n' ',' | sed 's/,$//')
     echo "$all_labels"
 }
 
 check_and_create_labels() {
-
     print_step "Checking and creating labels..."
 
     # Get all labels from templates
-    local needed_labels=$(get_all_labels_from_templates)
+    local needed_labels
+    needed_labels=$(get_all_labels_from_templates)
 
     if [ -z "$needed_labels" ]; then
         print_info "No labels found in templates"
@@ -201,28 +207,21 @@ check_and_create_labels() {
     fi
 
     print_info "Labels needed: ${needed_labels}"
-    echo ""  # Flush output
+    echo ""
 
     # Get existing labels from repo
     print_info "Fetching existing labels from repository..."
 
-    # Add timeout to prevent hanging (30 seconds)
-    local existing_labels_raw
-    local fetch_exit_code
+    local existing_labels_raw=""
+    local fetch_exit_code=0
 
     if command -v timeout &> /dev/null; then
-        # Use timeout command if available (Linux/macOS with coreutils)
-        existing_labels_raw=$(timeout 30s gh label list --repo "$REPO" --json name --jq '.[].name' 2>&1)
-        fetch_exit_code=$?
+        existing_labels_raw=$(timeout 30s gh label list --repo "$REPO" --json name --jq '.[].name' 2>&1) || fetch_exit_code=$?
     elif command -v gtimeout &> /dev/null; then
-        # Use gtimeout on macOS (from brew coreutils)
-        existing_labels_raw=$(gtimeout 30s gh label list --repo "$REPO" --json name --jq '.[].name' 2>&1)
-        fetch_exit_code=$?
+        existing_labels_raw=$(gtimeout 30s gh label list --repo "$REPO" --json name --jq '.[].name' 2>&1) || fetch_exit_code=$?
     else
-        # No timeout available, try anyway
         print_warning "No timeout command available, this might hang..."
-        existing_labels_raw=$(gh label list --repo "$REPO" --json name --jq '.[].name' 2>&1)
-        fetch_exit_code=$?
+        existing_labels_raw=$(gh label list --repo "$REPO" --json name --jq '.[].name' 2>&1) || fetch_exit_code=$?
     fi
 
     if [ $fetch_exit_code -eq 124 ]; then
@@ -240,53 +239,42 @@ check_and_create_labels() {
         print_success "Successfully fetched existing labels"
     fi
 
-    # Convert to array for easier checking
-    local -A existing_labels_map
-    while IFS= read -r label; do
-        existing_labels_map["$label"]=1
-    done <<< "$existing_labels_raw"
-
     local created_count=0
     local exists_count=0
 
-    # Process each needed label
     IFS=',' read -ra LABELS <<< "$needed_labels"
     local total_labels=${#LABELS[@]}
     local current=0
-    print_info "$needed_labels"
-    print_info "${LABELS[@]}"
+
     for label in "${LABELS[@]}"; do
         ((current++))
         # Trim whitespace
         label=$(echo "$label" | xargs)
-        print_info $label
-        # Skip empty labels
+        print_info "Processing label: ${label}"
+
+        # Skip empty
         if [ -z "$label" ]; then
             continue
         fi
 
-        # Check if label exists
-        if [ -n "${existing_labels_map[$label]}" ]; then
+        # Check if label exists in existing_labels_raw
+        if [ -n "$existing_labels_raw" ] && printf '%s\n' "$existing_labels_raw" | grep -Fxq -- "$label"; then
             print_info "  [$current/$total_labels] ✓ Label exists: ${label}"
             ((exists_count++))
         else
-            # Create the label with appropriate color
-            local color=$(get_label_color "$label")
+            local color
+            color=$(get_label_color "$label")
             print_info "  [$current/$total_labels] + Creating label: ${label} (color: #${color})"
 
-            # Capture both stdout and stderr with timeout
-            local create_output
-            local create_exit_code
+            local create_output=""
+            local create_exit_code=0
 
             if command -v timeout &> /dev/null; then
-                create_output=$(timeout 15s gh label create "$label" --color "$color" --repo "$REPO" 2>&1)
-                create_exit_code=$?
+                create_output=$(timeout 15s gh label create "$label" --color "$color" --repo "$REPO" 2>&1) || create_exit_code=$?
             elif command -v gtimeout &> /dev/null; then
-                create_output=$(gtimeout 15s gh label create "$label" --color "$color" --repo "$REPO" 2>&1)
-                create_exit_code=$?
+                create_output=$(gtimeout 15s gh label create "$label" --color "$color" --repo "$REPO" 2>&1) || create_exit_code=$?
             else
-                create_output=$(gh label create "$label" --color "$color" --repo "$REPO" 2>&1)
-                create_exit_code=$?
+                create_output=$(gh label create "$label" --color "$color" --repo "$REPO" 2>&1) || create_exit_code=$?
             fi
 
             if [ $create_exit_code -eq 0 ]; then
@@ -296,7 +284,6 @@ check_and_create_labels() {
                 print_error "    Timed out creating label: ${label}"
                 ((exists_count++))
             else
-                # Show the actual error if verbose mode is on
                 if [ "$VERBOSE" = true ]; then
                     print_warning "    Could not create label: ${label}"
                     print_info "    Error: ${create_output}"
@@ -313,7 +300,6 @@ check_and_create_labels() {
 }
 
 get_label_color() {
-
     local label=$1
 
     case "$label" in
@@ -405,21 +391,18 @@ get_label_color() {
 extract_title_from_markdown() {
     local file=$1
     # Extract first heading (# Title)
-    local title=$(grep -m 1 "^# " "$file" | sed 's/^# //')
+    local title
+    title=$(grep -m 1 "^# " "$file" | sed 's/^# //')
     echo "$title"
 }
 
 extract_labels_from_markdown() {
     local file=$1
-    # Look for a "Labels" or "## Labels" section
     local labels=""
 
-    # Try to find labels section
     if grep -q "^## Labels" "$file"; then
-        # Extract bullet points after ## Labels
         labels=$(sed -n '/^## Labels/,/^##/{/^- /p}' "$file" | sed 's/^- //' | tr '\n' ',' | sed 's/,$//')
     elif grep -q "^Labels:" "$file"; then
-        # Extract from "Labels: " line
         labels=$(grep "^Labels:" "$file" | sed 's/^Labels: *//' | tr '\n' ',' | sed 's/,$//')
     fi
 
@@ -428,9 +411,7 @@ extract_labels_from_markdown() {
 
 determine_priority_label() {
     local file=$1
-    local filename=$(basename "$file")
 
-    # Determine priority from content
     if grep -qi "severity.*critical" "$file" || grep -qi "\*\*severity:\*\* critical" "$file"; then
         echo "priority: critical"
     elif grep -qi "severity.*high" "$file" || grep -qi "\*\*severity:\*\* high" "$file"; then
@@ -444,15 +425,30 @@ determine_priority_label() {
     fi
 }
 
+build_label_args() {
+    local all_labels="$1"
+    local -a args=()
+
+    IFS=',' read -ra LABELS <<< "$all_labels"
+    for label in "${LABELS[@]}"; do
+        label=$(echo "$label" | xargs)
+        [ -z "$label" ] && continue
+        args+=("--label" "$label")
+    done
+
+    printf '%s\n' "${args[@]}"
+}
+
 create_issue() {
     local file=$1
-    local filename=$(basename "$file")
+    local filename
+    filename=$(basename "$file")
 
     print_separator
     print_info "Processing: ${BOLD}${filename}${NC}"
 
-    # Extract title
-    local title=$(extract_title_from_markdown "$file")
+    local title
+    title=$(extract_title_from_markdown "$file")
     if [ -z "$title" ]; then
         print_warning "Could not extract title from ${filename}, skipping"
         ((SKIPPED_COUNT++))
@@ -460,14 +456,13 @@ create_issue() {
     fi
     print_info "Title: ${title}"
 
-    # Extract labels from markdown
-    local md_labels=$(extract_labels_from_markdown "$file")
-
-    # Determine priority label
-    local priority_label=$(determine_priority_label "$file")
-
-    # Combine labels
+    local md_labels
+    local priority_label
     local all_labels=""
+
+    md_labels=$(extract_labels_from_markdown "$file")
+    priority_label=$(determine_priority_label "$file")
+
     if [ -n "$md_labels" ]; then
         all_labels="$md_labels"
     fi
@@ -485,7 +480,17 @@ create_issue() {
 
     # Check if issue already exists
     print_info "Checking for existing issues with this title..."
-    local existing=$(gh issue list --repo "$REPO" --search "in:title \"$title\"" --json number,title --jq '.[] | select(.title == "'"$title"'") | .number')
+
+    local existing=""
+    # Use a robust search that tolerates quotes in title
+    if ! existing=$(gh issue list \
+        --repo "$REPO" \
+        --search "$title in:title" \
+        --json number,title \
+        --jq '.[] | select(.title == "'"$title"'") | .number' 2>/dev/null); then
+        print_warning "Could not check for existing issues (gh issue list failed)"
+        existing=""
+    fi
 
     if [ -n "$existing" ]; then
         print_warning "Issue already exists: #${existing}"
@@ -503,50 +508,71 @@ create_issue() {
         return
     fi
 
-    # Create the issue
     print_info "Creating issue..."
 
-    # Build command for display (only show in verbose mode)
-    if [ "$VERBOSE" = true ]; then
-        local gh_command="gh issue create --repo \"$REPO\" --title \"$title\" --body-file \"$file\""
-        if [ -n "$all_labels" ]; then
-            gh_command="${gh_command} --label \"$all_labels\""
-        fi
-        print_info "Command: ${gh_command}"
+    # Build label args array
+    local -a label_args=()
+    if [ -n "$all_labels" ]; then
+        # shellcheck disable=SC2207
+        label_args=($(build_label_args "$all_labels"))
     fi
 
-    # Execute the command with timeout
-    local issue_url=""
-    local temp_output=$(mktemp)
-    local exit_code
+    if [ "$VERBOSE" = true ]; then
+        # This is just for display; not perfectly quoted, but indicative
+        local cmd_preview="gh issue create --repo \"$REPO\" --title \"$title\" --body-file \"$file\""
+        if [ ${#label_args[@]} -gt 0 ]; then
+            cmd_preview+=" ${label_args[*]}"
+        fi
+        print_info "Command: ${cmd_preview}"
+    fi
+
+    local temp_output
+    temp_output=$(mktemp)
+    local exit_code=0
 
     if command -v timeout &> /dev/null; then
-        # Linux timeout
-        if [ -n "$all_labels" ]; then
-            timeout 60s gh issue create --repo "$REPO" --title "$title" --body-file "$file" --label "$all_labels" > "$temp_output" 2>&1
+        if [ ${#label_args[@]} -gt 0 ]; then
+            timeout 60s gh issue create \
+                --repo "$REPO" \
+                --title "$title" \
+                --body-file "$file" \
+                "${label_args[@]}" >"$temp_output" 2>&1 || exit_code=$?
         else
-            timeout 60s gh issue create --repo "$REPO" --title "$title" --body-file "$file" > "$temp_output" 2>&1
+            timeout 60s gh issue create \
+                --repo "$REPO" \
+                --title "$title" \
+                --body-file "$file" >"$temp_output" 2>&1 || exit_code=$?
         fi
-        exit_code=$?
     elif command -v gtimeout &> /dev/null; then
-        # macOS gtimeout
-        if [ -n "$all_labels" ]; then
-            gtimeout 60s gh issue create --repo "$REPO" --title "$title" --body-file "$file" --label "$all_labels" > "$temp_output" 2>&1
+        if [ ${#label_args[@]} -gt 0 ]; then
+            gtimeout 60s gh issue create \
+                --repo "$REPO" \
+                --title "$title" \
+                --body-file "$file" \
+                "${label_args[@]}" >"$temp_output" 2>&1 || exit_code=$?
         else
-            gtimeout 60s gh issue create --repo "$REPO" --title "$title" --body-file "$file" > "$temp_output" 2>&1
+            gtimeout 60s gh issue create \
+                --repo "$REPO" \
+                --title "$title" \
+                --body-file "$file" >"$temp_output" 2>&1 || exit_code=$?
         fi
-        exit_code=$?
     else
-        # No timeout available
         print_warning "No timeout available, command might hang..."
-        if [ -n "$all_labels" ]; then
-            gh issue create --repo "$REPO" --title "$title" --body-file "$file" --label "$all_labels" > "$temp_output" 2>&1
+        if [ ${#label_args[@]} -gt 0 ]; then
+            gh issue create \
+                --repo "$REPO" \
+                --title "$title" \
+                --body-file "$file" \
+                "${label_args[@]}" >"$temp_output" 2>&1 || exit_code=$?
         else
-            gh issue create --repo "$REPO" --title "$title" --body-file "$file" > "$temp_output" 2>&1
+            gh issue create \
+                --repo "$REPO" \
+                --title "$title" \
+                --body-file "$file" >"$temp_output" 2>&1 || exit_code=$?
         fi
-        exit_code=$?
     fi
 
+    local issue_url
     issue_url=$(cat "$temp_output")
     rm -f "$temp_output"
 
@@ -571,7 +597,7 @@ create_issue() {
 }
 
 ################################################################################
-# Main Execution
+# Argument Parsing & Help
 ################################################################################
 
 parse_arguments() {
@@ -649,6 +675,10 @@ ${BOLD}Issue Templates:${NC}
 EOF
 }
 
+################################################################################
+# Main
+################################################################################
+
 main() {
     print_header
 
@@ -670,7 +700,7 @@ main() {
     echo ""
     if [ "$DRY_RUN" = false ]; then
         echo -e "${YELLOW}${BOLD}Ready to create issues in repository: ${REPO}${NC}"
-        read -p "Continue? [y/N] " -n 1 -r
+        read -r -p "Continue? [y/N] " -n 1 REPLY
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
             print_warning "Cancelled by user"
@@ -696,8 +726,6 @@ main() {
     print_step "Creating issues..."
     echo ""
 
-    # Sort files to ensure consistent order
-    # Only process issue templates (issue_*.md), exclude README and other docs
     while IFS= read -r file; do
         create_issue "$file"
     done < <(find "$ISSUES_DIR" -name "issue_*.md" -type f | sort)
@@ -747,3 +775,4 @@ main() {
 
 # Run main function
 main "$@"
+```
