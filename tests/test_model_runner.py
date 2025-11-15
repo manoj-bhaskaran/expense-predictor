@@ -8,6 +8,7 @@ including data loading, preprocessing, model training, and prediction output.
 import os
 import sys
 import pytest
+import subprocess
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
@@ -427,3 +428,63 @@ class TestConfigIntegration:
         # Model parameters should be positive
         assert config['random_forest']['n_estimators'] > 0
         assert config['gradient_boosting']['learning_rate'] > 0
+
+
+def _run_model_runner_with_args(args_list, env=None):
+    script_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'model_runner.py'))
+    cmd = [sys.executable, script_path] + args_list
+    result = subprocess.run(cmd, capture_output=True, text=True, env=env)
+    return result
+
+
+def test_cli_arg_overrides_env(monkeypatch, tmp_path):
+    """CLI --log-level should override EXPENSE_PREDICTOR_LOG_LEVEL env var."""
+    sample_csv = os.path.join(os.path.dirname(__file__), 'test_data', 'sample.csv')
+    log_dir = str(tmp_path / 'logs')
+    out_dir = str(tmp_path / 'out')
+
+    env = os.environ.copy()
+    env['EXPENSE_PREDICTOR_LOG_LEVEL'] = 'WARNING'
+
+    # Provide CLI --log-level DEBUG which should override env var
+    args = ['--data_file', sample_csv, '--log_dir', log_dir, '--output_dir', out_dir, '--skip_confirmation', '--log-level', 'DEBUG']
+    res = _run_model_runner_with_args(args, env=env)
+
+    combined = (res.stdout or '') + (res.stderr or '')
+    assert res.returncode == 0
+    assert 'Log level set to: DEBUG' in combined
+
+
+def test_env_sets_level_when_cli_absent(tmp_path):
+    """EXPENSE_PREDICTOR_LOG_LEVEL should set log level when CLI arg absent."""
+    sample_csv = os.path.join(os.path.dirname(__file__), 'test_data', 'sample.csv')
+    log_dir = str(tmp_path / 'logs2')
+    out_dir = str(tmp_path / 'out2')
+
+    env = os.environ.copy()
+    env['EXPENSE_PREDICTOR_LOG_LEVEL'] = 'ERROR'
+
+    args = ['--data_file', sample_csv, '--log_dir', log_dir, '--output_dir', out_dir, '--skip_confirmation']
+    res = _run_model_runner_with_args(args, env=env)
+
+    combined = (res.stdout or '') + (res.stderr or '')
+    assert res.returncode == 0
+    assert 'Log level set to: ERROR' in combined
+
+
+def test_invalid_value_falls_back_to_info(tmp_path):
+    """Invalid value should fallback to INFO and emit a warning."""
+    sample_csv = os.path.join(os.path.dirname(__file__), 'test_data', 'sample.csv')
+    log_dir = str(tmp_path / 'logs3')
+    out_dir = str(tmp_path / 'out3')
+
+    env = os.environ.copy()
+    env['EXPENSE_PREDICTOR_LOG_LEVEL'] = 'INVALID_LEVEL'
+
+    args = ['--data_file', sample_csv, '--log_dir', log_dir, '--output_dir', out_dir, '--skip_confirmation']
+    res = _run_model_runner_with_args(args, env=env)
+
+    combined = (res.stdout or '') + (res.stderr or '')
+    assert res.returncode == 0
+    assert "Invalid log level 'INVALID_LEVEL', defaulting to INFO" in combined
+    assert 'Log level set to: INFO' in combined

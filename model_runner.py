@@ -55,66 +55,75 @@ from security import (
 # Get the directory where this script is located
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# Set up command-line argument parsing
+parser = argparse.ArgumentParser(description='Expense Predictor')
+parser.add_argument('--future_date', type=str, help='Future date for prediction (e.g., 31/12/2025)')
+parser.add_argument('--excel_dir', type=str, default='.', help='Directory where the Excel file is located')
+parser.add_argument('--excel_file', type=str, help='Name of the Excel file containing additional data')
+parser.add_argument('--data_file', type=str, default='trandata.csv', help='Path to the CSV file containing transaction data')
+parser.add_argument('--log_dir', type=str, default='logs', help='Directory where log files will be saved')
+parser.add_argument('--output_dir', type=str, default='.', help='Directory where prediction files will be saved')
+parser.add_argument('--skip_confirmation', action='store_true', help='Skip confirmation prompts for overwriting files (useful for automation)')
+parser.add_argument('--log-level', type=str, default=None, choices=['DEBUG','INFO','WARNING','ERROR','CRITICAL'], help='Logging level (overrides env and config)')
+args = parser.parse_args()
 
-def parse_args(args=None):
-    """
-    Parse command-line arguments for the expense predictor.
+# Validate and create log directory with security checks
+try:
+    log_dir_path_str = os.path.join(SCRIPT_DIR, args.log_dir) if not os.path.isabs(args.log_dir) else args.log_dir
+    log_dir_path_obj = validate_directory_path(log_dir_path_str, create_if_missing=True)
+    log_dir_path = str(log_dir_path_obj)
+except (ValueError, FileNotFoundError) as e:
+    print(f"Error: Invalid log directory path: {e}")
+    exit(1)
 
-    Args:
-        args: Optional list of arguments to parse. If None, uses sys.argv.
+# Determine log level string by priority: CLI arg -> env var -> config -> default
+env_log = os.getenv('EXPENSE_PREDICTOR_LOG_LEVEL')
+config_log = None
+try:
+    config_log = config.get('logging', {}).get('level')
+except Exception:
+    config_log = None
 
-    Returns:
-        argparse.Namespace: Parsed arguments object.
-    """
-    parser = argparse.ArgumentParser(description='Expense Predictor')
-    parser.add_argument('--future_date', type=str, help='Future date for prediction (e.g., 31/12/2025)')
-    parser.add_argument('--excel_dir', type=str, default='.', help='Directory where the Excel file is located')
-    parser.add_argument('--excel_file', type=str, help='Name of the Excel file containing additional data')
-    parser.add_argument('--data_file', type=str, default='trandata.csv', help='Path to the CSV file containing transaction data')
-    parser.add_argument('--log_dir', type=str, default='logs', help='Directory where log files will be saved')
-    parser.add_argument('--output_dir', type=str, default='.', help='Directory where prediction files will be saved')
-    parser.add_argument('--skip_confirmation', action='store_true', help='Skip confirmation prompts for overwriting files (useful for automation)')
-    return parser.parse_args(args)
+if args.log_level:
+    log_level_str = args.log_level
+elif env_log:
+    log_level_str = env_log
+elif config_log:
+    log_level_str = config_log
+else:
+    log_level_str = 'INFO'
 
+# Normalize and validate
+accepted = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
+if not isinstance(log_level_str, str) or log_level_str.upper() not in accepted:
+    logging.warning(f"Invalid log level '{log_level_str}', defaulting to INFO")
+    log_level_str = 'INFO'
+else:
+    log_level_str = log_level_str.upper()
 
-def get_future_date(future_date_arg, logger):
-    """
-    Get the future date for predictions.
+# Convert to numeric level
+log_level = getattr(logging, log_level_str, logging.INFO)
 
-    Args:
-        future_date_arg: Date string in DD/MM/YYYY format or None.
-        logger: Logger instance.
+logger = plog.initialise_logger(
+    script_name='model_runner.py',
+    log_dir=log_dir_path,
+    log_level=log_level
+)
 
-    Returns:
-        str: Future date in DD-MM-YYYY format for predictions.
-    """
-    if future_date_arg:
-        try:
-            future_date_for_function = datetime.strptime(future_date_arg, '%d/%m/%Y').strftime('%d-%m-%Y')
-        except ValueError:
-            plog.log_error(logger, "Incorrect date format, should be DD/MM/YYYY")
-            raise
-    else:
-        current_date = datetime.now()
-        future_date_for_function = get_quarter_end_date(current_date).strftime('%d-%m-%Y')
+# Log startup chosen level
+plog.log_info(logger, f"Log level set to: {log_level_str}")
 
-    return future_date_for_function
-
-
-def get_excel_path(excel_dir, excel_file, logger):
-    """
-    Validate and get Excel file path.
-
-    Args:
-        excel_dir: Directory containing Excel file.
-        excel_file: Excel filename or None.
-        logger: Logger instance.
-
-    Returns:
-        str: Validated Excel file path or None.
-    """
-    if not excel_file:
-        return None
+if args.future_date:
+    try:
+        future_date = datetime.strptime(args.future_date, '%d/%m/%Y').strftime('%Y-%m-%d')
+        future_date_for_function = datetime.strptime(args.future_date, '%d/%m/%Y').strftime('%d-%m-%Y')
+    except ValueError:
+        plog.log_error(logger, "Incorrect date format, should be DD/MM/YYYY")
+        raise
+else:
+    current_date = datetime.now()
+    future_date = get_quarter_end_date(current_date).strftime('%Y-%m-%d')
+    future_date_for_function = get_quarter_end_date(current_date).strftime('%d-%m-%Y')
 
     try:
         excel_dir_path = validate_directory_path(excel_dir, must_exist=True, logger=logger)
