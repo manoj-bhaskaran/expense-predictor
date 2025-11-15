@@ -22,7 +22,7 @@ A machine learning-based expense prediction system that analyzes historical tran
 
 ## Requirements
 
-- Python 3.9 or higher (tested on Python 3.9, 3.10, and 3.11)
+- Python 3.9 or higher (tested on Python 3.9, 3.10, 3.11, and 3.12)
 - See `requirements.txt` for pinned package dependencies
 
 ## Installation
@@ -777,7 +777,7 @@ The project includes a comprehensive CI/CD pipeline with multiple automated work
 
 1. **Testing (`test.yml`)** - Runs on all pull requests and pushes
 
-   - Multi-version Python testing (3.9, 3.10, 3.11)
+   - Multi-version Python testing (3.9, 3.10, 3.11, 3.12)
    - Automated test execution with pytest
    - Code coverage enforcement (minimum 80%)
    - Coverage reports uploaded to Codecov

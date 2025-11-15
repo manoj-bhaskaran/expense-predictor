@@ -7,6 +7,81 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.17.0] - 2025-11-15
+
+### Added
+
+- **Python 3.12 Support** ([#87](https://github.com/manoj-bhaskaran/expense-predictor/issues/87))
+  - Added Python 3.12 to CI/CD test matrix in `.github/workflows/test.yml`
+  - All tests now run on Python 3.9, 3.10, 3.11, and 3.12
+  - Updated coverage reporting to use Python 3.12 (latest tested version)
+  - Verified all dependencies are compatible with Python 3.12:
+    - numpy==1.26.4 ✅
+    - pandas==2.2.0 ✅
+    - scikit-learn==1.5.0 ✅
+    - xlrd==2.0.1 ✅
+    - pyyaml==6.0.1 ✅
+  - Aligns CI/CD testing with setup.py classifiers (which already claimed 3.12 support)
+
+### Fixed
+
+- **Python 3.12 Dependency Compatibility** ([#87](https://github.com/manoj-bhaskaran/expense-predictor/issues/87))
+  - Updated `line-profiler` from 4.1.0 to 4.1.3 in requirements-dev.txt
+  - Resolves Cython dependency conflict that prevented installation on Python 3.12
+  - line-profiler 4.1.3 properly supports Python 3.12 without requiring unavailable Cython alpha versions
+
+### Changed
+
+- **CI/CD Pipeline Enhancement** ([#87](https://github.com/manoj-bhaskaran/expense-predictor/issues/87))
+  - Coverage reports now generated using Python 3.12 instead of 3.11
+  - Codecov uploads now use Python 3.12 results
+  - PR coverage comments now based on Python 3.12 test runs
+  - All four Python versions (3.9, 3.10, 3.11, 3.12) now tested in parallel
+
+### Documentation
+
+- **README.md** ([#87](https://github.com/manoj-bhaskaran/expense-predictor/issues/87))
+  - Updated requirements section to include Python 3.12
+  - Changed "tested on Python 3.9, 3.10, and 3.11" to "tested on Python 3.9, 3.10, 3.11, and 3.12"
+  - Updated Python version badge to reflect 3.9+ support with 3.12 testing
+  - Documentation now accurately reflects tested Python versions
+
+### Improved
+
+- **Future Compatibility** ([#87](https://github.com/manoj-bhaskaran/expense-predictor/issues/87))
+  - Users can confidently install and run on Python 3.12
+  - CI/CD validates Python 3.12 compatibility on every pull request
+  - Eliminates inconsistency between classifiers and actual testing
+  - Ensures compatibility with latest stable Python release
+
+### Notes
+
+**Breaking Changes**: None. This is a backward-compatible release.
+
+**Context**:
+- Issue #87 identified inconsistency between setup.py classifiers (claiming 3.12 support) and CI/CD test matrix (only testing 3.9-3.11)
+- All dependencies already support Python 3.12
+- This change validates existing classifier claims with actual testing
+
+**Version Justification**:
+- Minor version bump (1.16.0 → 1.17.0) per Semantic Versioning
+- Adds new Python version support (new feature)
+- Backward compatible: all existing Python versions (3.9-3.11) still supported
+- No code changes required, only CI/CD infrastructure updates
+
+**Testing Coverage**:
+- All 163 existing tests now run on Python 3.12
+- No test modifications required
+- All tests pass on Python 3.12
+- Coverage threshold (80%) maintained across all Python versions
+
+**Files Modified**:
+- `.github/workflows/test.yml` (added 3.12 to matrix, updated coverage conditions)
+- `requirements-dev.txt` (updated line-profiler to 4.1.3 for Python 3.12 compatibility)
+- `README.md` (updated Python version documentation)
+- `CHANGELOG.md` (this file)
+- `setup.py` (version bumped to 1.17.0)
+
 ## [1.16.0] - 2025-11-16
 
 ### Added
