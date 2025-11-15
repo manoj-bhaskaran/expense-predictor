@@ -5,6 +5,151 @@ All notable changes to the Expense Predictor project will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **CI/CD Pipeline for Pull Requests**
+  - GitHub Actions workflow for automated testing (`test.yml`)
+  - Multi-version Python testing (3.9, 3.10, 3.11)
+  - Automated coverage enforcement at 80% threshold
+  - Coverage reports uploaded to Codecov (optional)
+  - PR comments with coverage information
+  - Pre-commit checks workflow (`pre-commit.yml`) for code quality
+
+- **Coverage Enforcement**
+  - Updated `.coveragerc` to require 80% minimum coverage
+  - Automated checks prevent merging PRs below threshold
+  - Coverage badge added to README
+  - HTML and XML coverage reports for CI/CD integration
+
+- **Documentation**
+  - Branch protection setup guide (`.github/BRANCH_PROTECTION.md`)
+  - Detailed instructions for maintaining 80% coverage
+  - Troubleshooting guide for coverage failures
+  - Best practices for test-driven development
+  - CI/CD workflow documentation
+
+- **Status Badges**
+  - Tests status badge (shows pass/fail)
+  - Codecov coverage badge (optional)
+  - Python version badge (3.9+)
+  - MIT license badge
+
+### Changed
+
+- **Coverage Threshold**: Increased from 40% to 80% for production readiness
+- **CI/CD Enforcement**: Pull requests now blocked if coverage < 80%
+- **README**: Updated with badges, coverage requirements, and CI/CD information
+- **Development Workflow**: PRs now require passing tests across all Python versions
+
+### Improved
+
+- **Quality Gates**: Systematic enforcement of code quality standards
+- **Automated Testing**: All PRs automatically tested across Python 3.9, 3.10, 3.11
+- **Merge Safety**: Cannot merge code that reduces test coverage below 80%
+- **Visibility**: Coverage trends and reports visible in PRs and artifacts
+- **Developer Experience**: Clear feedback on coverage requirements before merge
+
+## [1.5.0] - 2025-11-15
+
+### Added
+
+- **Comprehensive Testing Framework** ([#49](https://github.com/manoj-bhaskaran/expense-predictor/issues/49))
+  - Created complete test suite with pytest, pytest-cov, and pytest-mock
+  - Added 57 unit and integration tests covering core functionality
+  - Achieved 43% test coverage on initial implementation
+  - Testing dependencies added to requirements-dev.txt
+
+- **Test Structure** ([#49](https://github.com/manoj-bhaskaran/expense-predictor/issues/49))
+  - `tests/conftest.py`: Shared fixtures and test configuration
+  - `tests/test_helpers.py`: 44 unit tests for helpers.py functions
+  - `tests/test_model_runner.py`: 13 integration tests for ML pipeline
+  - `tests/test_data/`: Sample CSV files for testing various scenarios
+  - `tests/fixtures/`: Expected outputs for validation
+
+- **Unit Tests for helpers.py** ([#49](https://github.com/manoj-bhaskaran/expense-predictor/issues/49))
+  - **File Validation Tests**:
+    - `validate_csv_file()`: Tests for valid files, missing files, invalid columns, empty files
+    - `validate_excel_file()`: Tests for file existence, format validation, extension checking
+    - `validate_date_range()`: Tests for valid dates, NaT values, future dates
+  - **Column Matching Tests**:
+    - `find_column_name()`: Tests for exact match, normalized spacing, fuzzy matching
+    - Validates flexible column name handling for Excel imports
+  - **Date Manipulation Tests**:
+    - `get_quarter_end_date()`: Tests for all quarters (Q1-Q4), edge cases, year boundaries
+    - Comprehensive coverage of date calculations
+  - **Data Processing Tests**:
+    - `preprocess_data()`: Tests for valid files, invalid files, feature engineering
+    - `prepare_future_dates()`: Tests for default dates, custom dates, past dates
+    - `write_predictions()`: Tests for CSV creation, backup creation, injection prevention
+
+- **Integration Tests for model_runner.py** ([#49](https://github.com/manoj-bhaskaran/expense-predictor/issues/49))
+  - **Data Preprocessing Pipeline**:
+    - Full CSV preprocessing workflow
+    - Missing date filling validation
+    - Duplicate removal verification
+  - **Model Training Tests**:
+    - Linear Regression, Decision Tree, Random Forest, Gradient Boosting
+    - Config parameter integration
+    - Prediction generation validation
+  - **Train/Test Split Tests**:
+    - Split ratio validation from config
+    - Temporal order preservation (shuffle=False)
+  - **Model Evaluation Tests**:
+    - RMSE, MAE, R² metric calculations
+    - Separate metrics for train and test sets
+  - **End-to-End Pipeline**:
+    - Complete workflow from CSV to predictions
+    - Feature alignment validation
+    - Output format verification
+  - **Configuration Integration**:
+    - Config parameter loading tests
+    - Value range validation
+
+- **Test Configuration Files** ([#49](https://github.com/manoj-bhaskaran/expense-predictor/issues/49))
+  - `pytest.ini`: Pytest configuration with coverage settings
+  - `.coveragerc`: Coverage configuration with 40% threshold
+  - Test markers for categorization (unit, integration, slow, validation)
+  - HTML and XML coverage reports enabled
+
+- **Sample Test Data** ([#49](https://github.com/manoj-bhaskaran/expense-predictor/issues/49))
+  - `sample.csv`: Valid transaction data for testing
+  - `sample_invalid_columns.csv`: Missing required columns
+  - `sample_empty.csv`: Empty file edge case
+  - `sample_invalid_dates.csv`: Invalid date formats
+  - `sample_future_dates.csv`: Future-only dates for validation
+
+- **Mock Logging Framework** ([#49](https://github.com/manoj-bhaskaran/expense-predictor/issues/49))
+  - Created `python_logging_framework.py` mock for testing
+  - Allows tests to run without external dependency installation
+  - Maintains compatibility with production logging interface
+
+### Changed
+
+- **Updated .gitignore** ([#49](https://github.com/manoj-bhaskaran/expense-predictor/issues/49))
+  - Added test artifacts (`.pytest_cache/`, `.coverage`, `htmlcov/`)
+  - Added IDE-specific patterns (`.vscode/`, `.idea/`)
+  - Added Python build artifacts (`*.pyc`, `__pycache__/`, `*.egg-info/`)
+  - Excluded test data from ignore patterns (`!tests/test_data/*.csv`)
+
+### Documentation
+
+- **README.md Updates** ([#49](https://github.com/manoj-bhaskaran/expense-predictor/issues/49))
+  - Added comprehensive "Running Tests" section
+  - Included test coverage information
+  - Added instructions for running specific test suites
+  - Documented pytest markers and options
+  - Added test coverage goals and metrics
+
+### Improved
+
+- **Quality Assurance**: Comprehensive test coverage for critical functionality
+- **Code Reliability**: Automated testing catches regressions and bugs
+- **Development Workflow**: Tests enable confident refactoring and feature additions
+- **Documentation**: Clear testing guidelines for contributors
+- **CI/CD Ready**: Tests prepared for continuous integration pipelines
+
 ## [1.4.0] - 2025-11-14
 
 ### Added
@@ -434,6 +579,7 @@ When reporting issues, please include:
 
 ---
 
+[1.5.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.5.0
 [1.4.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.4.0
 [1.3.1]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.3.1
 [1.3.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.3.0
