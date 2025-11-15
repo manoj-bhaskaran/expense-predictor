@@ -12,5 +12,8 @@ xlrd==2.0.1
 # Configuration file support
 pyyaml==6.0.1
 
+# Environment variable loading
+python-dotenv==1.0.0
+
 # Note: python_logging_framework is included locally in the project root
 # No external installation required

@@ -52,6 +52,10 @@ from security import (
     ALLOWED_CSV_EXTENSIONS,
     ALLOWED_EXCEL_EXTENSIONS
 )
+from dotenv import load_dotenv
+
+# Load environment variables from .env file (if it exists)
+load_dotenv()
 
 # Get the directory where this script is located
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -61,6 +65,18 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
     """
     Parse command-line arguments for the expense predictor.
 
+    Environment variables can be used to set default values. Command-line arguments
+    take precedence over environment variables.
+
+    Supported environment variables:
+        - EXPENSE_PREDICTOR_FUTURE_DATE: Default future date for predictions
+        - EXPENSE_PREDICTOR_EXCEL_DIR: Default Excel file directory
+        - EXPENSE_PREDICTOR_EXCEL_FILE: Default Excel file name
+        - EXPENSE_PREDICTOR_DATA_FILE: Default CSV data file path
+        - EXPENSE_PREDICTOR_LOG_DIR: Default log directory
+        - EXPENSE_PREDICTOR_OUTPUT_DIR: Default output directory
+        - EXPENSE_PREDICTOR_SKIP_CONFIRMATION: Skip confirmation prompts (true/false)
+
     Args:
         args: Optional list of arguments to parse. If None, uses sys.argv.
 
@@ -68,13 +84,48 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         argparse.Namespace: Parsed arguments object.
     """
     parser = argparse.ArgumentParser(description='Expense Predictor')
-    parser.add_argument('--future_date', type=str, help='Future date for prediction (e.g., 31/12/2025)')
-    parser.add_argument('--excel_dir', type=str, default='.', help='Directory where the Excel file is located')
-    parser.add_argument('--excel_file', type=str, help='Name of the Excel file containing additional data')
-    parser.add_argument('--data_file', type=str, default='trandata.csv', help='Path to the CSV file containing transaction data')
-    parser.add_argument('--log_dir', type=str, default='logs', help='Directory where log files will be saved')
-    parser.add_argument('--output_dir', type=str, default='.', help='Directory where prediction files will be saved')
-    parser.add_argument('--skip_confirmation', action='store_true', help='Skip confirmation prompts for overwriting files (useful for automation)')
+    parser.add_argument(
+        '--future_date',
+        type=str,
+        default=os.getenv('EXPENSE_PREDICTOR_FUTURE_DATE'),
+        help='Future date for prediction (e.g., 31/12/2025)'
+    )
+    parser.add_argument(
+        '--excel_dir',
+        type=str,
+        default=os.getenv('EXPENSE_PREDICTOR_EXCEL_DIR', '.'),
+        help='Directory where the Excel file is located'
+    )
+    parser.add_argument(
+        '--excel_file',
+        type=str,
+        default=os.getenv('EXPENSE_PREDICTOR_EXCEL_FILE'),
+        help='Name of the Excel file containing additional data'
+    )
+    parser.add_argument(
+        '--data_file',
+        type=str,
+        default=os.getenv('EXPENSE_PREDICTOR_DATA_FILE', 'trandata.csv'),
+        help='Path to the CSV file containing transaction data'
+    )
+    parser.add_argument(
+        '--log_dir',
+        type=str,
+        default=os.getenv('EXPENSE_PREDICTOR_LOG_DIR', 'logs'),
+        help='Directory where log files will be saved'
+    )
+    parser.add_argument(
+        '--output_dir',
+        type=str,
+        default=os.getenv('EXPENSE_PREDICTOR_OUTPUT_DIR', '.'),
+        help='Directory where prediction files will be saved'
+    )
+    parser.add_argument(
+        '--skip_confirmation',
+        action='store_true',
+        default=os.getenv('EXPENSE_PREDICTOR_SKIP_CONFIRMATION', 'false').lower() == 'true',
+        help='Skip confirmation prompts for overwriting files (useful for automation)'
+    )
     return parser.parse_args(args)
 
 
