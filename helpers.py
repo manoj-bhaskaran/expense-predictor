@@ -8,6 +8,7 @@ import python_logging_framework as plog
 from config import config
 import os
 from security import sanitize_dataframe_for_csv, create_backup, confirm_overwrite
+from exceptions import DataValidationError
 
 # Define constants
 TRANSACTION_AMOUNT_LABEL = 'Tran Amt'
@@ -23,18 +24,18 @@ def validate_csv_file(file_path: str, logger: Optional[logging.Logger] = None) -
     logger (logging.Logger, optional): Logger instance for logging messages
 
     Raises:
-    FileNotFoundError: If the CSV file does not exist
-    ValueError: If required columns are missing
+    DataValidationError: If the CSV file does not exist, is not a file,
+                        has missing required columns, is empty, or is not properly formatted
     """
     # Check if file exists
     if not os.path.exists(file_path):
         plog.log_error(logger, f"CSV file not found: {file_path}")
-        raise FileNotFoundError(f"CSV file not found: {file_path}")
+        raise DataValidationError(f"CSV file not found: {file_path}")
 
     # Check if it's a file (not a directory)
     if not os.path.isfile(file_path):
         plog.log_error(logger, f"Path is not a file: {file_path}")
-        raise ValueError(f"Path is not a file: {file_path}")
+        raise DataValidationError(f"Path is not a file: {file_path}")
 
     # Try to read the CSV and check for required columns
     try:
@@ -47,15 +48,15 @@ def validate_csv_file(file_path: str, logger: Optional[logging.Logger] = None) -
 
         if missing_columns:
             plog.log_error(logger, f"Missing required columns in CSV: {missing_columns}. Found columns: {columns}")
-            raise ValueError(f"Missing required columns in CSV file: {missing_columns}. Found columns: {columns}")
+            raise DataValidationError(f"Missing required columns in CSV file: {missing_columns}. Found columns: {columns}")
 
         plog.log_info(logger, f"CSV file validation passed: {file_path}")
-    except pd.errors.EmptyDataError:
+    except pd.errors.EmptyDataError as e:
         plog.log_error(logger, f"CSV file is empty: {file_path}")
-        raise ValueError(f"CSV file is empty: {file_path}")
+        raise DataValidationError(f"CSV file is empty: {file_path}") from e
     except pd.errors.ParserError as e:
         plog.log_error(logger, f"CSV file parsing error: {e}")
-        raise ValueError(f"CSV file is not properly formatted: {e}")
+        raise DataValidationError(f"CSV file is not properly formatted: {e}") from e
 
 def validate_excel_file(file_path: str, logger: Optional[logging.Logger] = None) -> None:
     """
@@ -70,8 +71,8 @@ def validate_excel_file(file_path: str, logger: Optional[logging.Logger] = None)
     logger (logging.Logger, optional): Logger instance for logging messages
 
     Raises:
-    FileNotFoundError: If the Excel file does not exist
-    ValueError: If the file is not a valid Excel format
+    DataValidationError: If the Excel file does not exist, is not a file,
+                        has an invalid format, or is corrupted
     """
     # Security warning
     plog.log_info(logger, f"WARNING: Processing Excel file from: {file_path}")
@@ -80,12 +81,12 @@ def validate_excel_file(file_path: str, logger: Optional[logging.Logger] = None)
     # Check if file exists
     if not os.path.exists(file_path):
         plog.log_error(logger, f"Excel file not found: {file_path}")
-        raise FileNotFoundError(f"Excel file not found: {file_path}")
+        raise DataValidationError(f"Excel file not found: {file_path}")
 
     # Check if it's a file (not a directory)
     if not os.path.isfile(file_path):
         plog.log_error(logger, f"Path is not a file: {file_path}")
-        raise ValueError(f"Path is not a file: {file_path}")
+        raise DataValidationError(f"Path is not a file: {file_path}")
 
     # Check file extension
     valid_extensions = ['.xls', '.xlsx']
@@ -93,16 +94,26 @@ def validate_excel_file(file_path: str, logger: Optional[logging.Logger] = None)
 
     if file_extension not in valid_extensions:
         plog.log_error(logger, f"Invalid Excel file format: {file_extension}. Expected: {valid_extensions}")
-        raise ValueError(f"Invalid Excel file format: {file_extension}. Expected one of: {valid_extensions}")
+        raise DataValidationError(f"Invalid Excel file format: {file_extension}. Expected one of: {valid_extensions}")
 
     # Try to open the Excel file to ensure it's valid
     try:
         engine = 'xlrd' if file_path.endswith('.xls') else 'openpyxl'
         pd.ExcelFile(file_path, engine=engine)
         plog.log_info(logger, f"Excel file validation passed: {file_path}")
+    except xlrd.biffh.XLRDError as e:
+        # Corrupted or invalid .xls file
+        plog.log_error(logger, f"Excel file is corrupted or invalid (XLS format error): {e}")
+        raise DataValidationError(f"Excel file is corrupted or cannot be read: {e}") from e
+    except (ValueError, KeyError) as e:
+        # Invalid file format or structure issues from openpyxl/pandas
+        plog.log_error(logger, f"Excel file is corrupted or invalid (format error): {e}")
+        raise DataValidationError(f"Excel file is corrupted or cannot be read: {e}") from e
     except Exception as e:
-        plog.log_error(logger, f"Excel file is corrupted or invalid: {e}")
-        raise ValueError(f"Excel file is corrupted or cannot be read: {e}")
+        # Catch any other unexpected errors and provide context
+        # This includes openpyxl exceptions without explicit import
+        plog.log_error(logger, f"Excel file validation failed: {e}")
+        raise DataValidationError(f"Excel file is corrupted or cannot be read: {e}") from e
 
 def validate_date_range(df: pd.DataFrame, logger: Optional[logging.Logger] = None) -> None:
     """
@@ -113,16 +124,17 @@ def validate_date_range(df: pd.DataFrame, logger: Optional[logging.Logger] = Non
     logger (logging.Logger, optional): Logger instance for logging messages
 
     Raises:
-    ValueError: If date range is invalid
+    DataValidationError: If date range is invalid (missing Date column,
+                        no valid dates, NaT values, or all future dates)
     """
     if 'Date' not in df.columns:
         plog.log_error(logger, "Date column not found in DataFrame")
-        raise ValueError("Date column not found in DataFrame")
+        raise DataValidationError("Date column not found in DataFrame")
 
     # Check if there are any valid dates
     if df['Date'].isna().all():
         plog.log_error(logger, "No valid dates found in the data")
-        raise ValueError("No valid dates found in the data")
+        raise DataValidationError("No valid dates found in the data")
 
     start_date = df['Date'].min()
     end_date = df['Date'].max()
@@ -130,13 +142,13 @@ def validate_date_range(df: pd.DataFrame, logger: Optional[logging.Logger] = Non
     # Check for NaT (Not a Time) values
     if pd.isna(start_date) or pd.isna(end_date):
         plog.log_error(logger, "Invalid dates found in the data (NaT values)")
-        raise ValueError("Invalid dates found in the data. Please ensure all dates are properly formatted.")
+        raise DataValidationError("Invalid dates found in the data. Please ensure all dates are properly formatted.")
 
     # Check if dates are in the future (beyond today)
     today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     if start_date > today:
         plog.log_error(logger, f"Data contains only future dates. Start date: {start_date}, Today: {today}")
-        raise ValueError(f"Data contains only future dates. Start date: {start_date.strftime('%Y-%m-%d')}")
+        raise DataValidationError(f"Data contains only future dates. Start date: {start_date.strftime('%Y-%m-%d')}")
 
     # Log date range info
     plog.log_info(logger, f"Date range validation passed. Start: {start_date.strftime('%Y-%m-%d')}, End: {end_date.strftime('%Y-%m-%d')}")
@@ -217,7 +229,7 @@ def get_training_date_range(
     pd.DatetimeIndex: Complete date range for training from earliest date to yesterday
 
     Raises:
-    ValueError: If date range is invalid (NaT values found)
+    DataValidationError: If date range is invalid (NaT values found)
 
     Example:
     >>> df = pd.DataFrame({'Date': pd.date_range('2024-01-01', periods=10)})
@@ -235,7 +247,7 @@ def get_training_date_range(
     # Validate dates
     if pd.isna(start_date) or pd.isna(end_date):
         plog.log_error(logger, "Invalid start or end date found in data")
-        raise ValueError("Invalid start or end date found. Please check the data.")
+        raise DataValidationError("Invalid start or end date found. Please check the data.")
 
     # Log the range
     plog.log_info(
@@ -262,7 +274,7 @@ def _process_dataframe(df: pd.DataFrame, logger: Optional[logging.Logger] = None
     """
     if not pd.to_numeric(df[TRANSACTION_AMOUNT_LABEL], errors='coerce').notnull().all():
         plog.log_error(logger, f"The '{TRANSACTION_AMOUNT_LABEL}' column contains non-numeric values")
-        raise ValueError(f"The '{TRANSACTION_AMOUNT_LABEL}' column contains non-numeric values. Please check the data.")
+        raise DataValidationError(f"The '{TRANSACTION_AMOUNT_LABEL}' column contains non-numeric values. Please check the data.")
 
     plog.log_info(logger, "Converting transaction amounts to numeric values")
     df[TRANSACTION_AMOUNT_LABEL] = pd.to_numeric(df[TRANSACTION_AMOUNT_LABEL])
@@ -328,7 +340,7 @@ def prepare_future_dates(future_date: Optional[str] = None) -> Tuple[pd.DataFram
     else:
         end_date = datetime.strptime(future_date, "%d-%m-%Y")
         if end_date <= start_date:
-            raise ValueError("Future date must be in the future.")
+            raise DataValidationError("Future date must be in the future.")
         
     future_dates = pd.date_range(start=start_date, end=end_date)
     future_df = pd.DataFrame({'Date': future_dates})
@@ -375,7 +387,7 @@ def preprocess_and_append_csv(file_path: str, excel_path: Optional[str] = None, 
         value_date_col = find_column_name(excel_data.columns, VALUE_DATE_LABEL)
         if value_date_col is None:
             plog.log_error(logger, f"{VALUE_DATE_LABEL} column not found. Available columns: {excel_data.columns.tolist()}")
-            raise KeyError(f"{VALUE_DATE_LABEL} column not found in Excel file. Available columns: {excel_data.columns.tolist()}")
+            raise DataValidationError(f"{VALUE_DATE_LABEL} column not found in Excel file. Available columns: {excel_data.columns.tolist()}")
 
         plog.log_info(logger, f"Using '{value_date_col}' as {VALUE_DATE_LABEL} column")
         excel_data[value_date_col] = pd.to_datetime(excel_data[value_date_col], dayfirst=True, errors='coerce')
@@ -391,7 +403,7 @@ def preprocess_and_append_csv(file_path: str, excel_path: Optional[str] = None, 
 
         if withdrawal_col is None or deposit_col is None:
             plog.log_error(logger, f"Required columns not found. Expected: 'Withdrawal Amount (INR )' and 'Deposit Amount (INR )'. Found: {excel_data.columns.tolist()}")
-            raise KeyError(f"Required columns not found in Excel file. Available columns: {excel_data.columns.tolist()}")
+            raise DataValidationError(f"Required columns not found in Excel file. Available columns: {excel_data.columns.tolist()}")
 
         plog.log_info(logger, f"Using columns: '{withdrawal_col}' for withdrawals and '{deposit_col}' for deposits")
         excel_data['expense'] = excel_data[withdrawal_col].fillna(0) * -1 + excel_data[deposit_col].fillna(0)

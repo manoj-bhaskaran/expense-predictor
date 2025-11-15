@@ -13,6 +13,7 @@ from typing import cast
 
 from helpers import validate_excel_file, preprocess_and_append_csv
 from security import validate_and_resolve_path
+from exceptions import DataValidationError
 
 
 class TestHelpersEdgeCases:
@@ -25,7 +26,7 @@ class TestHelpersEdgeCases:
         with open(fake_excel, 'w') as f:
             f.write('This is not really an Excel file')
 
-        with pytest.raises(ValueError, match="corrupted or cannot be read"):
+        with pytest.raises(DataValidationError, match="corrupted or cannot be read"):
             validate_excel_file(fake_excel, logger=mock_logger)
 
     def test_preprocess_and_append_with_excel(self, sample_csv_path, temp_dir, mock_logger):
@@ -103,7 +104,7 @@ class TestHelpersValidationEdgeCases:
         # This might not raise if pandas is lenient, but we test the code path
         try:
             validate_csv_file(bad_csv, logger=mock_logger)
-        except ValueError:
+        except DataValidationError:
             # Expected for some pandas versions
             pass
 
@@ -117,5 +118,5 @@ class TestHelpersValidationEdgeCases:
             f.write('01/01/2024,not_a_number\n')
             f.write('02/01/2024,also_not_number\n')
 
-        with pytest.raises(ValueError, match="non-numeric values"):
+        with pytest.raises(DataValidationError, match="non-numeric values"):
             preprocess_data(bad_data_csv, logger=mock_logger)
