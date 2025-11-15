@@ -11,7 +11,7 @@
 
 set -euo pipefail
 
-# Colours (optional, just for pretty output)
+# Colours
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -148,24 +148,21 @@ check_issues_dir() {
         exit 1
     fi
 
-    local count
-    count=$(find "$ISSUES_DIR" -maxdepth 1 -type f -name 'issue*' | wc -l)
-    if [[ "$count" -eq 0 ]]; then
+    # Collect file list into array to avoid pipeline/subshell weirdness
+    mapfile -t ISSUE_FILES < <(find "$ISSUES_DIR" -maxdepth 1 -type f -name 'issue*' | sort)
+
+    if [[ "${#ISSUE_FILES[@]}" -eq 0 ]]; then
         err "No issue* files found in $ISSUES_DIR"
         exit 1
     fi
-    ok "Found $count issue file(s) in $ISSUES_DIR"
+
+    ok "Found ${#ISSUE_FILES[@]} issue file(s) in $ISSUES_DIR"
 }
 
 ###############################################################################
 # Label parsing and management
 ###############################################################################
 
-# Extract labels from a single issue file.
-# Looks for:
-#   ## Labels
-#   - bug
-#   - dependencies
 extract_labels_from_file() {
     local file="$1"
     awk '
@@ -178,16 +175,13 @@ extract_labels_from_file() {
     ' "$file"
 }
 
-# Collect unique labels from all issue* files
 collect_all_labels() {
-    find "$ISSUES_DIR" -maxdepth 1 -type f -name 'issue*' | while read -r f; do
+    for f in "${ISSUE_FILES[@]}"; do
         extract_labels_from_file "$f"
     done | sed '/^$/d' | sort -u
 }
 
-# Generate a random 6-digit hex colour
 random_color() {
-    # RANDOM is 0–32767; multiply and mod to get 0–0xFFFFFF
     printf "%06x" $(( (RANDOM * RANDOM) % 16777215 ))
 }
 
@@ -242,32 +236,32 @@ ensure_labels_exist() {
 # Issue creation
 ###############################################################################
 
-# Extract first markdown H1 as title
 extract_title() {
     local file="$1"
     grep -m1 '^# ' "$file" | sed 's/^# //'
 }
 
-# Create a single issue from a markdown file
 create_issue_from_file() {
     local file="$1"
+    local index="$2"
+    local total="$3"
     local fname
     fname=$(basename "$file")
 
     line
-    info "Processing file: $fname"
+    info "[$index/$total] Processing file: $fname"
 
     local title
     title=$(extract_title "$file" || true)
     if [[ -z "$title" ]]; then
         warn "No title (# heading) found in $fname – skipping."
         ((SKIPPED_COUNT++))
-        return
+        return 0
     fi
     info "Title: $title"
 
-    # Labels for this issue
-    local label_args=()
+    # Build --label args
+    local -a label_args=()
     while read -r lbl; do
         [[ -z "$lbl" ]] && continue
         label_args+=("--label" "$lbl")
@@ -279,7 +273,6 @@ create_issue_from_file() {
         info "No labels for this issue."
     fi
 
-    # Optional: avoid duplicates by title
     info "Checking for existing issues with same title..."
     local existing
     existing=$(gh issue list \
@@ -291,13 +284,13 @@ create_issue_from_file() {
     if [[ -n "$existing" ]]; then
         warn "Issue already exists (#$existing) with this exact title – skipping."
         ((SKIPPED_COUNT++))
-        return
+        return 0
     fi
 
     if [[ "$DRY_RUN" == true ]]; then
         warn "DRY RUN: would create issue \"$title\" from $fname"
         ((CREATED_COUNT++))
-        return
+        return 0
     fi
 
     info "Creating issue on GitHub..."
@@ -318,8 +311,11 @@ create_issue_from_file() {
 create_all_issues() {
     step "Creating issues from templates"
 
-    find "$ISSUES_DIR" -maxdepth 1 -type f -name 'issue*' | sort | while read -r file; do
-        create_issue_from_file "$file"
+    local total="${#ISSUE_FILES[@]}"
+    local i=0
+    for file in "${ISSUE_FILES[@]}"; do
+        ((i++))
+        create_issue_from_file "$file" "$i" "$total"
     done
 }
 
