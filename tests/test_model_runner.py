@@ -84,7 +84,7 @@ class TestDataPreprocessingPipeline:
         # The processed dataframe will have many rows due to date filling
         # But the original date should have the last value (200.0)
         jan_1_value = processed_df[processed_df['Date'] == '2024-01-01']['Tran Amt'].iloc[0]
-        assert jan_1_value == 200.0
+        assert abs(jan_1_value - 200.0) < 0.001
 
 
 class TestModelTrainingPipeline:
@@ -184,8 +184,8 @@ class TestTrainTestSplit:
         total_size = len(X)
         test_ratio = len(X_test) / total_size
 
-        # Test size should be approximately equal to configured test_size
-        assert abs(test_ratio - test_size) < 0.01  # Within 1%
+        # Test size should be approximately equal to configured test_size (within 1%)
+        assert abs(test_ratio - test_size) < 0.01
         assert len(X_train) + len(X_test) == total_size
 
     def test_train_test_split_temporal_order(self, sample_csv_path, mock_logger):
