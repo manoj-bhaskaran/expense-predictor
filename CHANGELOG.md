@@ -7,6 +7,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.14.0] - 2025-11-15
+
+### Added
+
+- **Environment Variable Configuration Support** ([#84](https://github.com/manoj-bhaskaran/expense-predictor/issues/84))
+  - Created `.env.example` file with all supported environment variables
+  - Added `python-dotenv==1.0.0` dependency for environment variable loading
+  - Implemented automatic `.env` file loading in `model_runner.py`
+  - Environment variables now provide default values for all CLI arguments
+  - Supported environment variables:
+    - `EXPENSE_PREDICTOR_DATA_FILE`: Default CSV data file path
+    - `EXPENSE_PREDICTOR_EXCEL_DIR`: Default Excel file directory
+    - `EXPENSE_PREDICTOR_EXCEL_FILE`: Default Excel file name
+    - `EXPENSE_PREDICTOR_LOG_DIR`: Default log directory
+    - `EXPENSE_PREDICTOR_OUTPUT_DIR`: Default output directory
+    - `EXPENSE_PREDICTOR_FUTURE_DATE`: Default future date for predictions
+    - `EXPENSE_PREDICTOR_SKIP_CONFIRMATION`: Skip confirmation prompts (true/false)
+  - Command-line arguments take precedence over environment variables
+  - Works seamlessly without `.env` file (uses built-in defaults)
+
+### Changed
+
+- **Configuration Priority** ([#84](https://github.com/manoj-bhaskaran/expense-predictor/issues/84))
+  - Updated configuration priority order:
+    1. Command-line arguments (highest priority)
+    2. Environment variables (.env file)
+    3. Configuration file (config.yaml)
+    4. Default values (lowest priority)
+
+### Documentation
+
+- **README.md** ([#84](https://github.com/manoj-bhaskaran/expense-predictor/issues/84))
+  - Added comprehensive "Environment Variables (.env file)" section
+  - Documented all supported environment variables with descriptions
+  - Provided example `.env` configurations for different environments
+  - Explained configuration priority order
+  - Added usage examples showing environment variable and CLI interaction
+
+- **CONTRIBUTING.md** ([#84](https://github.com/manoj-bhaskaran/expense-predictor/issues/84))
+  - Added "Configure Environment Variables" step in development setup
+  - Added "Environment Variables for Development" section in Development Tips
+  - Documented environment variable configuration workflow
+  - Added "Adding new environment variables" to documentation update checklist
+
+### Testing
+
+- **Environment Variable Tests** ([#84](https://github.com/manoj-bhaskaran/expense-predictor/issues/84))
+  - Added 11 new unit tests for environment variable loading
+  - Test individual environment variables are loaded correctly
+  - Test CLI arguments override environment variables (priority)
+  - Test application works without environment variables (defaults)
+  - Test multiple environment variables work together
+  - All tests marked with `@pytest.mark.unit` for selective execution
+
+### Improved
+
+- **Developer Experience** ([#84](https://github.com/manoj-bhaskaran/expense-predictor/issues/84))
+  - Developers can now set default paths via `.env` file
+  - Reduces need to specify command-line arguments repeatedly
+  - Supports different configurations per environment (dev, staging, prod)
+  - `.env` file already in `.gitignore` to prevent accidental commits
+
+- **Automation and CI/CD** ([#84](https://github.com/manoj-bhaskaran/expense-predictor/issues/84))
+  - Environment variables enable easier automation and scripting
+  - Docker containers can use environment variables for configuration
+  - CI/CD pipelines can set variables without modifying code
+  - `SKIP_CONFIRMATION` variable supports headless execution
+
 ## [1.13.0] - 2025-11-15
 
 ### Added

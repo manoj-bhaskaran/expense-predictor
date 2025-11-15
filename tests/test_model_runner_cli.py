@@ -93,6 +93,137 @@ class TestParseArgs:
         assert args.skip_confirmation is True
 
 
+@pytest.mark.unit
+class TestEnvironmentVariableLoading:
+    """Test environment variable loading and precedence."""
+
+    def test_env_var_data_file(self, monkeypatch):
+        """Test that EXPENSE_PREDICTOR_DATA_FILE environment variable is used as default."""
+        monkeypatch.setenv('EXPENSE_PREDICTOR_DATA_FILE', '/custom/path.csv')
+
+        args = parse_args([])
+
+        assert args.data_file == '/custom/path.csv'
+
+    def test_env_var_excel_dir(self, monkeypatch):
+        """Test that EXPENSE_PREDICTOR_EXCEL_DIR environment variable is used as default."""
+        monkeypatch.setenv('EXPENSE_PREDICTOR_EXCEL_DIR', '/excel/dir')
+
+        args = parse_args([])
+
+        assert args.excel_dir == '/excel/dir'
+
+    def test_env_var_excel_file(self, monkeypatch):
+        """Test that EXPENSE_PREDICTOR_EXCEL_FILE environment variable is used as default."""
+        monkeypatch.setenv('EXPENSE_PREDICTOR_EXCEL_FILE', 'custom.xls')
+
+        args = parse_args([])
+
+        assert args.excel_file == 'custom.xls'
+
+    def test_env_var_log_dir(self, monkeypatch):
+        """Test that EXPENSE_PREDICTOR_LOG_DIR environment variable is used as default."""
+        monkeypatch.setenv('EXPENSE_PREDICTOR_LOG_DIR', '/custom/logs')
+
+        args = parse_args([])
+
+        assert args.log_dir == '/custom/logs'
+
+    def test_env_var_output_dir(self, monkeypatch):
+        """Test that EXPENSE_PREDICTOR_OUTPUT_DIR environment variable is used as default."""
+        monkeypatch.setenv('EXPENSE_PREDICTOR_OUTPUT_DIR', '/custom/output')
+
+        args = parse_args([])
+
+        assert args.output_dir == '/custom/output'
+
+    def test_env_var_future_date(self, monkeypatch):
+        """Test that EXPENSE_PREDICTOR_FUTURE_DATE environment variable is used as default."""
+        monkeypatch.setenv('EXPENSE_PREDICTOR_FUTURE_DATE', '31/12/2026')
+
+        args = parse_args([])
+
+        assert args.future_date == '31/12/2026'
+
+    def test_env_var_skip_confirmation_true(self, monkeypatch):
+        """Test that EXPENSE_PREDICTOR_SKIP_CONFIRMATION=true is used as default."""
+        monkeypatch.setenv('EXPENSE_PREDICTOR_SKIP_CONFIRMATION', 'true')
+
+        args = parse_args([])
+
+        assert args.skip_confirmation is True
+
+    def test_env_var_skip_confirmation_false(self, monkeypatch):
+        """Test that EXPENSE_PREDICTOR_SKIP_CONFIRMATION=false is used as default."""
+        monkeypatch.setenv('EXPENSE_PREDICTOR_SKIP_CONFIRMATION', 'false')
+
+        args = parse_args([])
+
+        assert args.skip_confirmation is False
+
+    def test_cli_args_override_env_vars(self, monkeypatch):
+        """Test that CLI arguments override environment variables."""
+        # Set environment variables
+        monkeypatch.setenv('EXPENSE_PREDICTOR_DATA_FILE', '/env/path.csv')
+        monkeypatch.setenv('EXPENSE_PREDICTOR_LOG_DIR', '/env/logs')
+        monkeypatch.setenv('EXPENSE_PREDICTOR_OUTPUT_DIR', '/env/output')
+        monkeypatch.setenv('EXPENSE_PREDICTOR_FUTURE_DATE', '31/12/2026')
+
+        # Parse with CLI arguments
+        args = parse_args([
+            '--data_file', '/cli/path.csv',
+            '--log_dir', '/cli/logs',
+            '--output_dir', '/cli/output',
+            '--future_date', '15/06/2027'
+        ])
+
+        # Verify CLI arguments take precedence
+        assert args.data_file == '/cli/path.csv'
+        assert args.log_dir == '/cli/logs'
+        assert args.output_dir == '/cli/output'
+        assert args.future_date == '15/06/2027'
+
+    def test_works_without_env_vars(self, monkeypatch):
+        """Test that the application works without any environment variables set."""
+        # Ensure no relevant environment variables are set
+        for var in ['EXPENSE_PREDICTOR_DATA_FILE', 'EXPENSE_PREDICTOR_EXCEL_DIR',
+                    'EXPENSE_PREDICTOR_EXCEL_FILE', 'EXPENSE_PREDICTOR_LOG_DIR',
+                    'EXPENSE_PREDICTOR_OUTPUT_DIR', 'EXPENSE_PREDICTOR_FUTURE_DATE',
+                    'EXPENSE_PREDICTOR_SKIP_CONFIRMATION']:
+            monkeypatch.delenv(var, raising=False)
+
+        args = parse_args([])
+
+        # Verify defaults are used
+        assert args.data_file == 'trandata.csv'
+        assert args.excel_dir == '.'
+        assert args.excel_file is None
+        assert args.log_dir == 'logs'
+        assert args.output_dir == '.'
+        assert args.future_date is None
+        assert args.skip_confirmation is False
+
+    def test_multiple_env_vars_together(self, monkeypatch):
+        """Test that multiple environment variables work together."""
+        monkeypatch.setenv('EXPENSE_PREDICTOR_DATA_FILE', '/data/transactions.csv')
+        monkeypatch.setenv('EXPENSE_PREDICTOR_EXCEL_DIR', '/data/excel')
+        monkeypatch.setenv('EXPENSE_PREDICTOR_EXCEL_FILE', 'statements.xls')
+        monkeypatch.setenv('EXPENSE_PREDICTOR_LOG_DIR', '/var/log')
+        monkeypatch.setenv('EXPENSE_PREDICTOR_OUTPUT_DIR', '/output')
+        monkeypatch.setenv('EXPENSE_PREDICTOR_FUTURE_DATE', '31/12/2025')
+        monkeypatch.setenv('EXPENSE_PREDICTOR_SKIP_CONFIRMATION', 'true')
+
+        args = parse_args([])
+
+        assert args.data_file == '/data/transactions.csv'
+        assert args.excel_dir == '/data/excel'
+        assert args.excel_file == 'statements.xls'
+        assert args.log_dir == '/var/log'
+        assert args.output_dir == '/output'
+        assert args.future_date == '31/12/2025'
+        assert args.skip_confirmation is True
+
+
 @pytest.mark.integration
 @pytest.mark.slow
 class TestMainExecutionFlow:

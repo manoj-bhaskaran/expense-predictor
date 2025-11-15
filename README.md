@@ -86,9 +86,66 @@ See `config.yaml` for the complete list of configurable parameters with detailed
 
 **Note:** If `config.yaml` is missing or invalid, the system will use sensible defaults and continue running.
 
-### 2. Runtime Configuration (Command-Line Arguments)
+### 2. Environment Variables (.env file)
 
-Command-line arguments control file paths and runtime behavior. No environment variables are strictly required, but you can create a `.env` file based on `.env.example` for custom default paths.
+The project supports environment variables for setting default values. This is useful for:
+- Setting default paths without command-line arguments
+- Configuring different environments (dev, staging, prod)
+- Keeping sensitive paths out of version control
+- Automated workflows and CI/CD pipelines
+
+**Setup:**
+
+```bash
+# Copy the example file
+cp .env.example .env
+
+# Edit with your preferred defaults
+nano .env
+```
+
+**Supported Environment Variables:**
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `EXPENSE_PREDICTOR_DATA_FILE` | Path to CSV file with transaction data | `trandata.csv` |
+| `EXPENSE_PREDICTOR_EXCEL_DIR` | Directory containing Excel file | `.` (current directory) |
+| `EXPENSE_PREDICTOR_EXCEL_FILE` | Name of Excel file with additional data | None |
+| `EXPENSE_PREDICTOR_LOG_DIR` | Directory for log files | `logs` |
+| `EXPENSE_PREDICTOR_OUTPUT_DIR` | Directory for prediction output files | `.` (current directory) |
+| `EXPENSE_PREDICTOR_FUTURE_DATE` | Future date for predictions (DD/MM/YYYY) | End of current quarter |
+| `EXPENSE_PREDICTOR_SKIP_CONFIRMATION` | Skip file overwrite confirmations (`true`/`false`) | `false` |
+
+**Example .env file:**
+
+```bash
+# Development environment
+EXPENSE_PREDICTOR_DATA_FILE=./test_data/sample.csv
+EXPENSE_PREDICTOR_LOG_DIR=./dev_logs
+EXPENSE_PREDICTOR_OUTPUT_DIR=./dev_predictions
+EXPENSE_PREDICTOR_SKIP_CONFIRMATION=true
+```
+
+**Configuration Priority (highest to lowest):**
+
+1. **Command-line arguments** - Override everything
+2. **Environment variables** - Set via `.env` file
+3. **Configuration file** - `config.yaml` settings
+4. **Default values** - Built-in defaults
+
+**Example:**
+
+```bash
+# Uses .env values for all settings
+python model_runner.py
+
+# Overrides .env data_file but uses other .env values
+python model_runner.py --data_file ./other_data.csv
+```
+
+### 3. Runtime Configuration (Command-Line Arguments)
+
+Command-line arguments provide the highest priority configuration and can override both environment variables and config file settings.
 
 ## Usage
 

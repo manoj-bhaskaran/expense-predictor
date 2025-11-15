@@ -85,7 +85,24 @@ pip install -r requirements.txt
 pip install -r requirements-dev.txt
 ```
 
-### 5. Verify Setup
+### 5. Configure Environment Variables (Optional)
+
+```bash
+# Copy the example environment file
+cp .env.example .env
+
+# Edit with your development settings
+nano .env
+
+# Example development .env:
+# EXPENSE_PREDICTOR_DATA_FILE=./test_data/sample.csv
+# EXPENSE_PREDICTOR_LOG_DIR=./dev_logs
+# EXPENSE_PREDICTOR_SKIP_CONFIRMATION=true
+```
+
+**Note:** The `.env` file is in `.gitignore` and will not be committed to version control. This allows each developer to have their own local configuration without affecting others.
+
+### 6. Verify Setup
 
 ```bash
 # Run tests to verify everything works
@@ -561,6 +578,7 @@ git commit -m "test(helpers): add validation tests for Excel files"
 - Fixing bugs that affect usage
 - Adding new dependencies
 - Changing configuration options
+- Adding new environment variables
 
 ### Documentation Files
 
@@ -689,6 +707,34 @@ Features are evaluated based on:
 - **Breaking Changes**: Impact on existing users
 
 ## Development Tips
+
+### Environment Variables for Development
+
+You can set environment variables in your `.env` file for easier development:
+
+```bash
+# .env file for development
+EXPENSE_PREDICTOR_DATA_FILE=./test_data/sample.csv
+EXPENSE_PREDICTOR_LOG_DIR=./dev_logs
+EXPENSE_PREDICTOR_OUTPUT_DIR=./dev_predictions
+EXPENSE_PREDICTOR_SKIP_CONFIRMATION=true
+```
+
+This allows you to run the application without specifying command-line arguments:
+
+```bash
+# Uses values from .env
+python model_runner.py
+
+# Override specific values
+python model_runner.py --data_file ./other_data.csv
+```
+
+**Priority order:**
+1. Command-line arguments (highest)
+2. Environment variables (.env file)
+3. Configuration file (config.yaml)
+4. Default values (lowest)
 
 ### Helpful Commands
 
