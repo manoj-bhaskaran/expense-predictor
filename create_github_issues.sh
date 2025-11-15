@@ -192,15 +192,6 @@ check_and_create_labels() {
 
     print_step "Checking and creating labels..."
 
-    # Quick connectivity test
-    print_info "Testing GitHub API connectivity..."
-    if ! gh api /rate_limit &>/dev/null; then
-        print_error "Cannot connect to GitHub API"
-        print_warning "Skipping label creation. Please check your internet connection and gh authentication."
-        return
-    fi
-    print_success "GitHub API accessible"
-
     # Get all labels from templates
     local needed_labels=$(get_all_labels_from_templates)
 
