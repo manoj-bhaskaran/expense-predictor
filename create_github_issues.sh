@@ -163,6 +163,193 @@ check_issues_directory() {
 }
 
 ################################################################################
+# Label Management Functions
+################################################################################
+
+get_all_labels_from_templates() {
+    """
+    Extract all unique labels from all issue templates.
+
+    Returns:
+        Comma-separated list of unique labels
+    """
+    local all_labels=""
+
+    while IFS= read -r file; do
+        local md_labels=$(extract_labels_from_markdown "$file")
+        local priority=$(determine_priority_label "$file")
+
+        if [ -n "$md_labels" ]; then
+            all_labels="${all_labels},${md_labels}"
+        fi
+        if [ -n "$priority" ]; then
+            all_labels="${all_labels},${priority}"
+        fi
+    done < <(find "$ISSUES_DIR" -name "issue_*.md" -type f)
+
+    # Remove leading comma and get unique labels
+    all_labels=$(echo "$all_labels" | sed 's/^,//' | tr ',' '\n' | sort -u | tr '\n' ',' | sed 's/,$//')
+    echo "$all_labels"
+}
+
+check_and_create_labels() {
+    """
+    Check if labels exist in the repository and create missing ones.
+    """
+    print_step "Checking and creating labels..."
+
+    # Get all labels from templates
+    local needed_labels=$(get_all_labels_from_templates)
+
+    if [ -z "$needed_labels" ]; then
+        print_info "No labels found in templates"
+        return
+    fi
+
+    print_info "Labels needed: ${needed_labels}"
+
+    # Get existing labels from repo
+    print_info "Fetching existing labels from repository..."
+    local existing_labels_raw=$(gh label list --repo "$REPO" --json name --jq '.[].name' 2>/dev/null)
+
+    if [ $? -ne 0 ]; then
+        print_warning "Could not fetch existing labels. Proceeding anyway..."
+        return
+    fi
+
+    # Convert to array for easier checking
+    local -A existing_labels_map
+    while IFS= read -r label; do
+        existing_labels_map["$label"]=1
+    done <<< "$existing_labels_raw"
+
+    local created_count=0
+    local exists_count=0
+
+    # Process each needed label
+    IFS=',' read -ra LABELS <<< "$needed_labels"
+    for label in "${LABELS[@]}"; do
+        # Trim whitespace
+        label=$(echo "$label" | xargs)
+
+        # Check if label exists
+        if [ -n "${existing_labels_map[$label]}" ]; then
+            print_info "  ✓ Label exists: ${label}"
+            ((exists_count++))
+        else
+            # Create the label with appropriate color
+            local color=$(get_label_color "$label")
+            print_info "  + Creating label: ${label} (color: #${color})"
+
+            if gh label create "$label" --color "$color" --repo "$REPO" 2>/dev/null; then
+                print_success "    Created: ${label}"
+                ((created_count++))
+            else
+                print_warning "    Could not create label: ${label} (may already exist)"
+                ((exists_count++))
+            fi
+        fi
+    done
+
+    print_success "Label check complete: ${exists_count} existing, ${created_count} created"
+    echo ""
+}
+
+get_label_color() {
+    """
+    Get appropriate color for a label based on its name/type.
+
+    Args:
+        $1: Label name
+
+    Returns:
+        Hex color code (without #)
+    """
+    local label=$1
+
+    case "$label" in
+        # Priority labels
+        "priority: critical"|"critical")
+            echo "d73a4a"  # Red
+            ;;
+        "priority: high"|"high")
+            echo "ff6b6b"  # Light red
+            ;;
+        "priority: medium"|"medium")
+            echo "fbca04"  # Yellow
+            ;;
+        "priority: low"|"low")
+            echo "0e8a16"  # Green
+            ;;
+
+        # Type labels
+        "bug")
+            echo "d73a4a"  # Red
+            ;;
+        "enhancement"|"feature")
+            echo "a2eeef"  # Light blue
+            ;;
+        "documentation"|"docs")
+            echo "0075ca"  # Blue
+            ;;
+
+        # Category labels
+        "dependencies")
+            echo "0366d6"  # Dark blue
+            ;;
+        "security")
+            echo "ee0701"  # Bright red
+            ;;
+        "refactoring"|"code-quality")
+            echo "d4c5f9"  # Purple
+            ;;
+        "testing"|"tests")
+            echo "c5def5"  # Light blue
+            ;;
+        "validation")
+            echo "1d76db"  # Blue
+            ;;
+        "configuration")
+            echo "5319e7"  # Purple
+            ;;
+        "maintenance")
+            echo "fbca04"  # Yellow
+            ;;
+        "user-experience"|"ux")
+            echo "c2e0c6"  # Light green
+            ;;
+        "pandas")
+            echo "150458"  # Dark purple
+            ;;
+        "deprecation")
+            echo "fef2c0"  # Light yellow
+            ;;
+        "python-3.12"|"python")
+            echo "3572a5"  # Python blue
+            ;;
+
+        # Status/meta labels
+        "good first issue")
+            echo "7057ff"  # Purple
+            ;;
+        "help wanted")
+            echo "008672"  # Teal
+            ;;
+        "wontfix")
+            echo "ffffff"  # White
+            ;;
+        "duplicate")
+            echo "cfd3d7"  # Gray
+            ;;
+
+        # Default for any other label
+        *)
+            echo "ededed"  # Light gray
+            ;;
+    esac
+}
+
+################################################################################
 # Issue Creation Functions
 ################################################################################
 
@@ -347,7 +534,8 @@ ${BOLD}Usage:${NC} ./create_github_issues.sh [OPTIONS]
 
 ${BOLD}Description:${NC}
   Automatically creates GitHub issues from markdown templates in the
-  github_issues/ directory.
+  github_issues/ directory. The script will automatically create any
+  missing labels before creating issues.
 
 ${BOLD}Options:${NC}
   --dry-run         Show what would be created without actually creating issues
@@ -411,6 +599,14 @@ main() {
         fi
     else
         print_info "Running in dry-run mode for repository: ${REPO}"
+    fi
+
+    # Check and create labels (skip in dry-run mode)
+    if [ "$DRY_RUN" = false ]; then
+        check_and_create_labels
+    else
+        print_info "Skipping label creation in dry-run mode"
+        echo ""
     fi
 
     # Process each issue file
