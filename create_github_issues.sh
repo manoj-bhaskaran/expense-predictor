@@ -246,6 +246,8 @@ check_and_create_labels() {
         existing_labels_map["$label"]=1
     done <<< "$existing_labels_raw"
 
+    print_info "Here 1"
+
     local created_count=0
     local exists_count=0
 
