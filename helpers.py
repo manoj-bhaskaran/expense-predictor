@@ -259,7 +259,8 @@ def get_training_date_range(
 
     # Log the range
     plog.log_info(
-        logger, f"Creating complete date range from {start_date.strftime('%Y-%m-%d')} " f"to {end_date.strftime('%Y-%m-%d')}"
+        logger,
+        f"Creating complete date range from {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}",
     )
 
     return pd.date_range(start=start_date, end=end_date)
@@ -422,7 +423,8 @@ def preprocess_and_append_csv(
         if withdrawal_col is None or deposit_col is None:
             plog.log_error(
                 logger,
-                f"Required columns not found. Expected: 'Withdrawal Amount (INR )' and 'Deposit Amount (INR )'. Found: {excel_data.columns.tolist()}",
+                f"Required columns not found. Expected: 'Withdrawal Amount (INR )' and 'Deposit Amount (INR )'. "
+                f"Found: {excel_data.columns.tolist()}",
             )
             raise DataValidationError(
                 f"Required columns not found in Excel file. Available columns: {excel_data.columns.tolist()}"
