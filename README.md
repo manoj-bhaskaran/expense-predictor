@@ -22,9 +22,9 @@ A machine learning-based expense prediction system that analyzes historical tran
 
 ## Requirements
 
-- Python 3.7 or higher
+- Python 3.9 or higher (tested on Python 3.9, 3.10, and 3.11)
 - Git (required for installing dependencies from GitHub)
-- See `requirements.txt` for package dependencies
+- See `requirements.txt` for pinned package dependencies
 
 ## Installation
 
@@ -199,8 +199,10 @@ expense-predictor/
 ├── security.py              # Security utilities (path validation, sanitization)
 ├── config.py                # Configuration loader module
 ├── config.yaml              # Configuration file for hyperparameters
-├── requirements.txt         # Production dependencies
-├── requirements-dev.txt     # Development dependencies
+├── setup.py                 # Package setup and dependencies configuration
+├── requirements.txt         # Production dependencies (pinned versions)
+├── requirements-dev.txt     # Development dependencies (pinned versions)
+├── .python-version          # Python version specification (3.9)
 ├── pytest.ini               # Pytest configuration
 ├── .coveragerc             # Coverage configuration
 ├── .env.example            # Example environment configuration

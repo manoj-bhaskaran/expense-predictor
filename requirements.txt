@@ -1,6 +1,16 @@
-numpy
-pandas
-scikit-learn
-xlrd
-pyyaml
+# Production Dependencies for Expense Predictor
+# Install with: pip install -r requirements.txt
+
+# Core ML and Data Processing
+numpy==1.26.4
+pandas==2.2.0
+scikit-learn==1.4.0
+
+# Excel file support
+xlrd==2.0.1
+
+# Configuration file support
+pyyaml==6.0.1
+
+# Logging framework (installed from GitHub)
 git+https://github.com/manoj-bhaskaran/My-Scripts.git@main
