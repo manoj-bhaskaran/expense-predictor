@@ -5,6 +5,52 @@ All notable changes to the Expense Predictor project will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **CI/CD Pipeline for Pull Requests**
+  - GitHub Actions workflow for automated testing (`test.yml`)
+  - Multi-version Python testing (3.9, 3.10, 3.11)
+  - Automated coverage enforcement at 80% threshold
+  - Coverage reports uploaded to Codecov (optional)
+  - PR comments with coverage information
+  - Pre-commit checks workflow (`pre-commit.yml`) for code quality
+
+- **Coverage Enforcement**
+  - Updated `.coveragerc` to require 80% minimum coverage
+  - Automated checks prevent merging PRs below threshold
+  - Coverage badge added to README
+  - HTML and XML coverage reports for CI/CD integration
+
+- **Documentation**
+  - Branch protection setup guide (`.github/BRANCH_PROTECTION.md`)
+  - Detailed instructions for maintaining 80% coverage
+  - Troubleshooting guide for coverage failures
+  - Best practices for test-driven development
+  - CI/CD workflow documentation
+
+- **Status Badges**
+  - Tests status badge (shows pass/fail)
+  - Codecov coverage badge (optional)
+  - Python version badge (3.9+)
+  - MIT license badge
+
+### Changed
+
+- **Coverage Threshold**: Increased from 40% to 80% for production readiness
+- **CI/CD Enforcement**: Pull requests now blocked if coverage < 80%
+- **README**: Updated with badges, coverage requirements, and CI/CD information
+- **Development Workflow**: PRs now require passing tests across all Python versions
+
+### Improved
+
+- **Quality Gates**: Systematic enforcement of code quality standards
+- **Automated Testing**: All PRs automatically tested across Python 3.9, 3.10, 3.11
+- **Merge Safety**: Cannot merge code that reduces test coverage below 80%
+- **Visibility**: Coverage trends and reports visible in PRs and artifacts
+- **Developer Experience**: Clear feedback on coverage requirements before merge
+
 ## [1.5.0] - 2025-11-15
 
 ### Added

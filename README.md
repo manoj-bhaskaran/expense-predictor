@@ -1,5 +1,10 @@
 # Expense Predictor
 
+[![Tests](https://github.com/manoj-bhaskaran/expense-predictor/actions/workflows/test.yml/badge.svg)](https://github.com/manoj-bhaskaran/expense-predictor/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/manoj-bhaskaran/expense-predictor/branch/main/graph/badge.svg)](https://codecov.io/gh/manoj-bhaskaran/expense-predictor)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A machine learning-based expense prediction system that analyzes historical transaction data to forecast future expenses. The project uses multiple regression models to predict transaction amounts for specified future dates.
 
 ## Features
@@ -379,7 +384,9 @@ pytest tests/ --cov=. --cov-report=xml
 
 #### Test Coverage
 
-Current test coverage: **43%**
+**Coverage Requirement: 80% minimum** (enforced on pull requests)
+
+Current test coverage: **43%** (needs improvement to meet CI/CD requirements)
 
 - Unit tests: 44 tests covering helpers.py functions
 - Integration tests: 13 tests covering the ML pipeline
@@ -396,6 +403,8 @@ Current test coverage: **43%**
 - Model evaluation metrics
 - Future prediction generation
 - CSV output and security
+
+**Note:** Pull requests must achieve 80% test coverage to be merged. See [Branch Protection Guide](.github/BRANCH_PROTECTION.md) for details.
 
 ### Code Style
 

@@ -25,8 +25,8 @@ exclude_lines =
 show_missing = True
 
 # Fail if coverage is below threshold
-# Starting with 40% for initial testing setup
-fail_under = 40
+# Enforced at 80% for pull requests via CI/CD
+fail_under = 80
 
 [html]
 directory = htmlcov
