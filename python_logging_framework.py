@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import Optional
 
 
-def initialise_logger(script_name: str, log_dir: str = 'logs', log_level: int = logging.INFO) -> logging.Logger:
+def initialise_logger(script_name: str, log_dir: str = "logs", log_level: int = logging.INFO) -> logging.Logger:
     """
     Initialize a logger with file and console handlers.
 
@@ -36,14 +36,11 @@ def initialise_logger(script_name: str, log_dir: str = 'logs', log_level: int = 
         return logger
 
     # Create formatters
-    formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
+    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 
     # File handler
-    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    log_file = os.path.join(log_dir, f'{script_name}_{timestamp}.log')
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    log_file = os.path.join(log_dir, f"{script_name}_{timestamp}.log")
     file_handler = logging.FileHandler(log_file)
     file_handler.setLevel(log_level)
     file_handler.setFormatter(formatter)

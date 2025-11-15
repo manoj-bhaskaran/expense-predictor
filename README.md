@@ -278,6 +278,7 @@ expense-predictor/
 ├── requirements.txt         # Production dependencies (pinned versions)
 ├── requirements-dev.txt     # Development dependencies (pinned versions)
 ├── .python-version          # Python version specification (3.9)
+├── .pre-commit-config.yaml  # Pre-commit hooks configuration
 ├── pytest.ini               # Pytest configuration
 ├── .coveragerc             # Coverage configuration
 ├── .env.example            # Example environment configuration
@@ -461,6 +462,33 @@ When processing Excel files, the application logs security warnings:
 5. **Automated Workflows**: Use `--skip_confirmation` only in controlled environments
 
 ## Development
+
+### Pre-commit Hooks
+
+The project uses pre-commit hooks to automatically check code quality before commits. This catches issues early and ensures consistent code formatting.
+
+**Setup:**
+
+```bash
+# Install pre-commit (included in requirements-dev.txt)
+pip install -r requirements-dev.txt
+
+# Install the git hooks
+pre-commit install
+
+# (Optional) Run on all files to test
+pre-commit run --all-files
+```
+
+**What gets checked:**
+- Code formatting (black, isort)
+- Linting (flake8)
+- Type checking (mypy)
+- Security scanning (bandit)
+- YAML/TOML validation
+- Trailing whitespace, EOF fixes, and more
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed information about pre-commit hooks, including how to skip hooks when necessary.
 
 ### Running Tests
 

@@ -8,18 +8,19 @@ This module provides functions for:
 - Backup creation before file modifications
 """
 
-import os
-from pathlib import Path
-from typing import Optional, Any
-import shutil
 import logging
+import os
+import shutil
+from pathlib import Path
+from typing import Any, Optional
+
 import pandas as pd
+
 import python_logging_framework as plog
 
-
 # Allowed file extensions
-ALLOWED_CSV_EXTENSIONS = ['.csv']
-ALLOWED_EXCEL_EXTENSIONS = ['.xls', '.xlsx']
+ALLOWED_CSV_EXTENSIONS = [".csv"]
+ALLOWED_EXCEL_EXTENSIONS = [".xls", ".xlsx"]
 ALLOWED_DATA_EXTENSIONS = ALLOWED_CSV_EXTENSIONS + ALLOWED_EXCEL_EXTENSIONS
 
 
@@ -29,7 +30,7 @@ def validate_and_resolve_path(
     must_be_file: bool = False,
     must_be_dir: bool = False,
     allowed_extensions: Optional[list] = None,
-    logger: Optional[logging.Logger] = None
+    logger: Optional[logging.Logger] = None,
 ) -> Path:
     """
     Validate and resolve a file system path to prevent path injection attacks.
@@ -72,7 +73,7 @@ def validate_and_resolve_path(
 
     # Security check: Detect suspicious path patterns
     path_parts = str(path).split(os.sep)
-    if '..' in path_parts:
+    if ".." in path_parts:
         plog.log_error(logger, f"Path traversal detected in path: {path_str}")
         raise ValueError(f"Path traversal detected: {path_str}")
 
@@ -105,10 +106,7 @@ def validate_and_resolve_path(
 
 
 def validate_file_path(
-    path_str: str,
-    allowed_extensions: Optional[list] = None,
-    must_exist: bool = True,
-    logger: Optional[logging.Logger] = None
+    path_str: str, allowed_extensions: Optional[list] = None, must_exist: bool = True, logger: Optional[logging.Logger] = None
 ) -> Path:
     """
     Validate a file path with extension checking.
@@ -131,15 +129,12 @@ def validate_file_path(
         must_exist=must_exist,
         must_be_file=must_exist,  # Only check if file when must_exist is True
         allowed_extensions=allowed_extensions,
-        logger=logger
+        logger=logger,
     )
 
 
 def validate_directory_path(
-    path_str: str,
-    must_exist: bool = False,
-    create_if_missing: bool = False,
-    logger: Optional[logging.Logger] = None
+    path_str: str, must_exist: bool = False, create_if_missing: bool = False, logger: Optional[logging.Logger] = None
 ) -> Path:
     """
     Validate a directory path and optionally create it.
@@ -158,10 +153,7 @@ def validate_directory_path(
     FileNotFoundError: If must_exist=True and directory doesn't exist
     """
     path = validate_and_resolve_path(
-        path_str,
-        must_exist=False,  # We'll handle existence separately
-        must_be_dir=must_exist,
-        logger=logger
+        path_str, must_exist=False, must_be_dir=must_exist, logger=logger  # We'll handle existence separately
     )
 
     if create_if_missing and not path.exists():
@@ -192,13 +184,13 @@ def sanitize_csv_value(value: Any) -> str:
     str: The sanitized value safe for CSV output
     """
     if value is None:
-        return ''
+        return ""
 
     # Convert to string
     value_str = str(value)
 
     # Check for potentially dangerous formula characters at the start
-    dangerous_chars = ['=', '+', '-', '@', '\t', '\r', '\n']
+    dangerous_chars = ["=", "+", "-", "@", "\t", "\r", "\n"]
 
     if value_str and value_str[0] in dangerous_chars:
         # Prefix with single quote to prevent formula execution
@@ -256,8 +248,9 @@ def create_backup(file_path: str, logger: Optional[logging.Logger] = None) -> Op
 
     # Create backup filename with timestamp
     from datetime import datetime
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    backup_path = path.with_suffix(f'{path.suffix}.backup_{timestamp}')
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_path = path.with_suffix(f"{path.suffix}.backup_{timestamp}")
 
     try:
         shutil.copy2(file_path, backup_path)
@@ -290,7 +283,7 @@ def confirm_overwrite(file_path: str, logger: Optional[logging.Logger] = None) -
     # Prompt user for confirmation
     try:
         response = input(f"File '{file_path}' already exists. Overwrite? [y/N]: ").strip().lower()
-        confirmed = response in ['y', 'yes']
+        confirmed = response in ["y", "yes"]
 
         if confirmed:
             plog.log_info(logger, f"User confirmed overwrite of {file_path}")

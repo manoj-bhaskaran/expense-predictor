@@ -5,18 +5,19 @@ This module tests the command-line interface and main execution flow of model_ru
 including argument parsing, error handling, and complete execution scenarios.
 """
 
-import os
-import sys
-import pytest
-import tempfile
-import shutil
-from datetime import datetime, timedelta
-import pandas as pd
-from unittest.mock import patch
 import argparse
+import os
+import shutil
+import sys
+import tempfile
+from datetime import datetime, timedelta
+from unittest.mock import patch
+
+import pandas as pd
+import pytest
 
 # Import the CLI functions from model_runner
-from model_runner import parse_args, main
+from model_runner import main, parse_args
 
 
 @pytest.mark.unit
@@ -28,68 +29,76 @@ class TestParseArgs:
         args = parse_args([])
 
         assert args.future_date is None
-        assert args.excel_dir == '.'
+        assert args.excel_dir == "."
         assert args.excel_file is None
-        assert args.data_file == 'trandata.csv'
-        assert args.log_dir == 'logs'
-        assert args.output_dir == '.'
+        assert args.data_file == "trandata.csv"
+        assert args.log_dir == "logs"
+        assert args.output_dir == "."
         assert args.skip_confirmation is False
 
     def test_parse_args_future_date(self):
         """Test parsing with custom future date."""
-        args = parse_args(['--future_date', '31/12/2025'])
+        args = parse_args(["--future_date", "31/12/2025"])
 
-        assert args.future_date == '31/12/2025'
+        assert args.future_date == "31/12/2025"
 
     def test_parse_args_excel_file(self):
         """Test parsing with Excel file arguments."""
-        args = parse_args(['--excel_dir', './data', '--excel_file', 'transactions.xls'])
+        args = parse_args(["--excel_dir", "./data", "--excel_file", "transactions.xls"])
 
-        assert args.excel_dir == './data'
-        assert args.excel_file == 'transactions.xls'
+        assert args.excel_dir == "./data"
+        assert args.excel_file == "transactions.xls"
 
     def test_parse_args_data_file(self):
         """Test parsing with custom data file."""
-        args = parse_args(['--data_file', './custom_data.csv'])
+        args = parse_args(["--data_file", "./custom_data.csv"])
 
-        assert args.data_file == './custom_data.csv'
+        assert args.data_file == "./custom_data.csv"
 
     def test_parse_args_log_dir(self):
         """Test parsing with custom log directory."""
-        args = parse_args(['--log_dir', './custom_logs'])
+        args = parse_args(["--log_dir", "./custom_logs"])
 
-        assert args.log_dir == './custom_logs'
+        assert args.log_dir == "./custom_logs"
 
     def test_parse_args_output_dir(self):
         """Test parsing with custom output directory."""
-        args = parse_args(['--output_dir', './predictions'])
+        args = parse_args(["--output_dir", "./predictions"])
 
-        assert args.output_dir == './predictions'
+        assert args.output_dir == "./predictions"
 
     def test_parse_args_skip_confirmation(self):
         """Test parsing with skip_confirmation flag."""
-        args = parse_args(['--skip_confirmation'])
+        args = parse_args(["--skip_confirmation"])
 
         assert args.skip_confirmation is True
 
     def test_parse_args_all_options(self):
         """Test parsing with all options specified."""
-        args = parse_args([
-            '--future_date', '15/06/2026',
-            '--excel_dir', './excel_data',
-            '--excel_file', 'bank_statements.xlsx',
-            '--data_file', './transactions.csv',
-            '--log_dir', './logs',
-            '--output_dir', './output',
-            '--skip_confirmation'
-        ])
+        args = parse_args(
+            [
+                "--future_date",
+                "15/06/2026",
+                "--excel_dir",
+                "./excel_data",
+                "--excel_file",
+                "bank_statements.xlsx",
+                "--data_file",
+                "./transactions.csv",
+                "--log_dir",
+                "./logs",
+                "--output_dir",
+                "./output",
+                "--skip_confirmation",
+            ]
+        )
 
-        assert args.future_date == '15/06/2026'
-        assert args.excel_dir == './excel_data'
-        assert args.excel_file == 'bank_statements.xlsx'
-        assert args.data_file == './transactions.csv'
-        assert args.log_dir == './logs'
-        assert args.output_dir == './output'
+        assert args.future_date == "15/06/2026"
+        assert args.excel_dir == "./excel_data"
+        assert args.excel_file == "bank_statements.xlsx"
+        assert args.data_file == "./transactions.csv"
+        assert args.log_dir == "./logs"
+        assert args.output_dir == "./output"
         assert args.skip_confirmation is True
 
 
@@ -99,55 +108,55 @@ class TestEnvironmentVariableLoading:
 
     def test_env_var_data_file(self, monkeypatch):
         """Test that EXPENSE_PREDICTOR_DATA_FILE environment variable is used as default."""
-        monkeypatch.setenv('EXPENSE_PREDICTOR_DATA_FILE', '/custom/path.csv')
+        monkeypatch.setenv("EXPENSE_PREDICTOR_DATA_FILE", "/custom/path.csv")
 
         args = parse_args([])
 
-        assert args.data_file == '/custom/path.csv'
+        assert args.data_file == "/custom/path.csv"
 
     def test_env_var_excel_dir(self, monkeypatch):
         """Test that EXPENSE_PREDICTOR_EXCEL_DIR environment variable is used as default."""
-        monkeypatch.setenv('EXPENSE_PREDICTOR_EXCEL_DIR', '/excel/dir')
+        monkeypatch.setenv("EXPENSE_PREDICTOR_EXCEL_DIR", "/excel/dir")
 
         args = parse_args([])
 
-        assert args.excel_dir == '/excel/dir'
+        assert args.excel_dir == "/excel/dir"
 
     def test_env_var_excel_file(self, monkeypatch):
         """Test that EXPENSE_PREDICTOR_EXCEL_FILE environment variable is used as default."""
-        monkeypatch.setenv('EXPENSE_PREDICTOR_EXCEL_FILE', 'custom.xls')
+        monkeypatch.setenv("EXPENSE_PREDICTOR_EXCEL_FILE", "custom.xls")
 
         args = parse_args([])
 
-        assert args.excel_file == 'custom.xls'
+        assert args.excel_file == "custom.xls"
 
     def test_env_var_log_dir(self, monkeypatch):
         """Test that EXPENSE_PREDICTOR_LOG_DIR environment variable is used as default."""
-        monkeypatch.setenv('EXPENSE_PREDICTOR_LOG_DIR', '/custom/logs')
+        monkeypatch.setenv("EXPENSE_PREDICTOR_LOG_DIR", "/custom/logs")
 
         args = parse_args([])
 
-        assert args.log_dir == '/custom/logs'
+        assert args.log_dir == "/custom/logs"
 
     def test_env_var_output_dir(self, monkeypatch):
         """Test that EXPENSE_PREDICTOR_OUTPUT_DIR environment variable is used as default."""
-        monkeypatch.setenv('EXPENSE_PREDICTOR_OUTPUT_DIR', '/custom/output')
+        monkeypatch.setenv("EXPENSE_PREDICTOR_OUTPUT_DIR", "/custom/output")
 
         args = parse_args([])
 
-        assert args.output_dir == '/custom/output'
+        assert args.output_dir == "/custom/output"
 
     def test_env_var_future_date(self, monkeypatch):
         """Test that EXPENSE_PREDICTOR_FUTURE_DATE environment variable is used as default."""
-        monkeypatch.setenv('EXPENSE_PREDICTOR_FUTURE_DATE', '31/12/2026')
+        monkeypatch.setenv("EXPENSE_PREDICTOR_FUTURE_DATE", "31/12/2026")
 
         args = parse_args([])
 
-        assert args.future_date == '31/12/2026'
+        assert args.future_date == "31/12/2026"
 
     def test_env_var_skip_confirmation_true(self, monkeypatch):
         """Test that EXPENSE_PREDICTOR_SKIP_CONFIRMATION=true is used as default."""
-        monkeypatch.setenv('EXPENSE_PREDICTOR_SKIP_CONFIRMATION', 'true')
+        monkeypatch.setenv("EXPENSE_PREDICTOR_SKIP_CONFIRMATION", "true")
 
         args = parse_args([])
 
@@ -155,7 +164,7 @@ class TestEnvironmentVariableLoading:
 
     def test_env_var_skip_confirmation_false(self, monkeypatch):
         """Test that EXPENSE_PREDICTOR_SKIP_CONFIRMATION=false is used as default."""
-        monkeypatch.setenv('EXPENSE_PREDICTOR_SKIP_CONFIRMATION', 'false')
+        monkeypatch.setenv("EXPENSE_PREDICTOR_SKIP_CONFIRMATION", "false")
 
         args = parse_args([])
 
@@ -164,63 +173,74 @@ class TestEnvironmentVariableLoading:
     def test_cli_args_override_env_vars(self, monkeypatch):
         """Test that CLI arguments override environment variables."""
         # Set environment variables
-        monkeypatch.setenv('EXPENSE_PREDICTOR_DATA_FILE', '/env/path.csv')
-        monkeypatch.setenv('EXPENSE_PREDICTOR_LOG_DIR', '/env/logs')
-        monkeypatch.setenv('EXPENSE_PREDICTOR_OUTPUT_DIR', '/env/output')
-        monkeypatch.setenv('EXPENSE_PREDICTOR_FUTURE_DATE', '31/12/2026')
+        monkeypatch.setenv("EXPENSE_PREDICTOR_DATA_FILE", "/env/path.csv")
+        monkeypatch.setenv("EXPENSE_PREDICTOR_LOG_DIR", "/env/logs")
+        monkeypatch.setenv("EXPENSE_PREDICTOR_OUTPUT_DIR", "/env/output")
+        monkeypatch.setenv("EXPENSE_PREDICTOR_FUTURE_DATE", "31/12/2026")
 
         # Parse with CLI arguments
-        args = parse_args([
-            '--data_file', '/cli/path.csv',
-            '--log_dir', '/cli/logs',
-            '--output_dir', '/cli/output',
-            '--future_date', '15/06/2027'
-        ])
+        args = parse_args(
+            [
+                "--data_file",
+                "/cli/path.csv",
+                "--log_dir",
+                "/cli/logs",
+                "--output_dir",
+                "/cli/output",
+                "--future_date",
+                "15/06/2027",
+            ]
+        )
 
         # Verify CLI arguments take precedence
-        assert args.data_file == '/cli/path.csv'
-        assert args.log_dir == '/cli/logs'
-        assert args.output_dir == '/cli/output'
-        assert args.future_date == '15/06/2027'
+        assert args.data_file == "/cli/path.csv"
+        assert args.log_dir == "/cli/logs"
+        assert args.output_dir == "/cli/output"
+        assert args.future_date == "15/06/2027"
 
     def test_works_without_env_vars(self, monkeypatch):
         """Test that the application works without any environment variables set."""
         # Ensure no relevant environment variables are set
-        for var in ['EXPENSE_PREDICTOR_DATA_FILE', 'EXPENSE_PREDICTOR_EXCEL_DIR',
-                    'EXPENSE_PREDICTOR_EXCEL_FILE', 'EXPENSE_PREDICTOR_LOG_DIR',
-                    'EXPENSE_PREDICTOR_OUTPUT_DIR', 'EXPENSE_PREDICTOR_FUTURE_DATE',
-                    'EXPENSE_PREDICTOR_SKIP_CONFIRMATION']:
+        for var in [
+            "EXPENSE_PREDICTOR_DATA_FILE",
+            "EXPENSE_PREDICTOR_EXCEL_DIR",
+            "EXPENSE_PREDICTOR_EXCEL_FILE",
+            "EXPENSE_PREDICTOR_LOG_DIR",
+            "EXPENSE_PREDICTOR_OUTPUT_DIR",
+            "EXPENSE_PREDICTOR_FUTURE_DATE",
+            "EXPENSE_PREDICTOR_SKIP_CONFIRMATION",
+        ]:
             monkeypatch.delenv(var, raising=False)
 
         args = parse_args([])
 
         # Verify defaults are used
-        assert args.data_file == 'trandata.csv'
-        assert args.excel_dir == '.'
+        assert args.data_file == "trandata.csv"
+        assert args.excel_dir == "."
         assert args.excel_file is None
-        assert args.log_dir == 'logs'
-        assert args.output_dir == '.'
+        assert args.log_dir == "logs"
+        assert args.output_dir == "."
         assert args.future_date is None
         assert args.skip_confirmation is False
 
     def test_multiple_env_vars_together(self, monkeypatch):
         """Test that multiple environment variables work together."""
-        monkeypatch.setenv('EXPENSE_PREDICTOR_DATA_FILE', '/data/transactions.csv')
-        monkeypatch.setenv('EXPENSE_PREDICTOR_EXCEL_DIR', '/data/excel')
-        monkeypatch.setenv('EXPENSE_PREDICTOR_EXCEL_FILE', 'statements.xls')
-        monkeypatch.setenv('EXPENSE_PREDICTOR_LOG_DIR', '/var/log')
-        monkeypatch.setenv('EXPENSE_PREDICTOR_OUTPUT_DIR', '/output')
-        monkeypatch.setenv('EXPENSE_PREDICTOR_FUTURE_DATE', '31/12/2025')
-        monkeypatch.setenv('EXPENSE_PREDICTOR_SKIP_CONFIRMATION', 'true')
+        monkeypatch.setenv("EXPENSE_PREDICTOR_DATA_FILE", "/data/transactions.csv")
+        monkeypatch.setenv("EXPENSE_PREDICTOR_EXCEL_DIR", "/data/excel")
+        monkeypatch.setenv("EXPENSE_PREDICTOR_EXCEL_FILE", "statements.xls")
+        monkeypatch.setenv("EXPENSE_PREDICTOR_LOG_DIR", "/var/log")
+        monkeypatch.setenv("EXPENSE_PREDICTOR_OUTPUT_DIR", "/output")
+        monkeypatch.setenv("EXPENSE_PREDICTOR_FUTURE_DATE", "31/12/2025")
+        monkeypatch.setenv("EXPENSE_PREDICTOR_SKIP_CONFIRMATION", "true")
 
         args = parse_args([])
 
-        assert args.data_file == '/data/transactions.csv'
-        assert args.excel_dir == '/data/excel'
-        assert args.excel_file == 'statements.xls'
-        assert args.log_dir == '/var/log'
-        assert args.output_dir == '/output'
-        assert args.future_date == '31/12/2025'
+        assert args.data_file == "/data/transactions.csv"
+        assert args.excel_dir == "/data/excel"
+        assert args.excel_file == "statements.xls"
+        assert args.log_dir == "/var/log"
+        assert args.output_dir == "/output"
+        assert args.future_date == "31/12/2025"
         assert args.skip_confirmation is True
 
 
@@ -235,19 +255,21 @@ class TestMainExecutionFlow:
         temp_dir = tempfile.mkdtemp()
 
         # Create a sample CSV file
-        csv_path = os.path.join(temp_dir, 'test_data.csv')
-        df = pd.DataFrame({
-            'Date': pd.date_range(start='2024-01-01', periods=100, freq='D').strftime('%d/%m/%Y'),
-            'Tran Amt': [100.0 + i * 10 for i in range(100)]
-        })
+        csv_path = os.path.join(temp_dir, "test_data.csv")
+        df = pd.DataFrame(
+            {
+                "Date": pd.date_range(start="2024-01-01", periods=100, freq="D").strftime("%d/%m/%Y"),
+                "Tran Amt": [100.0 + i * 10 for i in range(100)],
+            }
+        )
         df.to_csv(csv_path, index=False)
 
         # Create log directory
-        log_dir = os.path.join(temp_dir, 'logs')
+        log_dir = os.path.join(temp_dir, "logs")
         os.makedirs(log_dir, exist_ok=True)
 
         # Create output directory
-        output_dir = os.path.join(temp_dir, 'output')
+        output_dir = os.path.join(temp_dir, "output")
         os.makedirs(output_dir, exist_ok=True)
 
         yield temp_dir
@@ -257,18 +279,22 @@ class TestMainExecutionFlow:
 
     def test_main_basic_execution(self, temp_workspace):
         """Test basic execution with minimal arguments."""
-        csv_path = os.path.join(temp_workspace, 'test_data.csv')
-        log_dir = os.path.join(temp_workspace, 'logs')
-        output_dir = os.path.join(temp_workspace, 'output')
+        csv_path = os.path.join(temp_workspace, "test_data.csv")
+        log_dir = os.path.join(temp_workspace, "logs")
+        output_dir = os.path.join(temp_workspace, "output")
 
-        future_date = (datetime.now() + timedelta(days=30)).strftime('%d/%m/%Y')
+        future_date = (datetime.now() + timedelta(days=30)).strftime("%d/%m/%Y")
 
         args = [
-            '--data_file', csv_path,
-            '--log_dir', log_dir,
-            '--output_dir', output_dir,
-            '--future_date', future_date,
-            '--skip_confirmation'
+            "--data_file",
+            csv_path,
+            "--log_dir",
+            log_dir,
+            "--output_dir",
+            output_dir,
+            "--future_date",
+            future_date,
+            "--skip_confirmation",
         ]
 
         # Run main
@@ -279,10 +305,10 @@ class TestMainExecutionFlow:
 
         # Verify output files were created (4 models)
         expected_files = [
-            'future_predictions_linear_regression.csv',
-            'future_predictions_decision_tree.csv',
-            'future_predictions_random_forest.csv',
-            'future_predictions_gradient_boosting.csv'
+            "future_predictions_linear_regression.csv",
+            "future_predictions_decision_tree.csv",
+            "future_predictions_random_forest.csv",
+            "future_predictions_gradient_boosting.csv",
         ]
 
         for filename in expected_files:
@@ -292,21 +318,17 @@ class TestMainExecutionFlow:
             # Verify file has content
             result_df = pd.read_csv(output_path)
             assert len(result_df) > 0
-            assert 'Date' in result_df.columns
-            assert 'Predicted Tran Amt' in result_df.columns
+            assert "Date" in result_df.columns
+            assert "Predicted Tran Amt" in result_df.columns
 
     def test_main_with_invalid_log_dir(self, temp_workspace):
         """Test main with invalid log directory path."""
-        csv_path = os.path.join(temp_workspace, 'test_data.csv')
+        csv_path = os.path.join(temp_workspace, "test_data.csv")
 
         # Empty string may resolve to current directory, which is valid
         # So this test just verifies that main handles log_dir properly
         # The security module may create directories, which is acceptable behavior
-        args = [
-            '--data_file', csv_path,
-            '--log_dir', os.path.join(temp_workspace, 'new_logs'),
-            '--skip_confirmation'
-        ]
+        args = ["--data_file", csv_path, "--log_dir", os.path.join(temp_workspace, "new_logs"), "--skip_confirmation"]
 
         # Should succeed - the security module creates missing directories
         exit_code = main(args)
@@ -314,14 +336,17 @@ class TestMainExecutionFlow:
 
     def test_main_with_invalid_date_format(self, temp_workspace):
         """Test main with invalid date format."""
-        csv_path = os.path.join(temp_workspace, 'test_data.csv')
-        log_dir = os.path.join(temp_workspace, 'logs')
+        csv_path = os.path.join(temp_workspace, "test_data.csv")
+        log_dir = os.path.join(temp_workspace, "logs")
 
         args = [
-            '--data_file', csv_path,
-            '--log_dir', log_dir,
-            '--future_date', '2025-12-31',  # Wrong format, should be DD/MM/YYYY
-            '--skip_confirmation'
+            "--data_file",
+            csv_path,
+            "--log_dir",
+            log_dir,
+            "--future_date",
+            "2025-12-31",  # Wrong format, should be DD/MM/YYYY
+            "--skip_confirmation",
         ]
 
         # Should raise ValueError
@@ -330,13 +355,9 @@ class TestMainExecutionFlow:
 
     def test_main_with_missing_data_file(self, temp_workspace):
         """Test main with non-existent data file."""
-        log_dir = os.path.join(temp_workspace, 'logs')
+        log_dir = os.path.join(temp_workspace, "logs")
 
-        args = [
-            '--data_file', os.path.join(temp_workspace, 'nonexistent.csv'),
-            '--log_dir', log_dir,
-            '--skip_confirmation'
-        ]
+        args = ["--data_file", os.path.join(temp_workspace, "nonexistent.csv"), "--log_dir", log_dir, "--skip_confirmation"]
 
         # Should raise FileNotFoundError
         with pytest.raises(FileNotFoundError):
@@ -344,17 +365,12 @@ class TestMainExecutionFlow:
 
     def test_main_default_quarter_end_date(self, temp_workspace):
         """Test that default future date is set to quarter end."""
-        csv_path = os.path.join(temp_workspace, 'test_data.csv')
-        log_dir = os.path.join(temp_workspace, 'logs')
-        output_dir = os.path.join(temp_workspace, 'output')
+        csv_path = os.path.join(temp_workspace, "test_data.csv")
+        log_dir = os.path.join(temp_workspace, "logs")
+        output_dir = os.path.join(temp_workspace, "output")
 
         # Don't specify future_date
-        args = [
-            '--data_file', csv_path,
-            '--log_dir', log_dir,
-            '--output_dir', output_dir,
-            '--skip_confirmation'
-        ]
+        args = ["--data_file", csv_path, "--log_dir", log_dir, "--output_dir", output_dir, "--skip_confirmation"]
 
         exit_code = main(args)
 
@@ -373,12 +389,12 @@ class TestErrorHandling:
     def test_parse_args_with_invalid_option(self):
         """Test that invalid options raise SystemExit."""
         with pytest.raises(SystemExit):
-            parse_args(['--invalid_option', 'value'])
+            parse_args(["--invalid_option", "value"])
 
     def test_main_returns_error_on_missing_data_file(self):
         """Test that main returns error code or raises exception for missing data file."""
         # Use a data file that doesn't exist
-        args = ['--data_file', '/nonexistent/test.csv', '--log_dir', 'logs']
+        args = ["--data_file", "/nonexistent/test.csv", "--log_dir", "logs"]
 
         # Should raise FileNotFoundError since file doesn't exist
         with pytest.raises(FileNotFoundError):
@@ -395,38 +411,39 @@ class TestArgumentCombinations:
         """Create temporary test data."""
         temp_dir = tempfile.mkdtemp()
 
-        csv_path = os.path.join(temp_dir, 'data.csv')
-        df = pd.DataFrame({
-            'Date': pd.date_range(start='2024-01-01', periods=50, freq='D').strftime('%d/%m/%Y'),
-            'Tran Amt': [50.0 + i * 5 for i in range(50)]
-        })
+        csv_path = os.path.join(temp_dir, "data.csv")
+        df = pd.DataFrame(
+            {
+                "Date": pd.date_range(start="2024-01-01", periods=50, freq="D").strftime("%d/%m/%Y"),
+                "Tran Amt": [50.0 + i * 5 for i in range(50)],
+            }
+        )
         df.to_csv(csv_path, index=False)
 
-        log_dir = os.path.join(temp_dir, 'logs')
+        log_dir = os.path.join(temp_dir, "logs")
         os.makedirs(log_dir, exist_ok=True)
 
-        output_dir = os.path.join(temp_dir, 'output')
+        output_dir = os.path.join(temp_dir, "output")
         os.makedirs(output_dir, exist_ok=True)
 
-        yield {
-            'temp_dir': temp_dir,
-            'csv_path': csv_path,
-            'log_dir': log_dir,
-            'output_dir': output_dir
-        }
+        yield {"temp_dir": temp_dir, "csv_path": csv_path, "log_dir": log_dir, "output_dir": output_dir}
 
         shutil.rmtree(temp_dir)
 
     def test_absolute_paths(self, temp_data):
         """Test with absolute paths for all directories."""
-        future_date = (datetime.now() + timedelta(days=7)).strftime('%d/%m/%Y')
+        future_date = (datetime.now() + timedelta(days=7)).strftime("%d/%m/%Y")
 
         args = [
-            '--data_file', temp_data['csv_path'],
-            '--log_dir', temp_data['log_dir'],
-            '--output_dir', temp_data['output_dir'],
-            '--future_date', future_date,
-            '--skip_confirmation'
+            "--data_file",
+            temp_data["csv_path"],
+            "--log_dir",
+            temp_data["log_dir"],
+            "--output_dir",
+            temp_data["output_dir"],
+            "--future_date",
+            future_date,
+            "--skip_confirmation",
         ]
 
         exit_code = main(args)
@@ -435,14 +452,18 @@ class TestArgumentCombinations:
     def test_relative_paths(self, temp_data):
         """Test with relative paths."""
         # Use absolute paths for this test to avoid directory issues
-        future_date = (datetime.now() + timedelta(days=7)).strftime('%d/%m/%Y')
+        future_date = (datetime.now() + timedelta(days=7)).strftime("%d/%m/%Y")
 
         args = [
-            '--data_file', temp_data['csv_path'],
-            '--log_dir', temp_data['log_dir'],
-            '--output_dir', temp_data['output_dir'],
-            '--future_date', future_date,
-            '--skip_confirmation'
+            "--data_file",
+            temp_data["csv_path"],
+            "--log_dir",
+            temp_data["log_dir"],
+            "--output_dir",
+            temp_data["output_dir"],
+            "--future_date",
+            future_date,
+            "--skip_confirmation",
         ]
 
         exit_code = main(args)
@@ -451,27 +472,31 @@ class TestArgumentCombinations:
     def test_various_future_dates(self, temp_data):
         """Test with different future date formats and values."""
         test_dates = [
-            '01/01/2026',
-            '31/12/2025',
-            '15/06/2026',
-            '28/02/2027',
+            "01/01/2026",
+            "31/12/2025",
+            "15/06/2026",
+            "28/02/2027",
         ]
 
         for test_date in test_dates:
             args = [
-                '--data_file', temp_data['csv_path'],
-                '--log_dir', temp_data['log_dir'],
-                '--output_dir', temp_data['output_dir'],
-                '--future_date', test_date,
-                '--skip_confirmation'
+                "--data_file",
+                temp_data["csv_path"],
+                "--log_dir",
+                temp_data["log_dir"],
+                "--output_dir",
+                temp_data["output_dir"],
+                "--future_date",
+                test_date,
+                "--skip_confirmation",
             ]
 
             exit_code = main(args)
             assert exit_code == 0, f"Failed for date: {test_date}"
 
             # Clean up output files for next iteration
-            for file in os.listdir(temp_data['output_dir']):
-                os.remove(os.path.join(temp_data['output_dir'], file))
+            for file in os.listdir(temp_data["output_dir"]):
+                os.remove(os.path.join(temp_data["output_dir"], file))
 
 
 @pytest.mark.integration
@@ -484,89 +509,91 @@ class TestModelOutputVerification:
         """Create workspace for model output testing."""
         temp_dir = tempfile.mkdtemp()
 
-        csv_path = os.path.join(temp_dir, 'transactions.csv')
-        df = pd.DataFrame({
-            'Date': pd.date_range(start='2024-01-01', periods=200, freq='D').strftime('%d/%m/%Y'),
-            'Tran Amt': [100.0 + i * 2.5 for i in range(200)]
-        })
+        csv_path = os.path.join(temp_dir, "transactions.csv")
+        df = pd.DataFrame(
+            {
+                "Date": pd.date_range(start="2024-01-01", periods=200, freq="D").strftime("%d/%m/%Y"),
+                "Tran Amt": [100.0 + i * 2.5 for i in range(200)],
+            }
+        )
         df.to_csv(csv_path, index=False)
 
-        log_dir = os.path.join(temp_dir, 'logs')
+        log_dir = os.path.join(temp_dir, "logs")
         os.makedirs(log_dir, exist_ok=True)
 
-        output_dir = os.path.join(temp_dir, 'predictions')
+        output_dir = os.path.join(temp_dir, "predictions")
         os.makedirs(output_dir, exist_ok=True)
 
-        yield {
-            'temp_dir': temp_dir,
-            'csv_path': csv_path,
-            'log_dir': log_dir,
-            'output_dir': output_dir
-        }
+        yield {"temp_dir": temp_dir, "csv_path": csv_path, "log_dir": log_dir, "output_dir": output_dir}
 
         shutil.rmtree(temp_dir)
 
     def test_all_models_generate_predictions(self, workspace):
         """Test that all 4 models generate prediction files."""
-        future_date = (datetime.now() + timedelta(days=60)).strftime('%d/%m/%Y')
+        future_date = (datetime.now() + timedelta(days=60)).strftime("%d/%m/%Y")
 
         args = [
-            '--data_file', workspace['csv_path'],
-            '--log_dir', workspace['log_dir'],
-            '--output_dir', workspace['output_dir'],
-            '--future_date', future_date,
-            '--skip_confirmation'
+            "--data_file",
+            workspace["csv_path"],
+            "--log_dir",
+            workspace["log_dir"],
+            "--output_dir",
+            workspace["output_dir"],
+            "--future_date",
+            future_date,
+            "--skip_confirmation",
         ]
 
         exit_code = main(args)
         assert exit_code == 0
 
         # Verify all 4 model output files
-        expected_models = [
-            'linear_regression',
-            'decision_tree',
-            'random_forest',
-            'gradient_boosting'
-        ]
+        expected_models = ["linear_regression", "decision_tree", "random_forest", "gradient_boosting"]
 
-        output_files = os.listdir(workspace['output_dir'])
+        output_files = os.listdir(workspace["output_dir"])
 
         for model_name in expected_models:
-            expected_filename = f'future_predictions_{model_name}.csv'
+            expected_filename = f"future_predictions_{model_name}.csv"
             assert expected_filename in output_files, f"Missing output for {model_name}"
 
     def test_prediction_file_content_validity(self, workspace):
         """Test that prediction files contain valid data."""
-        future_date = (datetime.now() + timedelta(days=30)).strftime('%d/%m/%Y')
+        future_date = (datetime.now() + timedelta(days=30)).strftime("%d/%m/%Y")
 
         args = [
-            '--data_file', workspace['csv_path'],
-            '--log_dir', workspace['log_dir'],
-            '--output_dir', workspace['output_dir'],
-            '--future_date', future_date,
-            '--skip_confirmation'
+            "--data_file",
+            workspace["csv_path"],
+            "--log_dir",
+            workspace["log_dir"],
+            "--output_dir",
+            workspace["output_dir"],
+            "--future_date",
+            future_date,
+            "--skip_confirmation",
         ]
 
         exit_code = main(args)
         assert exit_code == 0
 
         # Check content of each prediction file
-        for filename in os.listdir(workspace['output_dir']):
-            if filename.endswith('.csv'):
-                filepath = os.path.join(workspace['output_dir'], filename)
+        for filename in os.listdir(workspace["output_dir"]):
+            if filename.endswith(".csv"):
+                filepath = os.path.join(workspace["output_dir"], filename)
                 df = pd.read_csv(filepath)
 
                 # Verify structure
-                assert 'Date' in df.columns
-                assert 'Predicted Tran Amt' in df.columns
+                assert "Date" in df.columns
+                assert "Predicted Tran Amt" in df.columns
 
                 # Verify no NaN values
-                assert not df['Predicted Tran Amt'].isna().any()
+                assert not df["Predicted Tran Amt"].isna().any()
 
                 # Verify all predictions can be converted to numeric (may have quotes)
                 # CSV sanitization may add quotes to prevent injection
-                df['Predicted Tran Amt'] = pd.to_numeric(df['Predicted Tran Amt'].astype(str).str.strip("'\""), errors='coerce')
-                assert not df['Predicted Tran Amt'].isna().any()
+                df["Predicted Tran Amt"] = pd.to_numeric(
+                    df["Predicted Tran Amt"].astype(str).str.strip("'\""), errors="coerce"
+                )
+                assert not df["Predicted Tran Amt"].isna().any()
 
                 # Verify dates are in correct format
                 assert len(df) > 0
@@ -581,42 +608,43 @@ class TestLoggingIntegration:
         """Create workspace for logging tests."""
         temp_dir = tempfile.mkdtemp()
 
-        csv_path = os.path.join(temp_dir, 'data.csv')
-        df = pd.DataFrame({
-            'Date': pd.date_range(start='2024-01-01', periods=50, freq='D').strftime('%d/%m/%Y'),
-            'Tran Amt': [75.0 + i * 3 for i in range(50)]
-        })
+        csv_path = os.path.join(temp_dir, "data.csv")
+        df = pd.DataFrame(
+            {
+                "Date": pd.date_range(start="2024-01-01", periods=50, freq="D").strftime("%d/%m/%Y"),
+                "Tran Amt": [75.0 + i * 3 for i in range(50)],
+            }
+        )
         df.to_csv(csv_path, index=False)
 
-        log_dir = os.path.join(temp_dir, 'test_logs')
+        log_dir = os.path.join(temp_dir, "test_logs")
         os.makedirs(log_dir, exist_ok=True)
 
-        output_dir = os.path.join(temp_dir, 'output')
+        output_dir = os.path.join(temp_dir, "output")
         os.makedirs(output_dir, exist_ok=True)
 
-        yield {
-            'temp_dir': temp_dir,
-            'csv_path': csv_path,
-            'log_dir': log_dir,
-            'output_dir': output_dir
-        }
+        yield {"temp_dir": temp_dir, "csv_path": csv_path, "log_dir": log_dir, "output_dir": output_dir}
 
         shutil.rmtree(temp_dir)
 
     def test_log_file_created(self, log_workspace):
         """Test that log file is created during execution."""
-        future_date = (datetime.now() + timedelta(days=14)).strftime('%d/%m/%Y')
+        future_date = (datetime.now() + timedelta(days=14)).strftime("%d/%m/%Y")
 
         # Clear any existing log files first
-        for f in os.listdir(log_workspace['log_dir']):
-            os.remove(os.path.join(log_workspace['log_dir'], f))
+        for f in os.listdir(log_workspace["log_dir"]):
+            os.remove(os.path.join(log_workspace["log_dir"], f))
 
         args = [
-            '--data_file', log_workspace['csv_path'],
-            '--log_dir', log_workspace['log_dir'],
-            '--output_dir', log_workspace['output_dir'],
-            '--future_date', future_date,
-            '--skip_confirmation'
+            "--data_file",
+            log_workspace["csv_path"],
+            "--log_dir",
+            log_workspace["log_dir"],
+            "--output_dir",
+            log_workspace["output_dir"],
+            "--future_date",
+            future_date,
+            "--skip_confirmation",
         ]
 
         exit_code = main(args)

@@ -31,28 +31,25 @@ Security Features:
 If no future date is provided, the script will use the last day of the current quarter. If no Excel file name is provided, the script will not use an Excel file.
 """
 
-import pandas as pd
-import numpy as np
-from sklearn.linear_model import LinearRegression
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
-from sklearn.metrics import mean_absolute_error, r2_score, mean_squared_error
-from sklearn.model_selection import train_test_split
-from helpers import preprocess_and_append_csv, prepare_future_dates, write_predictions, get_quarter_end_date
 import argparse
-from datetime import datetime
-from typing import Optional, List
-import os
-import python_logging_framework as plog
 import logging
-from config import config
-from security import (
-    validate_file_path,
-    validate_directory_path,
-    ALLOWED_CSV_EXTENSIONS,
-    ALLOWED_EXCEL_EXTENSIONS
-)
+import os
+from datetime import datetime
+from typing import List, Optional
+
+import numpy as np
+import pandas as pd
 from dotenv import load_dotenv
+from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeRegressor
+
+import python_logging_framework as plog
+from config import config
+from helpers import get_quarter_end_date, prepare_future_dates, preprocess_and_append_csv, write_predictions
+from security import ALLOWED_CSV_EXTENSIONS, ALLOWED_EXCEL_EXTENSIONS, validate_directory_path, validate_file_path
 
 # Load environment variables from .env file (if it exists)
 load_dotenv()
@@ -83,48 +80,48 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
     Returns:
         argparse.Namespace: Parsed arguments object.
     """
-    parser = argparse.ArgumentParser(description='Expense Predictor')
+    parser = argparse.ArgumentParser(description="Expense Predictor")
     parser.add_argument(
-        '--future_date',
+        "--future_date",
         type=str,
-        default=os.getenv('EXPENSE_PREDICTOR_FUTURE_DATE'),
-        help='Future date for prediction (e.g., 31/12/2025)'
+        default=os.getenv("EXPENSE_PREDICTOR_FUTURE_DATE"),
+        help="Future date for prediction (e.g., 31/12/2025)",
     )
     parser.add_argument(
-        '--excel_dir',
+        "--excel_dir",
         type=str,
-        default=os.getenv('EXPENSE_PREDICTOR_EXCEL_DIR', '.'),
-        help='Directory where the Excel file is located'
+        default=os.getenv("EXPENSE_PREDICTOR_EXCEL_DIR", "."),
+        help="Directory where the Excel file is located",
     )
     parser.add_argument(
-        '--excel_file',
+        "--excel_file",
         type=str,
-        default=os.getenv('EXPENSE_PREDICTOR_EXCEL_FILE'),
-        help='Name of the Excel file containing additional data'
+        default=os.getenv("EXPENSE_PREDICTOR_EXCEL_FILE"),
+        help="Name of the Excel file containing additional data",
     )
     parser.add_argument(
-        '--data_file',
+        "--data_file",
         type=str,
-        default=os.getenv('EXPENSE_PREDICTOR_DATA_FILE', 'trandata.csv'),
-        help='Path to the CSV file containing transaction data'
+        default=os.getenv("EXPENSE_PREDICTOR_DATA_FILE", "trandata.csv"),
+        help="Path to the CSV file containing transaction data",
     )
     parser.add_argument(
-        '--log_dir',
+        "--log_dir",
         type=str,
-        default=os.getenv('EXPENSE_PREDICTOR_LOG_DIR', 'logs'),
-        help='Directory where log files will be saved'
+        default=os.getenv("EXPENSE_PREDICTOR_LOG_DIR", "logs"),
+        help="Directory where log files will be saved",
     )
     parser.add_argument(
-        '--output_dir',
+        "--output_dir",
         type=str,
-        default=os.getenv('EXPENSE_PREDICTOR_OUTPUT_DIR', '.'),
-        help='Directory where prediction files will be saved'
+        default=os.getenv("EXPENSE_PREDICTOR_OUTPUT_DIR", "."),
+        help="Directory where prediction files will be saved",
     )
     parser.add_argument(
-        '--skip_confirmation',
-        action='store_true',
-        default=os.getenv('EXPENSE_PREDICTOR_SKIP_CONFIRMATION', 'false').lower() == 'true',
-        help='Skip confirmation prompts for overwriting files (useful for automation)'
+        "--skip_confirmation",
+        action="store_true",
+        default=os.getenv("EXPENSE_PREDICTOR_SKIP_CONFIRMATION", "false").lower() == "true",
+        help="Skip confirmation prompts for overwriting files (useful for automation)",
     )
     return parser.parse_args(args)
 
@@ -142,13 +139,13 @@ def get_future_date(future_date_arg: Optional[str], logger: logging.Logger) -> s
     """
     if future_date_arg:
         try:
-            future_date_for_function = datetime.strptime(future_date_arg, '%d/%m/%Y').strftime('%d-%m-%Y')
+            future_date_for_function = datetime.strptime(future_date_arg, "%d/%m/%Y").strftime("%d-%m-%Y")
         except ValueError:
             plog.log_error(logger, "Incorrect date format, should be DD/MM/YYYY")
             raise
     else:
         current_date = datetime.now()
-        future_date_for_function = get_quarter_end_date(current_date).strftime('%d-%m-%Y')
+        future_date_for_function = get_quarter_end_date(current_date).strftime("%d-%m-%Y")
 
     return future_date_for_function
 
@@ -172,10 +169,7 @@ def get_excel_path(excel_dir: str, excel_file: Optional[str], logger: logging.Lo
         excel_dir_path = validate_directory_path(excel_dir, must_exist=True, logger=logger)
         excel_file_str = os.path.join(str(excel_dir_path), excel_file)
         excel_file_path = validate_file_path(
-            excel_file_str,
-            allowed_extensions=ALLOWED_EXCEL_EXTENSIONS,
-            must_exist=True,
-            logger=logger
+            excel_file_str, allowed_extensions=ALLOWED_EXCEL_EXTENSIONS, must_exist=True, logger=logger
         )
         return str(excel_file_path)
     except (ValueError, FileNotFoundError) as e:
@@ -201,10 +195,7 @@ def get_data_file_path(data_file: str, logger: logging.Logger) -> str:
             data_file_str = os.path.join(SCRIPT_DIR, data_file)
 
         data_file_path = validate_file_path(
-            data_file_str,
-            allowed_extensions=ALLOWED_CSV_EXTENSIONS,
-            must_exist=True,
-            logger=logger
+            data_file_str, allowed_extensions=ALLOWED_CSV_EXTENSIONS, must_exist=True, logger=logger
         )
         return str(data_file_path)
     except (ValueError, FileNotFoundError) as e:
@@ -222,7 +213,7 @@ def train_and_evaluate_models(
     future_date_for_function: str,
     output_dir: str,
     skip_confirmation: bool,
-    logger: logging.Logger
+    logger: logging.Logger,
 ) -> None:
     """
     Train and evaluate all ML models, then generate predictions.
@@ -239,35 +230,35 @@ def train_and_evaluate_models(
         skip_confirmation: Whether to skip file overwrite confirmations.
         logger: Logger instance.
     """
-    TRANSACTION_AMOUNT_LABEL = 'Tran Amt'
+    TRANSACTION_AMOUNT_LABEL = "Tran Amt"
 
     # Dictionary of models to train and evaluate.
     models = {
         "Linear Regression": LinearRegression(),
         "Decision Tree": DecisionTreeRegressor(
-            max_depth=config['decision_tree']['max_depth'],
-            min_samples_split=config['decision_tree']['min_samples_split'],
-            min_samples_leaf=config['decision_tree']['min_samples_leaf'],
-            ccp_alpha=config['decision_tree']['ccp_alpha'],
-            random_state=config['decision_tree']['random_state']
+            max_depth=config["decision_tree"]["max_depth"],
+            min_samples_split=config["decision_tree"]["min_samples_split"],
+            min_samples_leaf=config["decision_tree"]["min_samples_leaf"],
+            ccp_alpha=config["decision_tree"]["ccp_alpha"],
+            random_state=config["decision_tree"]["random_state"],
         ),
         "Random Forest": RandomForestRegressor(
-            n_estimators=config['random_forest']['n_estimators'],
-            max_depth=config['random_forest']['max_depth'],
-            min_samples_split=config['random_forest']['min_samples_split'],
-            min_samples_leaf=config['random_forest']['min_samples_leaf'],
-            max_features=config['random_forest']['max_features'],
-            ccp_alpha=config['random_forest']['ccp_alpha'],
-            random_state=config['random_forest']['random_state']
+            n_estimators=config["random_forest"]["n_estimators"],
+            max_depth=config["random_forest"]["max_depth"],
+            min_samples_split=config["random_forest"]["min_samples_split"],
+            min_samples_leaf=config["random_forest"]["min_samples_leaf"],
+            max_features=config["random_forest"]["max_features"],
+            ccp_alpha=config["random_forest"]["ccp_alpha"],
+            random_state=config["random_forest"]["random_state"],
         ),
         "Gradient Boosting": GradientBoostingRegressor(
-            n_estimators=config['gradient_boosting']['n_estimators'],
-            learning_rate=config['gradient_boosting']['learning_rate'],
-            max_depth=config['gradient_boosting']['max_depth'],
-            min_samples_split=config['gradient_boosting']['min_samples_split'],
-            min_samples_leaf=config['gradient_boosting']['min_samples_leaf'],
-            max_features=config['gradient_boosting']['max_features'],
-            random_state=config['gradient_boosting']['random_state']
+            n_estimators=config["gradient_boosting"]["n_estimators"],
+            learning_rate=config["gradient_boosting"]["learning_rate"],
+            max_depth=config["gradient_boosting"]["max_depth"],
+            min_samples_split=config["gradient_boosting"]["min_samples_split"],
+            min_samples_leaf=config["gradient_boosting"]["min_samples_leaf"],
+            max_features=config["gradient_boosting"]["max_features"],
+            random_state=config["gradient_boosting"]["random_state"],
         ),
     }
 
@@ -311,7 +302,7 @@ def train_and_evaluate_models(
         y_predict = np.round(y_predict, 2)
 
         # Save predictions
-        predicted_df = pd.DataFrame({'Date': future_dates, f'Predicted {TRANSACTION_AMOUNT_LABEL}': y_predict})
+        predicted_df = pd.DataFrame({"Date": future_dates, f"Predicted {TRANSACTION_AMOUNT_LABEL}": y_predict})
         output_filename = f'future_predictions_{model_name.replace(" ", "_").lower()}.csv'
         output_path = os.path.join(output_dir, output_filename)
         write_predictions(predicted_df, output_path, logger=logger, skip_confirmation=skip_confirmation)
@@ -332,18 +323,16 @@ def main(args: Optional[List[str]] = None) -> int:
 
     # Validate and create log directory with security checks
     try:
-        log_dir_path_str = os.path.join(SCRIPT_DIR, parsed_args.log_dir) if not os.path.isabs(parsed_args.log_dir) else parsed_args.log_dir
+        log_dir_path_str = (
+            os.path.join(SCRIPT_DIR, parsed_args.log_dir) if not os.path.isabs(parsed_args.log_dir) else parsed_args.log_dir
+        )
         log_dir_path_obj = validate_directory_path(log_dir_path_str, create_if_missing=True)
         log_dir_path = str(log_dir_path_obj)
     except (ValueError, FileNotFoundError) as e:
         print(f"Error: Invalid log directory path: {e}")
         return 1
 
-    logger = plog.initialise_logger(
-        script_name='model_runner.py',
-        log_dir=log_dir_path,
-        log_level=logging.INFO
-    )
+    logger = plog.initialise_logger(script_name="model_runner.py", log_dir=log_dir_path, log_level=logging.INFO)
 
     # Get future date for predictions
     future_date_for_function = get_future_date(parsed_args.future_date, logger)
@@ -358,8 +347,8 @@ def main(args: Optional[List[str]] = None) -> int:
     X, y, _ = preprocess_and_append_csv(file_path, excel_path=excel_path, logger=logger)
 
     # Split data into training and test sets
-    test_size = config['model_evaluation']['test_size']
-    random_state = config['model_evaluation']['random_state']
+    test_size = config["model_evaluation"]["test_size"]
+    random_state = config["model_evaluation"]["random_state"]
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, shuffle=False, random_state=random_state)
 
     plog.log_info(logger, f"Data split: {len(X_train)} training samples, {len(X_test)} test samples")
@@ -371,11 +360,7 @@ def main(args: Optional[List[str]] = None) -> int:
         else:
             output_dir_str = os.path.join(SCRIPT_DIR, parsed_args.output_dir)
 
-        output_dir_path = validate_directory_path(
-            output_dir_str,
-            create_if_missing=True,
-            logger=logger
-        )
+        output_dir_path = validate_directory_path(output_dir_str, create_if_missing=True, logger=logger)
         output_dir = str(output_dir_path)
     except (ValueError, FileNotFoundError) as e:
         plog.log_error(logger, f"Invalid output directory path: {e}")
@@ -383,13 +368,11 @@ def main(args: Optional[List[str]] = None) -> int:
 
     # Train and evaluate all models
     train_and_evaluate_models(
-        X_train, X_test, y_train, y_test, X, y,
-        future_date_for_function, output_dir,
-        parsed_args.skip_confirmation, logger
+        X_train, X_test, y_train, y_test, X, y, future_date_for_function, output_dir, parsed_args.skip_confirmation, logger
     )
 
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     exit(main())
