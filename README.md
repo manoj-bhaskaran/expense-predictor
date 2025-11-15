@@ -18,6 +18,7 @@ A machine learning-based expense prediction system that analyzes historical tran
 - **Performance Metrics**: Evaluates models using RMSE, MAE, and R-squared metrics
 - **Portable**: Supports both absolute and relative file paths for flexible deployment
 - **Data Protection**: Automatic backups and user confirmation before overwriting files
+- **Complete CI/CD Pipeline**: Automated testing, code quality checks, and security scanning
 
 ## Requirements
 
@@ -190,6 +191,10 @@ expense-predictor/
 │   ├── test_data/          # Sample data files for testing
 │   └── fixtures/           # Expected outputs for validation
 └── .github/
+    ├── workflows/
+    │   ├── test.yml        # Automated testing workflow
+    │   ├── pre-commit.yml  # Code quality checks workflow
+    │   └── security.yml    # Security scanning workflow
     └── dependabot.yml      # Dependency management configuration
 ```
 
@@ -413,6 +418,56 @@ The project follows PEP 8 style guidelines. Use a linter to check code quality:
 ```bash
 flake8 model_runner.py helpers.py security.py config.py
 ```
+
+## CI/CD Pipeline
+
+The project includes a comprehensive CI/CD pipeline with multiple automated workflows:
+
+### Automated Workflows
+
+1. **Testing (`test.yml`)** - Runs on all pull requests and pushes
+   - Multi-version Python testing (3.9, 3.10, 3.11)
+   - Automated test execution with pytest
+   - Code coverage enforcement (minimum 80%)
+   - Coverage reports uploaded to Codecov
+   - PR comments with coverage information
+   - Coverage artifacts saved for review
+
+2. **Code Quality (`pre-commit.yml`)** - Runs on all pull requests and pushes
+   - **Linting**: flake8 checks for syntax errors and code style
+   - **Formatting**: Black code formatting validation
+   - **Import Sorting**: isort checks for organized imports
+   - **Type Checking**: mypy for static type analysis
+
+3. **Security Scanning (`security.yml`)** - Runs on pull requests, pushes, and weekly schedule
+   - **Bandit**: Python security vulnerability scanner
+     - Detects SQL injection, hard-coded secrets, weak crypto
+     - Identifies path traversal and command injection risks
+   - **Safety**: Dependency vulnerability scanner
+     - Checks for known CVEs in dependencies
+     - Scans both production and development packages
+   - **Reports**: JSON and text reports uploaded as artifacts
+   - **Schedule**: Weekly scans every Monday at 10:00 AM UTC
+
+4. **Dependency Management (`dependabot.yml`)** - Automated dependency updates
+   - Weekly checks for outdated Python packages
+   - Automated pull requests for dependency updates
+   - Security vulnerability notifications
+
+### Viewing CI/CD Results
+
+- **GitHub Actions**: View workflow runs in the "Actions" tab
+- **Pull Requests**: Status checks and coverage comments appear automatically
+- **Artifacts**: Download security and coverage reports from workflow runs
+- **Badges**: Status badges at the top of README show current state
+
+### Branch Protection
+
+For production deployments, consider enabling branch protection rules:
+- Require status checks to pass before merging
+- Require pull request reviews
+- Require up-to-date branches before merging
+- See `.github/BRANCH_PROTECTION.md` for detailed setup
 
 ## Model Tuning
 

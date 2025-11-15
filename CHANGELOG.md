@@ -7,49 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2025-11-15
+
 ### Added
 
-- **CI/CD Pipeline for Pull Requests**
-  - GitHub Actions workflow for automated testing (`test.yml`)
-  - Multi-version Python testing (3.9, 3.10, 3.11)
-  - Automated coverage enforcement at 80% threshold
-  - Coverage reports uploaded to Codecov (optional)
-  - PR comments with coverage information
-  - Pre-commit checks workflow (`pre-commit.yml`) for code quality
+- **Security Scanning Pipeline** ([#50](https://github.com/manoj-bhaskaran/expense-predictor/issues/50))
+  - Created comprehensive security scanning workflow (`security.yml`)
+  - Bandit security scanner for Python code vulnerabilities
+  - Safety dependency checker for known security vulnerabilities
+  - Automated security scans on pull requests and pushes
+  - Weekly scheduled security scans (Monday 10:00 AM UTC)
+  - Security scan reports uploaded as artifacts
+  - JSON and text format reports for both Bandit and Safety
 
-- **Coverage Enforcement**
-  - Updated `.coveragerc` to require 80% minimum coverage
-  - Automated checks prevent merging PRs below threshold
-  - Coverage badge added to README
-  - HTML and XML coverage reports for CI/CD integration
+- **Security Scanning Features**
+  - **Bandit Integration**: Scans Python code for common security issues
+    - SQL injection vulnerabilities
+    - Hard-coded passwords and secrets
+    - Insecure deserialization
+    - Use of weak cryptographic functions
+    - Path traversal vulnerabilities
+    - Command injection risks
+  - **Dependency Scanning**: Checks all dependencies for known CVEs
+    - Scans both production and development dependencies
+    - Reports known vulnerabilities from Safety DB
+    - Provides remediation guidance
 
-- **Documentation**
-  - Branch protection setup guide (`.github/BRANCH_PROTECTION.md`)
-  - Detailed instructions for maintaining 80% coverage
-  - Troubleshooting guide for coverage failures
-  - Best practices for test-driven development
-  - CI/CD workflow documentation
+### Fixed
 
-- **Status Badges**
-  - Tests status badge (shows pass/fail)
-  - Codecov coverage badge (optional)
-  - Python version badge (3.9+)
-  - MIT license badge
-
-### Changed
-
-- **Coverage Threshold**: Increased from 40% to 80% for production readiness
-- **CI/CD Enforcement**: Pull requests now blocked if coverage < 80%
-- **README**: Updated with badges, coverage requirements, and CI/CD information
-- **Development Workflow**: PRs now require passing tests across all Python versions
+- **Dependabot Configuration** ([#50](https://github.com/manoj-bhaskaran/expense-predictor/issues/50))
+  - Corrected package ecosystem from "maven" to "pip" (.github/dependabot.yml:8)
+  - Dependabot will now properly monitor Python dependencies
+  - Automated dependency updates will work correctly
+  - Weekly update schedule maintained
 
 ### Improved
 
-- **Quality Gates**: Systematic enforcement of code quality standards
-- **Automated Testing**: All PRs automatically tested across Python 3.9, 3.10, 3.11
-- **Merge Safety**: Cannot merge code that reduces test coverage below 80%
-- **Visibility**: Coverage trends and reports visible in PRs and artifacts
-- **Developer Experience**: Clear feedback on coverage requirements before merge
+- **Security Posture**: Multiple layers of automated security scanning
+- **DevOps Maturity**: Complete CI/CD pipeline with testing, quality, and security
+- **Vulnerability Detection**: Automated detection of code and dependency vulnerabilities
+- **Compliance**: Regular security audits through scheduled scans
+- **Visibility**: Security reports available as workflow artifacts
+
+### CI/CD Pipeline Summary
+
+The project now has a complete CI/CD pipeline:
+
+1. **Testing** (`test.yml`): Multi-version Python testing with 80% coverage enforcement
+2. **Code Quality** (`pre-commit.yml`): Linting, formatting, and type checking
+3. **Security** (`security.yml`): Vulnerability scanning for code and dependencies
+4. **Dependency Management** (`dependabot.yml`): Automated dependency updates
 
 ## [1.5.0] - 2025-11-15
 
@@ -579,6 +586,7 @@ When reporting issues, please include:
 
 ---
 
+[1.6.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.6.0
 [1.5.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.5.0
 [1.4.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.4.0
 [1.3.1]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.3.1
