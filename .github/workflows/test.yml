@@ -42,19 +42,19 @@ jobs:
 
     - name: Run unit tests (fast)
       run: |
-        pytest -m unit -v --cov=. --cov-report=term-missing
+        pytest -m unit -v --cov=. --cov-fail-under=0 --cov-report=term-missing
 
     - name: Run integration tests
       if: success()
       run: |
-        pytest -m integration -v --cov=. --cov-append --cov-report=term-missing
+        pytest -m integration -v --cov=. --cov-append --cov-fail-under=0 --cov-report=term-missing
 
     - name: Run validation tests
       if: success()
       run: |
-        pytest -m validation -v --cov=. --cov-append --cov-report=term-missing
+        pytest -m validation -v --cov=. --cov-append --cov-fail-under=0 --cov-report=term-missing
 
-    - name: Generate coverage reports
+    - name: Check combined coverage threshold
       if: success()
       run: |
         coverage report --fail-under=80
