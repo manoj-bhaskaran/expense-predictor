@@ -9,7 +9,8 @@
 #   ./create_github_issues.sh --dry-run
 ###############################################################################
 
-set -euo pipefail
+# Keep it simple for Git Bash: only exit on error
+set -e
 
 # Colours
 RED='\033[0;31m'
@@ -31,6 +32,9 @@ CREATED_COUNT=0
 SKIPPED_COUNT=0
 FAILED_COUNT=0
 
+# Global array of issue files
+ISSUE_FILES=()
+
 ###############################################################################
 # Utility / printing
 ###############################################################################
@@ -38,7 +42,7 @@ FAILED_COUNT=0
 info()    { echo -e "${BLUE}ℹ${NC}  $*"; }
 ok()      { echo -e "${GREEN}✓${NC}  $*"; }
 warn()    { echo -e "${YELLOW}⚠${NC}  $*"; }
-err()     { echo -e "${RED}✗${NC}  $*" >&2; }
+err()     { echo -e "${RED}✗${NC}  $*"; }
 step()    { echo -e "\n${BOLD}${MAGENTA}▶${NC} ${BOLD}$*${NC}"; }
 line()    { echo -e "${CYAN}──────────────────────────────────────────────────────────────${NC}"; }
 
@@ -148,15 +152,16 @@ check_issues_dir() {
         exit 1
     fi
 
-    # Collect file list into array to avoid pipeline/subshell weirdness
+    # Fill ISSUE_FILES array
     mapfile -t ISSUE_FILES < <(find "$ISSUES_DIR" -maxdepth 1 -type f -name 'issue*' | sort)
 
-    if [[ "${#ISSUE_FILES[@]}" -eq 0 ]]; then
+    local count="${#ISSUE_FILES[@]}"
+    if [[ "$count" -eq 0 ]]; then
         err "No issue* files found in $ISSUES_DIR"
         exit 1
     fi
 
-    ok "Found ${#ISSUE_FILES[@]} issue file(s) in $ISSUES_DIR"
+    ok "Found $count issue file(s) in $ISSUES_DIR"
 }
 
 ###############################################################################
@@ -256,7 +261,7 @@ create_issue_from_file() {
     if [[ -z "$title" ]]; then
         warn "No title (# heading) found in $fname – skipping."
         ((SKIPPED_COUNT++))
-        return 0
+        return
     fi
     info "Title: $title"
 
@@ -284,13 +289,13 @@ create_issue_from_file() {
     if [[ -n "$existing" ]]; then
         warn "Issue already exists (#$existing) with this exact title – skipping."
         ((SKIPPED_COUNT++))
-        return 0
+        return
     fi
 
     if [[ "$DRY_RUN" == true ]]; then
         warn "DRY RUN: would create issue \"$title\" from $fname"
         ((CREATED_COUNT++))
-        return 0
+        return
     fi
 
     info "Creating issue on GitHub..."
@@ -313,6 +318,7 @@ create_all_issues() {
 
     local total="${#ISSUE_FILES[@]}"
     local i=0
+
     for file in "${ISSUE_FILES[@]}"; do
         ((i++))
         create_issue_from_file "$file" "$i" "$total"
