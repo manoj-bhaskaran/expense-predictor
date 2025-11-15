@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.1] - 2025-11-15
+
+### Documentation
+
+- **Console Entry Point Usage Documentation** ([#79](https://github.com/manoj-bhaskaran/expense-predictor/issues/79))
+  - Updated README.md with comprehensive documentation for both usage methods
+  - Added "Method 1: As an Installed Package (Recommended)" section demonstrating `expense-predictor` command
+  - Added "Method 2: As a Python Script" section for direct Python execution
+  - Updated all usage examples throughout README to prefer the console command
+  - Updated Security section examples to use `expense-predictor` command
+  - Updated Logging section examples to use `expense-predictor` command
+  - Updated Troubleshooting section examples to use `expense-predictor` command
+  - Clarified that users can run the tool either as an installed package or as a script
+
+### Notes
+
+**Breaking Changes**: None. This is a documentation-only release.
+
+**Context**:
+- Console entry point (`expense-predictor`) was defined in setup.py in v1.8.0
+- `main()` function was implemented in v1.10.0 for testability
+- Comprehensive CLI tests (21 tests) were added in v1.10.0
+- This release completes the feature by documenting the console entry point usage
+- Both execution methods remain fully supported and tested
+
+**Version Justification**:
+- Patch version bump (1.11.0 → 1.11.1) per Semantic Versioning
+- Documentation-only change with no code modifications
+- No functional changes or API modifications
+- Improves user experience by documenting existing functionality
+
 ## [1.11.0] - 2025-11-15
 
 ### Added
