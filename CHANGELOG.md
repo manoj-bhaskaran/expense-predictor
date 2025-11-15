@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.1] - 2025-11-15
+
+### Improved
+
+- **Enhanced .gitignore** ([#53](https://github.com/manoj-bhaskaran/expense-predictor/issues/53))
+  - Added missing Python bytecode patterns: `*.pyo`, `*.pyd`
+  - Added OS-specific patterns: `.DS_Store`, `Thumbs.db`
+  - Added temporary editor files: `*~`
+  - Added `.venv` to environment ignores (complements existing venv/, env/, ENV/)
+  - Added model artifacts section: `models/`, `*.pkl`, `*.joblib`
+  - Added configuration file pattern: `config.ini`
+  - Ensures consistent Git hygiene across all development environments
+
+### Fixed
+
+- **Git Version Control** ([#53](https://github.com/manoj-bhaskaran/expense-predictor/issues/53))
+  - Previously minimal .gitignore could allow unwanted files to be committed
+  - Model artifacts (*.pkl, *.joblib) and trained models directory now properly ignored
+  - OS-specific files (.DS_Store on macOS, Thumbs.db on Windows) now ignored
+  - Python bytecode variations (*.pyo, *.pyd) now properly excluded
+  - Temporary editor backup files (*~) now ignored
+
+### Notes
+
+**Breaking Changes**: None. This is a backward-compatible release.
+
+**Version Justification**:
+- Patch version bump (1.8.0 → 1.8.1) per Semantic Versioning
+- Improves repository hygiene and prevents accidental commits of unwanted files
+- No code changes or functionality modifications
+- No API changes
+
 ## [1.8.0] - 2025-11-15
 
 ### Added
@@ -813,6 +845,7 @@ When reporting issues, please include:
 
 ---
 
+[1.8.1]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.8.1
 [1.8.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.8.0
 [1.7.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.7.0
 [1.6.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.6.0
