@@ -482,9 +482,6 @@ class TestLoggingIntegration:
         exit_code = main(args)
         assert exit_code == 0
 
-        # Verify log file was created
-        log_files = os.listdir(log_workspace['log_dir'])
-
         # The logging framework may create log files with specific naming conventions
         # Just verify that the execution completed successfully
         # Some logging frameworks may not create files immediately or may use different naming
