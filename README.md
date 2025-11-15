@@ -423,13 +423,13 @@ pytest tests/ --cov=. --cov-report=xml
 
 **Coverage Requirement: 80% minimum** (enforced on pull requests)
 
-Current test coverage: **82.66%** ✅ (exceeds CI/CD requirements)
+Current test coverage: **88%** ✅ (exceeds CI/CD requirements)
 
 Coverage breakdown by file:
 - `model_runner.py`: **87%** - Main execution logic
+- `helpers.py`: **88%** - Data processing utilities
 - `config.py`: **100%** - Configuration management
 - `security.py`: **85%** - Security validation
-- `helpers.py`: **76%** - Data processing utilities
 
 - Unit tests: 44 tests covering helpers.py functions
 - Integration tests: 66 tests covering the ML pipeline and CLI
