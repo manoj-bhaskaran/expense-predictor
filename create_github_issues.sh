@@ -192,6 +192,15 @@ check_and_create_labels() {
 
     print_step "Checking and creating labels..."
 
+    # Quick connectivity test
+    print_info "Testing GitHub API connectivity..."
+    if ! gh api /rate_limit &>/dev/null; then
+        print_error "Cannot connect to GitHub API"
+        print_warning "Skipping label creation. Please check your internet connection and gh authentication."
+        return
+    fi
+    print_success "GitHub API accessible"
+
     # Get all labels from templates
     local needed_labels=$(get_all_labels_from_templates)
 
@@ -205,11 +214,39 @@ check_and_create_labels() {
 
     # Get existing labels from repo
     print_info "Fetching existing labels from repository..."
+
+    # Add timeout to prevent hanging (30 seconds)
     local existing_labels_raw
-    if ! existing_labels_raw=$(gh label list --repo "$REPO" --json name --jq '.[].name' 2>&1); then
-        print_warning "Could not fetch existing labels: ${existing_labels_raw}"
-        print_info "Will attempt to create labels anyway..."
+    local fetch_exit_code
+
+    if command -v timeout &> /dev/null; then
+        # Use timeout command if available (Linux/macOS with coreutils)
+        existing_labels_raw=$(timeout 30s gh label list --repo "$REPO" --json name --jq '.[].name' 2>&1)
+        fetch_exit_code=$?
+    elif command -v gtimeout &> /dev/null; then
+        # Use gtimeout on macOS (from brew coreutils)
+        existing_labels_raw=$(gtimeout 30s gh label list --repo "$REPO" --json name --jq '.[].name' 2>&1)
+        fetch_exit_code=$?
+    else
+        # No timeout available, try anyway
+        print_warning "No timeout command available, this might hang..."
+        existing_labels_raw=$(gh label list --repo "$REPO" --json name --jq '.[].name' 2>&1)
+        fetch_exit_code=$?
+    fi
+
+    if [ $fetch_exit_code -eq 124 ]; then
+        print_error "Timed out fetching labels (30s limit)"
+        print_warning "Proceeding without checking existing labels..."
         existing_labels_raw=""
+    elif [ $fetch_exit_code -ne 0 ]; then
+        print_warning "Could not fetch existing labels"
+        if [ "$VERBOSE" = true ]; then
+            print_info "Error output: ${existing_labels_raw}"
+        fi
+        print_info "Will attempt to create all labels (may get 'already exists' errors)..."
+        existing_labels_raw=""
+    else
+        print_success "Successfully fetched existing labels"
     fi
 
     # Convert to array for easier checking
@@ -245,11 +282,27 @@ check_and_create_labels() {
             local color=$(get_label_color "$label")
             print_info "  [$current/$total_labels] + Creating label: ${label} (color: #${color})"
 
-            # Capture both stdout and stderr
+            # Capture both stdout and stderr with timeout
             local create_output
-            if create_output=$(gh label create "$label" --color "$color" --repo "$REPO" 2>&1); then
+            local create_exit_code
+
+            if command -v timeout &> /dev/null; then
+                create_output=$(timeout 15s gh label create "$label" --color "$color" --repo "$REPO" 2>&1)
+                create_exit_code=$?
+            elif command -v gtimeout &> /dev/null; then
+                create_output=$(gtimeout 15s gh label create "$label" --color "$color" --repo "$REPO" 2>&1)
+                create_exit_code=$?
+            else
+                create_output=$(gh label create "$label" --color "$color" --repo "$REPO" 2>&1)
+                create_exit_code=$?
+            fi
+
+            if [ $create_exit_code -eq 0 ]; then
                 print_success "    Created: ${label}"
                 ((created_count++))
+            elif [ $create_exit_code -eq 124 ]; then
+                print_error "    Timed out creating label: ${label}"
+                ((exists_count++))
             else
                 # Show the actual error if verbose mode is on
                 if [ "$VERBOSE" = true ]; then
