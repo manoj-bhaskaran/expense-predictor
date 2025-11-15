@@ -23,6 +23,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - pyyaml==6.0.1 ✅
   - Aligns CI/CD testing with setup.py classifiers (which already claimed 3.12 support)
 
+### Fixed
+
+- **Python 3.12 Dependency Compatibility** ([#87](https://github.com/manoj-bhaskaran/expense-predictor/issues/87))
+  - Updated `line-profiler` from 4.1.0 to 4.1.3 in requirements-dev.txt
+  - Resolves Cython dependency conflict that prevented installation on Python 3.12
+  - line-profiler 4.1.3 properly supports Python 3.12 without requiring unavailable Cython alpha versions
+
 ### Changed
 
 - **CI/CD Pipeline Enhancement** ([#87](https://github.com/manoj-bhaskaran/expense-predictor/issues/87))
@@ -70,6 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Files Modified**:
 - `.github/workflows/test.yml` (added 3.12 to matrix, updated coverage conditions)
+- `requirements-dev.txt` (updated line-profiler to 4.1.3 for Python 3.12 compatibility)
 - `README.md` (updated Python version documentation)
 - `CHANGELOG.md` (this file)
 - `setup.py` (version bumped to 1.17.0)
