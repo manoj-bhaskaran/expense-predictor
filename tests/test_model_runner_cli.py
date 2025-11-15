@@ -124,7 +124,7 @@ class TestParseArgs:
                 "./transactions.csv",
                 "--log_dir",
                 "./logs",
-                "--log_level",
+                "--log-level",
                 "DEBUG",
                 "--output_dir",
                 "./output",
@@ -288,8 +288,12 @@ class TestEnvironmentVariableLoading:
 class TestLogLevelConfiguration:
     """Test log level configuration and priority order."""
 
-    def test_get_log_level_default(self):
+    def test_get_log_level_default(self, monkeypatch):
         """Test that get_log_level returns INFO by default."""
+        # Mock empty config and ensure no env var is set
+        monkeypatch.setattr("model_runner.config", {})
+        monkeypatch.delenv("EXPENSE_PREDICTOR_LOG_LEVEL", raising=False)
+        
         log_level = get_log_level(None)
         
         assert log_level == logging.INFO
@@ -327,31 +331,25 @@ class TestLogLevelConfiguration:
 
     def test_get_log_level_config_file(self, monkeypatch):
         """Test that config file is used when CLI and env are not set."""
-        # Mock the config module to simulate config file setting
-        import config
-        original_config = config.config.copy() if hasattr(config, 'config') else {}
+        # Test various config file log levels
+        test_cases = [
+            ("DEBUG", logging.DEBUG),
+            ("INFO", logging.INFO),
+            ("WARNING", logging.WARNING),
+            ("ERROR", logging.ERROR),
+            ("CRITICAL", logging.CRITICAL),
+        ]
         
-        try:
-            # Test various config file log levels
-            test_cases = [
-                ("DEBUG", logging.DEBUG),
-                ("INFO", logging.INFO),
-                ("WARNING", logging.WARNING),
-                ("ERROR", logging.ERROR),
-                ("CRITICAL", logging.CRITICAL),
-            ]
+        for level_str, expected_level in test_cases:
+            # Mock the config variable imported in model_runner
+            mock_config = {"logging": {"level": level_str}}
+            monkeypatch.setattr("model_runner.config", mock_config)
             
-            for level_str, expected_level in test_cases:
-                config.config = {"logging": {"level": level_str}}
-                
-                # Ensure no env var is set
-                monkeypatch.delenv("EXPENSE_PREDICTOR_LOG_LEVEL", raising=False)
-                
-                log_level = get_log_level(None)
-                assert log_level == expected_level
-        finally:
-            # Restore original config
-            config.config = original_config
+            # Ensure no env var is set
+            monkeypatch.delenv("EXPENSE_PREDICTOR_LOG_LEVEL", raising=False)
+            
+            log_level = get_log_level(None)
+            assert log_level == expected_level
 
     def test_get_log_level_priority_order(self, monkeypatch):
         """Test that CLI argument overrides environment variable."""
