@@ -24,6 +24,7 @@ ISSUES_DIR="${SCRIPT_DIR}/github_issues"
 
 # Configuration
 DRY_RUN=false
+VERBOSE=false
 REPO=""
 CREATED_COUNT=0
 FAILED_COUNT=0
@@ -269,28 +270,41 @@ create_issue() {
     # Create the issue
     print_info "Creating issue..."
 
-    local gh_command="gh issue create --repo \"$REPO\" --title \"$title\" --body-file \"$file\""
-
-    if [ -n "$all_labels" ]; then
-        gh_command="${gh_command} --label \"$all_labels\""
+    # Build command for display (only show in verbose mode)
+    if [ "$VERBOSE" = true ]; then
+        local gh_command="gh issue create --repo \"$REPO\" --title \"$title\" --body-file \"$file\""
+        if [ -n "$all_labels" ]; then
+            gh_command="${gh_command} --label \"$all_labels\""
+        fi
+        print_info "Command: ${gh_command}"
     fi
 
     # Execute the command
     local issue_url=""
+    local temp_output=$(mktemp)
+
     if [ -n "$all_labels" ]; then
-        issue_url=$(gh issue create --repo "$REPO" --title "$title" --body-file "$file" --label "$all_labels" 2>&1)
+        gh issue create --repo "$REPO" --title "$title" --body-file "$file" --label "$all_labels" > "$temp_output" 2>&1
     else
-        issue_url=$(gh issue create --repo "$REPO" --title "$title" --body-file "$file" 2>&1)
+        gh issue create --repo "$REPO" --title "$title" --body-file "$file" > "$temp_output" 2>&1
     fi
 
     local exit_code=$?
+    issue_url=$(cat "$temp_output")
+    rm -f "$temp_output"
 
-    if [ $exit_code -eq 0 ]; then
+    if [ $exit_code -eq 0 ] && [ -n "$issue_url" ]; then
         print_success "Created: ${issue_url}"
         ((CREATED_COUNT++))
+    elif [ $exit_code -eq 0 ]; then
+        print_warning "Command succeeded but no URL returned"
+        print_info "Output: ${issue_url}"
+        ((CREATED_COUNT++))
     else
-        print_error "Failed to create issue"
-        print_error "Error: ${issue_url}"
+        print_error "Failed to create issue (exit code: $exit_code)"
+        if [ -n "$issue_url" ]; then
+            print_error "Output: ${issue_url}"
+        fi
         ((FAILED_COUNT++))
     fi
 }
@@ -304,6 +318,10 @@ parse_arguments() {
         case $1 in
             --dry-run)
                 DRY_RUN=true
+                shift
+                ;;
+            --verbose|-v)
+                VERBOSE=true
                 shift
                 ;;
             --repo)
@@ -333,6 +351,7 @@ ${BOLD}Description:${NC}
 
 ${BOLD}Options:${NC}
   --dry-run         Show what would be created without actually creating issues
+  --verbose, -v     Show verbose output including gh commands being executed
   --repo OWNER/REPO Specify the repository (default: auto-detect from git)
   -h, --help        Show this help message
 
@@ -342,6 +361,9 @@ ${BOLD}Examples:${NC}
 
   # Dry run to preview what would be created
   ./create_github_issues.sh --dry-run
+
+  # Verbose mode to see all commands
+  ./create_github_issues.sh --verbose
 
   # Specify repository explicitly
   ./create_github_issues.sh --repo manoj-bhaskaran/expense-predictor
