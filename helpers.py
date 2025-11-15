@@ -1,6 +1,8 @@
 import pandas as pd
 from pandas.tseries.offsets import DateOffset
 from datetime import datetime, timedelta
+from typing import Optional, Tuple
+import logging
 import xlrd
 import python_logging_framework as plog
 from config import config
@@ -12,7 +14,7 @@ TRANSACTION_AMOUNT_LABEL = 'Tran Amt'
 DAY_OF_WEEK = 'Day of the Week'
 VALUE_DATE_LABEL = 'Value Date'
 
-def validate_csv_file(file_path, logger=None):
+def validate_csv_file(file_path: str, logger: Optional[logging.Logger] = None) -> None:
     """
     Validate that CSV file exists and has required columns.
 
@@ -55,7 +57,7 @@ def validate_csv_file(file_path, logger=None):
         plog.log_error(logger, f"CSV file parsing error: {e}")
         raise ValueError(f"CSV file is not properly formatted: {e}")
 
-def validate_excel_file(file_path, logger=None):
+def validate_excel_file(file_path: str, logger: Optional[logging.Logger] = None) -> None:
     """
     Validate that Excel file exists and has a valid format.
 
@@ -102,7 +104,7 @@ def validate_excel_file(file_path, logger=None):
         plog.log_error(logger, f"Excel file is corrupted or invalid: {e}")
         raise ValueError(f"Excel file is corrupted or cannot be read: {e}")
 
-def validate_date_range(df, logger=None):
+def validate_date_range(df: pd.DataFrame, logger: Optional[logging.Logger] = None) -> None:
     """
     Validate date range in the DataFrame.
 
@@ -139,17 +141,17 @@ def validate_date_range(df, logger=None):
     # Log date range info
     plog.log_info(logger, f"Date range validation passed. Start: {start_date.strftime('%Y-%m-%d')}, End: {end_date.strftime('%Y-%m-%d')}")
 
-def find_column_name(df_columns, expected_name):
+def find_column_name(df_columns: pd.Index, expected_name: str) -> Optional[str]:
     """
     Find a column name that matches the expected name with flexible formatting.
-    
+
     This function handles variations in spacing and parentheses formatting
     (e.g., 'Withdrawal Amount (INR )' vs 'Withdrawal Amount(INR)').
-    
+
     Parameters:
     df_columns (pd.Index): The DataFrame column names to search
     expected_name (str): The expected column name with potential formatting variations
-    
+
     Returns:
     str: The actual column name found in the DataFrame, or None if not found
     """
@@ -177,7 +179,7 @@ def find_column_name(df_columns, expected_name):
     
     return None
 
-def get_quarter_end_date(current_date):
+def get_quarter_end_date(current_date: datetime) -> datetime:
     """
     Get the end date of the current quarter based on the provided date.
 
@@ -190,7 +192,7 @@ def get_quarter_end_date(current_date):
     quarter = (current_date.month - 1) // 3 + 1
     return datetime(current_date.year, 3 * quarter, 1) + DateOffset(months=1) - DateOffset(days=1)
 
-def _process_dataframe(df, logger=None):
+def _process_dataframe(df: pd.DataFrame, logger: Optional[logging.Logger] = None) -> Tuple[pd.DataFrame, pd.Series, pd.DataFrame]:
     """
     Process a DataFrame for training (internal helper function).
 
@@ -246,7 +248,7 @@ def _process_dataframe(df, logger=None):
 
     return x_train, y_train, df
 
-def preprocess_data(file_path, logger=None):
+def preprocess_data(file_path: str, logger: Optional[logging.Logger] = None) -> Tuple[pd.DataFrame, pd.Series, pd.DataFrame]:
     """
     Preprocess input data from a CSV file.
 
@@ -263,7 +265,7 @@ def preprocess_data(file_path, logger=None):
     df = pd.read_csv(file_path)
     return _process_dataframe(df, logger=logger)
 
-def prepare_future_dates(future_date=None):
+def prepare_future_dates(future_date: Optional[str] = None) -> Tuple[pd.DataFrame, pd.DatetimeIndex]:
     """
     Prepare future dates for prediction.
 
@@ -292,7 +294,7 @@ def prepare_future_dates(future_date=None):
 
     return future_df, future_dates
 
-def preprocess_and_append_csv(file_path, excel_path=None, logger=None):
+def preprocess_and_append_csv(file_path: str, excel_path: Optional[str] = None, logger: Optional[logging.Logger] = None) -> Tuple[pd.DataFrame, pd.Series, pd.DataFrame]:
     """
     Preprocess input data from a CSV file and optionally append data from an Excel file.
 
@@ -366,7 +368,7 @@ def preprocess_and_append_csv(file_path, excel_path=None, logger=None):
     # Process the dataframe directly without modifying the input file
     return _process_dataframe(df, logger=logger)
 
-def write_predictions(predicted_df, output_path, logger=None, skip_confirmation=False):
+def write_predictions(predicted_df: pd.DataFrame, output_path: str, logger: Optional[logging.Logger] = None, skip_confirmation: bool = False) -> None:
     """
     Write predictions to a CSV file with security measures.
 

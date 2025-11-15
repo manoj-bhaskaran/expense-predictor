@@ -6,6 +6,7 @@ All configurable parameters (magic numbers, hyperparameters) are centralized her
 """
 
 import os
+from typing import Dict, Any, Optional
 import yaml
 import python_logging_framework as plog
 
@@ -50,7 +51,7 @@ DEFAULT_CONFIG = {
 }
 
 
-def load_config():
+def load_config() -> Dict[str, Any]:
     """
     Load configuration from config.yaml file.
 
@@ -74,7 +75,7 @@ def load_config():
         return DEFAULT_CONFIG
 
 
-def _merge_configs(default, custom):
+def _merge_configs(default: Dict[str, Any], custom: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     """
     Merge custom configuration with default configuration.
 
@@ -100,7 +101,7 @@ def _merge_configs(default, custom):
     return merged
 
 
-def get_config():
+def get_config() -> Dict[str, Any]:
     """
     Get the configuration dictionary.
 
