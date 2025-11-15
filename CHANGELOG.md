@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.16.0] - 2025-11-16
+
+### Added
+
+- **Configurable Log Levels** 
+  - Added `--log-level` command-line argument with choices: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  - Added `EXPENSE_PREDICTOR_LOG_LEVEL` environment variable support
+  - Added logging configuration section to `config.yaml` with `level` parameter
+  - Implemented priority order: CLI argument > environment variable > config file > default (INFO)
+  - Added automatic log level validation with graceful fallback to INFO for invalid values
+  - Added startup log message indicating the selected log level
+  - Updated argument parser documentation to include environment variable and config file options
+
+### Changed
+
+- Enhanced logging flexibility for development, production, and CI/CD environments
+- Improved debugging capabilities with configurable verbosity levels
+
 ## [1.15.0] - 2025-11-15
 
 ### Added
