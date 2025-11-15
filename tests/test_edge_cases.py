@@ -71,7 +71,7 @@ class TestSecurityEdgeCases:
     def test_validate_none_path(self, mock_logger):
         """Test validation with None path."""
         with pytest.raises(ValueError, match="Path must be a non-empty string"):
-            validate_and_resolve_path(None, logger=mock_logger)  # type: ignore
+            validate_and_resolve_path(None, logger=mock_logger)  # type: ignore[arg-type]
 
     def test_validate_path_with_quotes(self, temp_dir, mock_logger):
         """Test validation strips quotes from path."""

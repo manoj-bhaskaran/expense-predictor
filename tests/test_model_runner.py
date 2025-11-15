@@ -58,7 +58,7 @@ class TestDataPreprocessingPipeline:
         })
         df.to_csv(csv_path, index=False)
 
-        X, y, processed_df = preprocess_and_append_csv(csv_path, logger=mock_logger)
+        _, y, processed_df = preprocess_and_append_csv(csv_path, logger=mock_logger)
 
         # Should have filled in all dates from first to yesterday
         start_date = datetime(2024, 1, 1)
