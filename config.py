@@ -22,6 +22,7 @@ _DEFAULT_CONFIG_MSG = "Using default configuration."
 
 # Default configuration (used as fallback if config.yaml is not found or incomplete)
 DEFAULT_CONFIG = {
+    "logging": {"level": "INFO"},
     "data_processing": {"skiprows": 12},
     "model_evaluation": {"test_size": 0.2, "random_state": 42},
     "decision_tree": {"max_depth": 5, "min_samples_split": 10, "min_samples_leaf": 5, "ccp_alpha": 0.01, "random_state": 42},

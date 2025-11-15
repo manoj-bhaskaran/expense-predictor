@@ -6,6 +6,7 @@ including argument parsing, error handling, and complete execution scenarios.
 """
 
 import argparse
+import logging
 import os
 import shutil
 import sys
@@ -17,7 +18,7 @@ import pandas as pd
 import pytest
 
 # Import the CLI functions from model_runner
-from model_runner import main, parse_args
+from model_runner import get_log_level, main, parse_args
 
 
 @pytest.mark.unit
@@ -73,6 +74,42 @@ class TestParseArgs:
 
         assert args.skip_confirmation is True
 
+    def test_parse_args_log_level_default(self):
+        """Test that log level defaults to None when not specified."""
+        args = parse_args([])
+        
+        assert args.log_level is None
+
+    def test_parse_args_log_level_debug(self):
+        """Test parsing with DEBUG log level."""
+        args = parse_args(["--log-level", "DEBUG"])
+        
+        assert args.log_level == "DEBUG"
+
+    def test_parse_args_log_level_info(self):
+        """Test parsing with INFO log level."""
+        args = parse_args(["--log-level", "INFO"])
+        
+        assert args.log_level == "INFO"
+
+    def test_parse_args_log_level_warning(self):
+        """Test parsing with WARNING log level."""
+        args = parse_args(["--log-level", "WARNING"])
+        
+        assert args.log_level == "WARNING"
+
+    def test_parse_args_log_level_error(self):
+        """Test parsing with ERROR log level."""
+        args = parse_args(["--log-level", "ERROR"])
+        
+        assert args.log_level == "ERROR"
+
+    def test_parse_args_log_level_critical(self):
+        """Test parsing with CRITICAL log level."""
+        args = parse_args(["--log-level", "CRITICAL"])
+        
+        assert args.log_level == "CRITICAL"
+
     def test_parse_args_all_options(self):
         """Test parsing with all options specified."""
         args = parse_args(
@@ -87,6 +124,8 @@ class TestParseArgs:
                 "./transactions.csv",
                 "--log_dir",
                 "./logs",
+                "--log_level",
+                "DEBUG",
                 "--output_dir",
                 "./output",
                 "--skip_confirmation",
@@ -98,6 +137,7 @@ class TestParseArgs:
         assert args.excel_file == "bank_statements.xlsx"
         assert args.data_file == "./transactions.csv"
         assert args.log_dir == "./logs"
+        assert args.log_level == "DEBUG"
         assert args.output_dir == "./output"
         assert args.skip_confirmation is True
 
@@ -242,6 +282,173 @@ class TestEnvironmentVariableLoading:
         assert args.output_dir == "/output"
         assert args.future_date == "31/12/2025"
         assert args.skip_confirmation is True
+
+
+@pytest.mark.unit
+class TestLogLevelConfiguration:
+    """Test log level configuration and priority order."""
+
+    def test_get_log_level_default(self):
+        """Test that get_log_level returns INFO by default."""
+        log_level = get_log_level(None)
+        
+        assert log_level == logging.INFO
+
+    def test_get_log_level_cli_argument(self):
+        """Test that CLI argument takes highest priority."""
+        # Test all valid log levels
+        test_cases = [
+            ("DEBUG", logging.DEBUG),
+            ("INFO", logging.INFO),
+            ("WARNING", logging.WARNING),
+            ("ERROR", logging.ERROR),
+            ("CRITICAL", logging.CRITICAL),
+        ]
+        
+        for level_str, expected_level in test_cases:
+            log_level = get_log_level(level_str)
+            assert log_level == expected_level
+
+    def test_get_log_level_environment_variable(self, monkeypatch):
+        """Test that environment variable is used when CLI argument is None."""
+        test_cases = [
+            ("DEBUG", logging.DEBUG),
+            ("INFO", logging.INFO),
+            ("WARNING", logging.WARNING),
+            ("ERROR", logging.ERROR),
+            ("CRITICAL", logging.CRITICAL),
+        ]
+        
+        for level_str, expected_level in test_cases:
+            monkeypatch.setenv("EXPENSE_PREDICTOR_LOG_LEVEL", level_str)
+            log_level = get_log_level(None)
+            assert log_level == expected_level
+            monkeypatch.delenv("EXPENSE_PREDICTOR_LOG_LEVEL")
+
+    def test_get_log_level_config_file(self, monkeypatch):
+        """Test that config file is used when CLI and env are not set."""
+        # Mock the config module to simulate config file setting
+        import config
+        original_config = config.config.copy() if hasattr(config, 'config') else {}
+        
+        try:
+            # Test various config file log levels
+            test_cases = [
+                ("DEBUG", logging.DEBUG),
+                ("INFO", logging.INFO),
+                ("WARNING", logging.WARNING),
+                ("ERROR", logging.ERROR),
+                ("CRITICAL", logging.CRITICAL),
+            ]
+            
+            for level_str, expected_level in test_cases:
+                config.config = {"logging": {"level": level_str}}
+                
+                # Ensure no env var is set
+                monkeypatch.delenv("EXPENSE_PREDICTOR_LOG_LEVEL", raising=False)
+                
+                log_level = get_log_level(None)
+                assert log_level == expected_level
+        finally:
+            # Restore original config
+            config.config = original_config
+
+    def test_get_log_level_priority_order(self, monkeypatch):
+        """Test that CLI argument overrides environment variable."""
+        # Set environment variable
+        monkeypatch.setenv("EXPENSE_PREDICTOR_LOG_LEVEL", "ERROR")
+        
+        # Mock config file setting
+        import config
+        original_config = config.config.copy() if hasattr(config, 'config') else {}
+        
+        try:
+            config.config = {"logging": {"level": "WARNING"}}
+            
+            # CLI argument should have highest priority
+            log_level = get_log_level("DEBUG")
+            assert log_level == logging.DEBUG
+        finally:
+            config.config = original_config
+
+    def test_get_log_level_env_over_config(self, monkeypatch):
+        """Test that environment variable overrides config file."""
+        # Set environment variable
+        monkeypatch.setenv("EXPENSE_PREDICTOR_LOG_LEVEL", "ERROR")
+        
+        # Mock config file setting
+        import config
+        original_config = config.config.copy() if hasattr(config, 'config') else {}
+        
+        try:
+            config.config = {"logging": {"level": "WARNING"}}
+            
+            # Environment variable should override config
+            log_level = get_log_level(None)
+            assert log_level == logging.ERROR
+        finally:
+            config.config = original_config
+
+    def test_get_log_level_invalid_cli_argument(self):
+        """Test that invalid CLI argument falls back to default."""
+        log_level = get_log_level("INVALID_LEVEL")
+        
+        assert log_level == logging.INFO
+
+    def test_get_log_level_invalid_env_variable(self, monkeypatch):
+        """Test that invalid environment variable falls back to default."""
+        monkeypatch.setenv("EXPENSE_PREDICTOR_LOG_LEVEL", "INVALID_LEVEL")
+        
+        log_level = get_log_level(None)
+        
+        assert log_level == logging.INFO
+
+    def test_get_log_level_invalid_config(self, monkeypatch):
+        """Test that invalid config file value falls back to default."""
+        import config
+        original_config = config.config.copy() if hasattr(config, 'config') else {}
+        
+        try:
+            config.config = {"logging": {"level": "INVALID_LEVEL"}}
+            
+            # Ensure no env var is set
+            monkeypatch.delenv("EXPENSE_PREDICTOR_LOG_LEVEL", raising=False)
+            
+            log_level = get_log_level(None)
+            assert log_level == logging.INFO
+        finally:
+            config.config = original_config
+
+    def test_get_log_level_no_config_logging_section(self, monkeypatch):
+        """Test that missing logging section in config falls back to default."""
+        import config
+        original_config = config.config.copy() if hasattr(config, 'config') else {}
+        
+        try:
+            config.config = {"some_other_section": {"value": "test"}}
+            
+            # Ensure no env var is set
+            monkeypatch.delenv("EXPENSE_PREDICTOR_LOG_LEVEL", raising=False)
+            
+            log_level = get_log_level(None)
+            assert log_level == logging.INFO
+        finally:
+            config.config = original_config
+
+    def test_parse_args_log_level_env_variable(self, monkeypatch):
+        """Test that log level argument parsing respects environment variable documentation."""
+        # This test ensures the help text is correct about env variable support
+        monkeypatch.setenv("EXPENSE_PREDICTOR_LOG_LEVEL", "DEBUG")
+        
+        # Parse args without log-level argument
+        args = parse_args([])
+        
+        # Should be None (not set via CLI)
+        assert args.log_level is None
+        
+        # But get_log_level should pick up the env var
+        log_level = get_log_level(args.log_level)
+        assert log_level == logging.DEBUG
 
 
 @pytest.mark.integration

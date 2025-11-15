@@ -123,6 +123,13 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         default=os.getenv("EXPENSE_PREDICTOR_SKIP_CONFIRMATION", "false").lower() == "true",
         help="Skip confirmation prompts for overwriting files (useful for automation)",
     )
+    parser.add_argument(
+        "--log-level",
+        type=str,
+        default=None,
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        help="Logging level (default: INFO). Can also be set via EXPENSE_PREDICTOR_LOG_LEVEL environment variable or config.yaml",
+    )
     return parser.parse_args(args)
 
 
@@ -201,6 +208,48 @@ def get_data_file_path(data_file: str, logger: logging.Logger) -> str:
     except (ValueError, FileNotFoundError) as e:
         plog.log_error(logger, f"Invalid data file path: {e}")
         raise
+
+
+def get_log_level(args_log_level: Optional[str]) -> int:
+    """
+    Determine the log level based on priority order.
+
+    Priority order (highest to lowest):
+    1. Command-line argument (--log-level)
+    2. Environment variable (EXPENSE_PREDICTOR_LOG_LEVEL)
+    3. Configuration file (config.yaml logging.level)
+    4. Default (INFO)
+
+    Args:
+        args_log_level: Log level from command-line arguments or None.
+
+    Returns:
+        int: Logging level constant (e.g., logging.INFO, logging.DEBUG).
+    """
+    # Priority 1: Command-line argument
+    if args_log_level:
+        log_level_str = args_log_level
+    # Priority 2: Environment variable
+    elif os.getenv("EXPENSE_PREDICTOR_LOG_LEVEL"):
+        log_level_str = os.getenv("EXPENSE_PREDICTOR_LOG_LEVEL")
+    # Priority 3: Configuration file
+    elif "logging" in config and "level" in config["logging"]:
+        log_level_str = config["logging"]["level"]
+    # Priority 4: Default
+    else:
+        log_level_str = "INFO"
+
+    # Convert string to logging constant with validation
+    try:
+        log_level = getattr(logging, log_level_str.upper())
+        if not isinstance(log_level, int):
+            raise AttributeError
+    except AttributeError:
+        # Invalid log level string, use default
+        log_level = logging.INFO
+        log_level_str = "INFO"
+
+    return log_level
 
 
 def train_and_evaluate_models(
@@ -332,7 +381,14 @@ def main(args: Optional[List[str]] = None) -> int:
         print(f"Error: Invalid log directory path: {e}")
         return 1
 
-    logger = plog.initialise_logger(script_name="model_runner.py", log_dir=log_dir_path, log_level=logging.INFO)
+    # Determine log level based on priority order
+    log_level = get_log_level(parsed_args.log_level)
+    
+    logger = plog.initialise_logger(script_name="model_runner.py", log_dir=log_dir_path, log_level=log_level)
+    
+    # Log the selected log level for transparency
+    log_level_name = logging.getLevelName(log_level)
+    plog.log_info(logger, f"Log level set to: {log_level_name}")
 
     # Get future date for predictions
     future_date_for_function = get_future_date(parsed_args.future_date, logger)

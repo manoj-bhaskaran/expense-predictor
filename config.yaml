@@ -2,6 +2,13 @@
 # This file contains all configurable parameters for the expense prediction system.
 # You can modify these values to customize the behavior of the models and data processing.
 
+# Logging Configuration
+logging:
+  # Logging level for the application
+  # Valid values: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  # Default: INFO (general informational messages)
+  level: INFO
+
 # Data Processing Configuration
 data_processing:
   # Number of rows to skip when reading Excel files (bank statement specific)

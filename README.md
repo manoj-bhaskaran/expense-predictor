@@ -112,6 +112,7 @@ nano .env
 | `EXPENSE_PREDICTOR_EXCEL_DIR` | Directory containing Excel file | `.` (current directory) |
 | `EXPENSE_PREDICTOR_EXCEL_FILE` | Name of Excel file with additional data | None |
 | `EXPENSE_PREDICTOR_LOG_DIR` | Directory for log files | `logs` |
+| `EXPENSE_PREDICTOR_LOG_LEVEL` | Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL) | `INFO` |
 | `EXPENSE_PREDICTOR_OUTPUT_DIR` | Directory for prediction output files | `.` (current directory) |
 | `EXPENSE_PREDICTOR_FUTURE_DATE` | Future date for predictions (DD/MM/YYYY) | End of current quarter |
 | `EXPENSE_PREDICTOR_SKIP_CONFIRMATION` | Skip file overwrite confirmations (`true`/`false`) | `false` |
@@ -122,6 +123,7 @@ nano .env
 # Development environment
 EXPENSE_PREDICTOR_DATA_FILE=./test_data/sample.csv
 EXPENSE_PREDICTOR_LOG_DIR=./dev_logs
+EXPENSE_PREDICTOR_LOG_LEVEL=DEBUG
 EXPENSE_PREDICTOR_OUTPUT_DIR=./dev_predictions
 EXPENSE_PREDICTOR_SKIP_CONFIRMATION=true
 ```
@@ -200,8 +202,93 @@ python model_runner.py \
 | `--excel_dir` | Directory containing Excel file | `.` (current directory) |
 | `--excel_file` | Name of Excel file with additional data | None |
 | `--log_dir` | Directory for log files | `logs` |
+| `--log_level` | Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL) | `INFO` |
 | `--output_dir` | Directory for prediction output files | `.` (current directory) |
 | `--skip_confirmation` | Skip confirmation prompts when overwriting files (for automation) | False |
+
+## Logging
+
+The Expense Predictor provides configurable logging to help with debugging, monitoring, and operational visibility.
+
+### Log Levels
+
+| Level | Description | Use Case |
+|-------|-------------|----------|
+| `DEBUG` | Detailed information for diagnosing problems | Development and troubleshooting |
+| `INFO` | General informational messages (default) | Normal operation monitoring |
+| `WARNING` | Warning messages for potentially problematic situations | Production monitoring |
+| `ERROR` | Error messages for serious problems | Production error tracking |
+| `CRITICAL` | Critical errors that may cause the program to fail | System failures |
+
+### Setting Log Level
+
+There are three ways to configure the log level, in priority order (highest to lowest):
+
+#### 1. Command-Line Argument (Highest Priority)
+
+```bash
+# Debug mode - most verbose
+python model_runner.py --log-level DEBUG --data_file data.csv
+
+# Normal mode (default)
+python model_runner.py --data_file data.csv
+
+# Quiet mode - warnings and errors only
+python model_runner.py --log-level WARNING --data_file data.csv
+
+# Very quiet - errors only
+python model_runner.py --log-level ERROR --data_file data.csv
+```
+
+#### 2. Environment Variable
+
+```bash
+# Set environment variable
+export EXPENSE_PREDICTOR_LOG_LEVEL=DEBUG
+python model_runner.py --data_file data.csv
+
+# Or in .env file
+echo "EXPENSE_PREDICTOR_LOG_LEVEL=DEBUG" >> .env
+```
+
+#### 3. Configuration File (Lowest Priority)
+
+```yaml
+# config.yaml
+logging:
+  level: DEBUG
+```
+
+### Examples by Environment
+
+#### Development Environment
+```bash
+# Maximum verbosity for debugging
+python model_runner.py --log-level DEBUG --data_file sample.csv
+```
+
+#### Production Environment
+```bash
+# Reduce log noise, focus on warnings and errors
+python model_runner.py --log-level WARNING --data_file production.csv
+```
+
+#### CI/CD Pipeline
+```bash
+# Minimal output for clean CI logs
+python model_runner.py --log-level ERROR --data_file test.csv
+```
+
+### Log Output
+
+The application logs to both the console and log files in the specified log directory (`--log_dir`). Log files are named with timestamps for easy identification.
+
+**Example log output:**
+```
+2025-11-16 10:30:15,123 - model_runner.py - INFO - Log level set to: DEBUG
+2025-11-16 10:30:15,124 - model_runner.py - INFO - Processing data file: ./data/sample.csv
+2025-11-16 10:30:15,125 - model_runner.py - DEBUG - Validating file path: ./data/sample.csv
+```
 
 ### Input Data Format
 
