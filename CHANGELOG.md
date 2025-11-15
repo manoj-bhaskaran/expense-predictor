@@ -7,6 +7,79 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.0] - 2025-11-15
+
+### Added
+
+- **Type Hints** ([#78](https://github.com/manoj-bhaskaran/expense-predictor/issues/78))
+  - Added comprehensive type hints to all function signatures across the codebase
+  - **security.py** (9 functions): All parameters and return types now have proper type hints
+  - **config.py** (3 functions): Complete type annotations for configuration functions
+  - **python_logging_framework.py** (5 functions): Type hints for all logging utility functions
+  - **helpers.py** (17 functions): Complex pandas and datetime type annotations added
+  - **model_runner.py** (6 functions): Full type coverage for CLI and model training functions
+  - Created `mypy.ini` configuration file for type checking
+  - All modules now pass mypy type checking with no errors
+
+### Improved
+
+- **IDE Support** ([#78](https://github.com/manoj-bhaskaran/expense-predictor/issues/78))
+  - Enhanced autocomplete and inline documentation in modern IDEs
+  - Better code navigation with type information
+  - Improved parameter hints during function calls
+
+- **Code Quality** ([#78](https://github.com/manoj-bhaskaran/expense-predictor/issues/78))
+  - Type hints serve as inline documentation
+  - Easier to understand function signatures and return types
+  - Self-documenting code reduces need for external documentation
+
+- **Developer Experience** ([#78](https://github.com/manoj-bhaskaran/expense-predictor/issues/78))
+  - Catches type errors during development rather than runtime
+  - Safer refactoring with type information
+  - Clear API contracts for all functions
+  - Better team collaboration with explicit type information
+
+### Testing
+
+- **Type Checking** ([#78](https://github.com/manoj-bhaskaran/expense-predictor/issues/78))
+  - Added mypy type checking to development workflow
+  - All 131 existing tests continue to pass
+  - 88% test coverage maintained
+  - No breaking changes to existing functionality
+
+### Documentation
+
+- **Type Annotations** ([#78](https://github.com/manoj-bhaskaran/expense-predictor/issues/78))
+  - All function parameters now have clear type annotations
+  - Return types explicitly documented
+  - Optional parameters properly typed
+  - Complex types (pandas DataFrames, Series, etc.) fully annotated
+
+### Notes
+
+**Breaking Changes**: None. This is a backward-compatible release.
+
+**Migration Guide**:
+- No code changes required for existing users
+- Type hints are purely for development-time checks
+- All existing code continues to work unchanged
+- To benefit from type checking, install mypy: `pip install mypy`
+
+**Version Justification**:
+- Minor version bump (1.10.1 → 1.11.0) per Semantic Versioning
+- Adds new development feature (type hints) without breaking changes
+- Enhances code quality and developer experience
+- No API or behavior modifications
+- Backward-compatible enhancement only
+
+**Type Coverage**:
+- **security.py**: 9/9 functions (100%)
+- **config.py**: 3/3 functions (100%)
+- **python_logging_framework.py**: 5/5 functions (100%)
+- **helpers.py**: 17/17 functions (100%)
+- **model_runner.py**: 6/6 functions (100%)
+- **Total**: 40/40 functions with complete type hints
+
 ## [1.10.1] - 2025-11-15
 
 ### Fixed

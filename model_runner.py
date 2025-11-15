@@ -41,6 +41,7 @@ from sklearn.model_selection import train_test_split
 from helpers import preprocess_and_append_csv, prepare_future_dates, write_predictions, get_quarter_end_date
 import argparse
 from datetime import datetime
+from typing import Optional, List
 import os
 import python_logging_framework as plog
 import logging
@@ -56,7 +57,7 @@ from security import (
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-def parse_args(args=None):
+def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
     """
     Parse command-line arguments for the expense predictor.
 
@@ -77,7 +78,7 @@ def parse_args(args=None):
     return parser.parse_args(args)
 
 
-def get_future_date(future_date_arg, logger):
+def get_future_date(future_date_arg: Optional[str], logger: logging.Logger) -> str:
     """
     Get the future date for predictions.
 
@@ -101,7 +102,7 @@ def get_future_date(future_date_arg, logger):
     return future_date_for_function
 
 
-def get_excel_path(excel_dir, excel_file, logger):
+def get_excel_path(excel_dir: str, excel_file: Optional[str], logger: logging.Logger) -> Optional[str]:
     """
     Validate and get Excel file path.
 
@@ -131,7 +132,7 @@ def get_excel_path(excel_dir, excel_file, logger):
         raise
 
 
-def get_data_file_path(data_file, logger):
+def get_data_file_path(data_file: str, logger: logging.Logger) -> str:
     """
     Validate and get data file path.
 
@@ -160,7 +161,18 @@ def get_data_file_path(data_file, logger):
         raise
 
 
-def train_and_evaluate_models(X_train, X_test, y_train, y_test, X, y, future_date_for_function, output_dir, skip_confirmation, logger):
+def train_and_evaluate_models(
+    X_train: pd.DataFrame,
+    X_test: pd.DataFrame,
+    y_train: pd.Series,
+    y_test: pd.Series,
+    X: pd.DataFrame,
+    y: pd.Series,
+    future_date_for_function: str,
+    output_dir: str,
+    skip_confirmation: bool,
+    logger: logging.Logger
+) -> None:
     """
     Train and evaluate all ML models, then generate predictions.
 
@@ -254,7 +266,7 @@ def train_and_evaluate_models(X_train, X_test, y_train, y_test, X, y, future_dat
         write_predictions(predicted_df, output_path, logger=logger, skip_confirmation=skip_confirmation)
 
 
-def main(args=None):
+def main(args: Optional[List[str]] = None) -> int:
     """
     Main entry point for the expense predictor CLI.
 

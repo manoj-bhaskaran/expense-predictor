@@ -10,9 +10,10 @@ All functions are marked with pragma: no cover since this is test infrastructure
 import logging
 import os
 from datetime import datetime
+from typing import Optional
 
 
-def initialise_logger(script_name, log_dir='logs', log_level=logging.INFO):  # pragma: no cover
+def initialise_logger(script_name: str, log_dir: str = 'logs', log_level: int = logging.INFO) -> logging.Logger:  # pragma: no cover
     """
     Initialize a logger with file and console handlers.
 
@@ -60,7 +61,7 @@ def initialise_logger(script_name, log_dir='logs', log_level=logging.INFO):  # p
     return logger
 
 
-def log_info(logger, message):  # pragma: no cover
+def log_info(logger: Optional[logging.Logger], message: str) -> None:  # pragma: no cover
     """
     Log an info message.
 
@@ -74,7 +75,7 @@ def log_info(logger, message):  # pragma: no cover
         print(f"INFO: {message}")
 
 
-def log_error(logger, message):  # pragma: no cover
+def log_error(logger: Optional[logging.Logger], message: str) -> None:  # pragma: no cover
     """
     Log an error message.
 
@@ -88,7 +89,7 @@ def log_error(logger, message):  # pragma: no cover
         print(f"ERROR: {message}")
 
 
-def log_warning(logger, message):  # pragma: no cover
+def log_warning(logger: Optional[logging.Logger], message: str) -> None:  # pragma: no cover
     """
     Log a warning message.
 
@@ -102,7 +103,7 @@ def log_warning(logger, message):  # pragma: no cover
         print(f"WARNING: {message}")
 
 
-def log_debug(logger, message):  # pragma: no cover
+def log_debug(logger: Optional[logging.Logger], message: str) -> None:  # pragma: no cover
     """
     Log a debug message.
 

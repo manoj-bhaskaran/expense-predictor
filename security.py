@@ -10,8 +10,10 @@ This module provides functions for:
 
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Any
 import shutil
+import logging
+import pandas as pd
 import python_logging_framework as plog
 
 
@@ -27,7 +29,7 @@ def validate_and_resolve_path(
     must_be_file: bool = False,
     must_be_dir: bool = False,
     allowed_extensions: Optional[list] = None,
-    logger=None
+    logger: Optional[logging.Logger] = None
 ) -> Path:
     """
     Validate and resolve a file system path to prevent path injection attacks.
@@ -106,7 +108,7 @@ def validate_file_path(
     path_str: str,
     allowed_extensions: Optional[list] = None,
     must_exist: bool = True,
-    logger=None
+    logger: Optional[logging.Logger] = None
 ) -> Path:
     """
     Validate a file path with extension checking.
@@ -137,7 +139,7 @@ def validate_directory_path(
     path_str: str,
     must_exist: bool = False,
     create_if_missing: bool = False,
-    logger=None
+    logger: Optional[logging.Logger] = None
 ) -> Path:
     """
     Validate a directory path and optionally create it.
@@ -176,7 +178,7 @@ def validate_directory_path(
     return path
 
 
-def sanitize_csv_value(value) -> str:
+def sanitize_csv_value(value: Any) -> str:
     """
     Sanitize a value before writing to CSV to prevent CSV injection attacks.
 
@@ -206,7 +208,7 @@ def sanitize_csv_value(value) -> str:
     return value_str
 
 
-def sanitize_dataframe_for_csv(df):
+def sanitize_dataframe_for_csv(df: pd.DataFrame) -> pd.DataFrame:
     """
     Sanitize all values in a DataFrame before writing to CSV.
 
@@ -219,7 +221,6 @@ def sanitize_dataframe_for_csv(df):
     Returns:
     pd.DataFrame: A sanitized copy of the DataFrame
     """
-    import pandas as pd
 
     # Create a copy to avoid modifying the original
     df_sanitized = df.copy()
@@ -231,7 +232,7 @@ def sanitize_dataframe_for_csv(df):
     return df_sanitized
 
 
-def create_backup(file_path: str, logger=None) -> Optional[str]:
+def create_backup(file_path: str, logger: Optional[logging.Logger] = None) -> Optional[str]:
     """
     Create a backup of a file before modifying it.
 
@@ -267,7 +268,7 @@ def create_backup(file_path: str, logger=None) -> Optional[str]:
         raise IOError(f"Failed to create backup of {file_path}: {e}")
 
 
-def confirm_overwrite(file_path: str, logger=None) -> bool:
+def confirm_overwrite(file_path: str, logger: Optional[logging.Logger] = None) -> bool:
     """
     Ask user for confirmation before overwriting a file.
 
