@@ -7,6 +7,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.0] - 2025-11-15
+
+### Fixed
+
+- **GitHub Dependency Removed** ([#74](https://github.com/manoj-bhaskaran/expense-predictor/issues/74))
+  - Removed unpinned GitHub dependency from requirements.txt (line 16)
+  - Eliminated `git+https://github.com/manoj-bhaskaran/My-Scripts.git@main` dependency
+  - Now uses local `python_logging_framework.py` included in the project root
+  - No external Git installation required for package installation
+  - Installation now works in offline environments
+  - Resolves security risks associated with unpinned branch references
+  - Prevents installation failures due to GitHub rate limiting or outages
+
+### Security
+
+- **Improved Installation Security** ([#74](https://github.com/manoj-bhaskaran/expense-predictor/issues/74))
+  - Eliminated risk of repository compromise or deletion breaking installations
+  - Removed dependency on GitHub availability during installation
+  - Local logging framework ensures consistent behavior across all installations
+  - No longer vulnerable to unexpected changes in the upstream repository
+
+### Improved
+
+- **Installation Reliability** ([#74](https://github.com/manoj-bhaskaran/expense-predictor/issues/74))
+  - Installation no longer requires Git to be installed on the system
+  - Works in offline and air-gapped environments
+  - Faster installation without network access to GitHub
+  - More reliable CI/CD builds without external dependencies
+  - Consistent installation experience across all platforms
+
+- **Deployment Readiness** ([#74](https://github.com/manoj-bhaskaran/expense-predictor/issues/74))
+  - Production-ready deployment without Git dependencies
+  - Suitable for containerized environments (Docker, Kubernetes)
+  - Compatible with restricted network environments
+  - Reduces attack surface by eliminating external code dependencies
+
+### Documentation
+
+- **README.md Updates** ([#74](https://github.com/manoj-bhaskaran/expense-predictor/issues/74))
+  - Removed requirement for Git installation
+  - Updated installation instructions to reflect simplified process
+  - Documented that python_logging_framework is included locally
+
+### Notes
+
+**Breaking Changes**: None. This is a backward-compatible release.
+
+**Migration Guide**:
+- Existing installations will continue to work without changes
+- For fresh installations, Git is no longer required
+- To update: `pip install -r requirements.txt`
+
+**Version Justification**:
+- Minor version bump (1.8.1 → 1.9.0) per Semantic Versioning
+- Significant improvement to installation reliability and security
+- Backward-compatible change (no API modifications)
+- Addresses critical dependency management issues
+
 ## [1.8.1] - 2025-11-15
 
 ### Improved
@@ -845,6 +903,7 @@ When reporting issues, please include:
 
 ---
 
+[1.9.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.9.0
 [1.8.1]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.8.1
 [1.8.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.8.0
 [1.7.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.7.0

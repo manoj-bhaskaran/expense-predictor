@@ -23,7 +23,6 @@ A machine learning-based expense prediction system that analyzes historical tran
 ## Requirements
 
 - Python 3.9 or higher (tested on Python 3.9, 3.10, and 3.11)
-- Git (required for installing dependencies from GitHub)
 - See `requirements.txt` for pinned package dependencies
 
 ## Installation
@@ -43,8 +42,6 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
 ### 3. Install dependencies
-
-**Note:** Git must be installed on your system as some dependencies are installed directly from GitHub repositories.
 
 ```bash
 pip install -r requirements.txt
@@ -582,7 +579,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - Built with scikit-learn for machine learning capabilities
 - Uses pandas for data manipulation and analysis
-- Logging powered by python_logging_framework
+- Logging powered by python_logging_framework (included locally in project)
 
 ## Support
 

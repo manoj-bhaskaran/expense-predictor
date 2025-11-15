@@ -12,5 +12,5 @@ xlrd==2.0.1
 # Configuration file support
 pyyaml==6.0.1
 
-# Logging framework (installed from GitHub)
-git+https://github.com/manoj-bhaskaran/My-Scripts.git@main
+# Note: python_logging_framework is included locally in the project root
+# No external installation required
