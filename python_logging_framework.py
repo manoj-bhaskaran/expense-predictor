@@ -3,6 +3,8 @@ Mock python_logging_framework for testing purposes.
 
 This is a minimal implementation to allow tests to run when the actual
 python_logging_framework package cannot be installed.
+
+All functions are marked with pragma: no cover since this is test infrastructure.
 """
 
 import logging
@@ -10,7 +12,7 @@ import os
 from datetime import datetime
 
 
-def initialise_logger(script_name, log_dir='logs', log_level=logging.INFO):
+def initialise_logger(script_name, log_dir='logs', log_level=logging.INFO):  # pragma: no cover
     """
     Initialize a logger with file and console handlers.
 
@@ -58,7 +60,7 @@ def initialise_logger(script_name, log_dir='logs', log_level=logging.INFO):
     return logger
 
 
-def log_info(logger, message):
+def log_info(logger, message):  # pragma: no cover
     """
     Log an info message.
 
@@ -72,7 +74,7 @@ def log_info(logger, message):
         print(f"INFO: {message}")
 
 
-def log_error(logger, message):
+def log_error(logger, message):  # pragma: no cover
     """
     Log an error message.
 
@@ -86,7 +88,7 @@ def log_error(logger, message):
         print(f"ERROR: {message}")
 
 
-def log_warning(logger, message):
+def log_warning(logger, message):  # pragma: no cover
     """
     Log a warning message.
 
@@ -100,7 +102,7 @@ def log_warning(logger, message):
         print(f"WARNING: {message}")
 
 
-def log_debug(logger, message):
+def log_debug(logger, message):  # pragma: no cover
     """
     Log a debug message.
 
