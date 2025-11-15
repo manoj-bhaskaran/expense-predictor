@@ -42,21 +42,24 @@ jobs:
 
     - name: Run unit tests (fast)
       run: |
-        pytest -m unit -v --cov=. --cov-report=xml --cov-report=term-missing --cov-report=html
+        pytest -m unit -v --cov=. --cov-report=term-missing
 
     - name: Run integration tests
       if: success()
       run: |
-        pytest -m integration -v --cov=. --cov-append --cov-report=xml --cov-report=term-missing --cov-report=html
+        pytest -m integration -v --cov=. --cov-append --cov-report=term-missing
 
     - name: Run validation tests
       if: success()
       run: |
-        pytest -m validation -v --cov=. --cov-append --cov-report=xml --cov-report=term-missing --cov-report=html
+        pytest -m validation -v --cov=. --cov-append --cov-report=term-missing
 
-    - name: Check coverage threshold
+    - name: Generate coverage reports
+      if: success()
       run: |
         coverage report --fail-under=80
+        coverage xml
+        coverage html
 
     - name: Upload coverage to Codecov
       # Using version tags instead of commit SHA for maintainability

@@ -500,16 +500,24 @@ pytest --markers
 
 #### Coverage Reports
 
+**Note:** Coverage is not enabled by default to keep test runs fast during development. Add `--cov=.` to any test command to generate coverage reports.
+
 ```bash
-# Generate coverage report in terminal
-pytest tests/ --cov=. --cov-report=term-missing
+# Run all tests with coverage
+pytest --cov=. --cov-report=term-missing
+
+# Run specific test category with coverage
+pytest -m unit --cov=. --cov-report=term-missing
 
 # Generate HTML coverage report
-pytest tests/ --cov=. --cov-report=html
+pytest --cov=. --cov-report=html
 # Open htmlcov/index.html in browser
 
 # Generate XML coverage report (for CI/CD)
-pytest tests/ --cov=. --cov-report=xml
+pytest --cov=. --cov-report=xml
+
+# Run all tests with full coverage report
+pytest --cov=. --cov-report=term-missing --cov-report=html --cov-report=xml
 ```
 
 #### Test Coverage
