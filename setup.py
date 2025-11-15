@@ -9,7 +9,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="expense-predictor",
-    version="1.11.1",
+    version="1.12.0",
     author="Manoj Bhaskaran",
     author_email="",
     description="A machine learning-based expense prediction system",
@@ -21,6 +21,7 @@ setup(
         "helpers",
         "security",
         "config",
+        "exceptions",
     ],
     classifiers=[
         "Development Status :: 5 - Production/Stable",

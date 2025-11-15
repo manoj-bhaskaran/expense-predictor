@@ -8,9 +8,11 @@ import os
 import pytest
 import tempfile
 import yaml
+from unittest.mock import patch, mock_open
 
 # Import functions to test
 from config import load_config, get_config, _merge_configs, DEFAULT_CONFIG
+from exceptions import ConfigurationError
 
 
 class TestLoadConfig:
@@ -84,6 +86,47 @@ class TestLoadConfig:
             # But also defaults for missing sections
             assert 'model_evaluation' in result
             assert 'decision_tree' in result
+        finally:
+            os.remove(temp_file)
+
+    def test_load_config_with_permission_error(self, monkeypatch):
+        """Test that PermissionError falls back to default config."""
+        # Create a temp file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            f.write("data_processing:\n  skiprows: 10")
+            temp_file = f.name
+
+        try:
+            monkeypatch.setattr('config.CONFIG_FILE', temp_file)
+
+            # Mock open to raise PermissionError
+            with patch('builtins.open', side_effect=PermissionError("Access denied")):
+                result = load_config()
+
+                # Should fall back to defaults
+                assert result == DEFAULT_CONFIG
+        finally:
+            os.remove(temp_file)
+
+    def test_load_config_with_unexpected_error_raises_configuration_error(self, monkeypatch):
+        """Test that unexpected errors raise ConfigurationError."""
+        # Create a temp file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            f.write("data_processing:\n  skiprows: 10")
+            temp_file = f.name
+
+        try:
+            monkeypatch.setattr('config.CONFIG_FILE', temp_file)
+
+            # Mock yaml.safe_load to raise an unexpected exception
+            with patch('yaml.safe_load', side_effect=RuntimeError("Unexpected error")):
+                with pytest.raises(ConfigurationError) as exc_info:
+                    load_config()
+
+                # Check that the error message contains context
+                assert "Unexpected error loading config.yaml" in str(exc_info.value)
+                # Check that the original exception is preserved
+                assert exc_info.value.__cause__ is not None
         finally:
             os.remove(temp_file)
 

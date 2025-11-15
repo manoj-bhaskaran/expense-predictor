@@ -7,6 +7,126 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.12.0] - 2025-11-15
+
+### Added
+
+- **Custom Exception Classes** ([#81](https://github.com/manoj-bhaskaran/expense-predictor/issues/81))
+  - Created new `exceptions.py` module with custom exception hierarchy
+  - Added `ExpensePredictorError` as base exception for all application errors
+  - Added `DataValidationError` for data validation failures
+  - Added `ConfigurationError` for configuration-related errors
+  - Added `ModelTrainingError` for model training failures
+  - All custom exceptions include comprehensive docstrings with usage examples
+  - Exceptions preserve error context using `from` clause for better debugging
+
+### Changed
+
+- **Standardized Error Handling in config.py** ([#81](https://github.com/manoj-bhaskaran/expense-predictor/issues/81))
+  - Replaced broad `except Exception` with specific exception handling (config.py:69-83)
+  - Now catches `FileNotFoundError` and `PermissionError` separately for file access issues
+  - Now catches `yaml.YAMLError` specifically for YAML parsing errors
+  - Unexpected errors now raise `ConfigurationError` with preserved context instead of being silently caught
+  - Improved error messages with actionable context
+  - Falls back to default configuration for expected errors (file access, YAML parsing)
+
+- **Standardized Error Handling in helpers.py** ([#81](https://github.com/manoj-bhaskaran/expense-predictor/issues/81))
+  - Replaced all `ValueError`, `FileNotFoundError`, and `KeyError` with `DataValidationError` in validation functions
+  - Updated `validate_csv_file()` to raise `DataValidationError` for all validation failures
+  - Updated `validate_excel_file()` to raise `DataValidationError` with specific error types:
+    - `xlrd.biffh.XLRDError` for corrupted .xls files
+    - `ValueError` and `KeyError` for format errors from openpyxl/pandas
+    - Generic exception handling for other unexpected errors
+  - Updated `validate_date_range()` to raise `DataValidationError` for date validation failures
+  - Updated `get_training_date_range()` to raise `DataValidationError` for NaT values
+  - Updated `_process_dataframe()` to raise `DataValidationError` for non-numeric transaction amounts
+  - Updated `prepare_future_dates()` to raise `DataValidationError` for invalid future dates
+  - Updated `preprocess_and_append_csv()` to raise `DataValidationError` for missing Excel columns
+  - All error messages now include context from original exceptions using `from` clause
+
+- **Updated Function Docstrings** ([#81](https://github.com/manoj-bhaskaran/expense-predictor/issues/81))
+  - Updated all validation function docstrings to document `DataValidationError` instead of generic exceptions
+  - Improved docstrings to specify all scenarios that trigger exceptions
+  - Added detailed exception documentation for better API clarity
+
+### Improved
+
+- **Error Debugging** ([#81](https://github.com/manoj-bhaskaran/expense-predictor/issues/81))
+  - Specific exception types make it easier to identify the exact nature of errors
+  - Exception chaining preserves full stack traces for root cause analysis
+  - Clear error messages include relevant context (file paths, column names, etc.)
+  - No more hidden bugs from overly broad exception handling
+
+- **Code Quality** ([#81](https://github.com/manoj-bhaskaran/expense-predictor/issues/81))
+  - Eliminated all broad `except Exception` clauses except where documented and necessary
+  - Exceptions are now part of the API contract (documented in docstrings)
+  - Better separation of concerns: specific exceptions for specific error categories
+  - Follows Python best practices (PEP 8) for exception handling
+
+- **Maintainability** ([#81](https://github.com/manoj-bhaskaran/expense-predictor/issues/81))
+  - Centralized exception definitions in `exceptions.py` module
+  - Easier to add new exception types in the future
+  - Consistent error handling patterns across the codebase
+  - Single source of truth for exception documentation
+
+### Testing
+
+- **Updated Test Suite** ([#81](https://github.com/manoj-bhaskaran/expense-predictor/issues/81))
+  - Updated `tests/test_config.py` to test new `ConfigurationError` exception
+  - Added test for `PermissionError` handling with fallback to defaults
+  - Added test for unexpected errors raising `ConfigurationError` with preserved context
+  - Updated `tests/test_helpers.py` to expect `DataValidationError` instead of generic exceptions
+  - Updated 11 tests to validate new exception types
+  - All tests verify exception messages contain expected context
+  - Tests verify exception chaining preserves original errors
+
+### Documentation
+
+- **Exception Module Documentation** ([#81](https://github.com/manoj-bhaskaran/expense-predictor/issues/81))
+  - Comprehensive module-level docstring in `exceptions.py` explaining exception hierarchy
+  - Each exception class has detailed docstring with:
+    - Purpose and use cases
+    - Common scenarios that trigger the exception
+    - Code examples demonstrating proper usage
+  - Updated all function docstrings to document raised exceptions
+
+### Notes
+
+**Breaking Changes**: Potentially breaking for code that catches specific exception types.
+
+**Migration Guide**:
+- If your code catches `ValueError` from validation functions, update to catch `DataValidationError`
+- If your code catches `FileNotFoundError` from validation functions, update to catch `DataValidationError`
+- If your code catches `KeyError` from Excel processing, update to catch `DataValidationError`
+- If your code relies on `config.load_config()` silently handling all errors, be aware that unexpected errors now raise `ConfigurationError`
+
+**Version Justification**:
+- Minor version bump (1.11.2 → 1.12.0) per Semantic Versioning
+- Adds new feature (custom exception classes) with potential breaking changes
+- Changes exception types raised by validation functions (breaking API change)
+- Improves error handling without changing core functionality
+- No changes to function signatures or return types
+
+**Impact Analysis**:
+- **Low risk** for most users: validation errors should be rare in production
+- **Medium risk** for users with error handling: may need to update exception types
+- **High value**: significantly improves debugging and error handling
+- All existing functionality preserved (only exception types changed)
+
+**Test Coverage**:
+- All existing tests updated to use new exception types
+- 2 new tests added for `ConfigurationError` handling
+- Tests verify exception chaining and context preservation
+- All tests pass with new exception handling
+
+**Files Modified**:
+- `exceptions.py` (new file)
+- `config.py` (error handling improved)
+- `helpers.py` (error handling standardized)
+- `setup.py` (version bumped to 1.12.0, exceptions module added)
+- `tests/test_config.py` (tests updated and added)
+- `tests/test_helpers.py` (tests updated for new exception types)
+
 ## [1.11.2] - 2025-11-15
 
 ### Changed

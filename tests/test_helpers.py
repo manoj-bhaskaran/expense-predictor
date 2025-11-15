@@ -30,6 +30,7 @@ from helpers import (
     DAY_OF_WEEK,
     VALUE_DATE_LABEL
 )
+from exceptions import DataValidationError
 
 
 class TestValidateCsvFile:
@@ -42,17 +43,17 @@ class TestValidateCsvFile:
 
     def test_validate_csv_file_not_found(self, mock_logger):
         """Test validation with non-existent file."""
-        with pytest.raises(FileNotFoundError, match="CSV file not found"):
+        with pytest.raises(DataValidationError, match="CSV file not found"):
             validate_csv_file("/nonexistent/file.csv", logger=mock_logger)
 
     def test_validate_csv_file_is_directory(self, temp_dir, mock_logger):
         """Test validation when path is a directory."""
-        with pytest.raises(ValueError, match="Path is not a file"):
+        with pytest.raises(DataValidationError, match="Path is not a file"):
             validate_csv_file(temp_dir, logger=mock_logger)
 
     def test_validate_csv_file_missing_columns(self, sample_invalid_columns_csv_path, mock_logger):
         """Test validation with missing required columns."""
-        with pytest.raises(ValueError, match="Missing required columns"):
+        with pytest.raises(DataValidationError, match="Missing required columns"):
             validate_csv_file(sample_invalid_columns_csv_path, logger=mock_logger)
 
     def test_validate_csv_file_empty(self, sample_empty_csv_path, mock_logger):
@@ -71,17 +72,17 @@ class TestValidateExcelFile:
 
     def test_validate_excel_file_not_found(self, mock_logger):
         """Test validation with non-existent Excel file."""
-        with pytest.raises(FileNotFoundError, match="Excel file not found"):
+        with pytest.raises(DataValidationError, match="Excel file not found"):
             validate_excel_file("/nonexistent/file.xlsx", logger=mock_logger)
 
     def test_validate_excel_file_invalid_extension(self, temp_csv_file, mock_logger):
         """Test validation with invalid file extension."""
-        with pytest.raises(ValueError, match="Invalid Excel file format"):
+        with pytest.raises(DataValidationError, match="Invalid Excel file format"):
             validate_excel_file(temp_csv_file, logger=mock_logger)
 
     def test_validate_excel_file_is_directory(self, temp_dir, mock_logger):
         """Test validation when path is a directory."""
-        with pytest.raises(ValueError, match="Path is not a file"):
+        with pytest.raises(DataValidationError, match="Path is not a file"):
             validate_excel_file(temp_dir, logger=mock_logger)
 
 
@@ -96,13 +97,13 @@ class TestValidateDateRange:
     def test_validate_date_range_missing_date_column(self, mock_logger):
         """Test validation with missing Date column."""
         df = pd.DataFrame({'Tran Amt': [100, 200, 300]})
-        with pytest.raises(ValueError, match="Date column not found"):
+        with pytest.raises(DataValidationError, match="Date column not found"):
             validate_date_range(df, logger=mock_logger)
 
     def test_validate_date_range_all_nat(self, mock_logger):
         """Test validation with all NaT (Not a Time) values."""
         df = pd.DataFrame({'Date': [pd.NaT, pd.NaT, pd.NaT]})
-        with pytest.raises(ValueError, match="No valid dates found"):
+        with pytest.raises(DataValidationError, match="No valid dates found"):
             validate_date_range(df, logger=mock_logger)
 
     def test_validate_date_range_future_dates(self, mock_logger):
@@ -111,7 +112,7 @@ class TestValidateDateRange:
         df = pd.DataFrame({
             'Date': pd.date_range(start=future_date, periods=5, freq='D')
         })
-        with pytest.raises(ValueError, match="Data contains only future dates"):
+        with pytest.raises(DataValidationError, match="Data contains only future dates"):
             validate_date_range(df, logger=mock_logger)
 
     def test_validate_date_range_without_logger(self, sample_dataframe):
@@ -253,7 +254,7 @@ class TestGetTrainingDateRange:
             'Tran Amt': [100, 200]
         })
 
-        with pytest.raises(ValueError, match="Invalid start or end date found"):
+        with pytest.raises(DataValidationError, match="Invalid start or end date found"):
             get_training_date_range(df, logger=mock_logger)
 
     def test_get_training_date_range_excludes_today(self, mock_logger):
@@ -351,12 +352,12 @@ class TestPreprocessData:
 
     def test_preprocess_data_invalid_file(self, sample_invalid_columns_csv_path, mock_logger):
         """Test preprocessing with invalid CSV file."""
-        with pytest.raises(ValueError, match="Missing required columns"):
+        with pytest.raises(DataValidationError, match="Missing required columns"):
             preprocess_data(sample_invalid_columns_csv_path, logger=mock_logger)
 
     def test_preprocess_data_nonexistent_file(self, mock_logger):
         """Test preprocessing with non-existent file."""
-        with pytest.raises(FileNotFoundError):
+        with pytest.raises(DataValidationError):
             preprocess_data("/nonexistent/file.csv", logger=mock_logger)
 
 
@@ -402,7 +403,7 @@ class TestPrepareFutureDates:
     def test_prepare_future_dates_past_date(self):
         """Test preparing future dates with past date (should raise error)."""
         past_date = (datetime.now() - timedelta(days=30)).strftime("%d-%m-%Y")
-        with pytest.raises(ValueError, match="Future date must be in the future"):
+        with pytest.raises(DataValidationError, match="Future date must be in the future"):
             prepare_future_dates(past_date)
 
     def test_prepare_future_dates_features(self):
