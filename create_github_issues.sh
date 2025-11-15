@@ -246,8 +246,6 @@ check_and_create_labels() {
         existing_labels_map["$label"]=1
     done <<< "$existing_labels_raw"
 
-    print_info "Here 1"
-
     local created_count=0
     local exists_count=0
 
@@ -255,7 +253,7 @@ check_and_create_labels() {
     IFS=',' read -ra LABELS <<< "$needed_labels"
     local total_labels=${#LABELS[@]}
     local current=0
-
+    print_info "Here 1"
     for label in "${LABELS[@]}"; do
         ((current++))
         # Trim whitespace
