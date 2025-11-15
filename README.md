@@ -216,6 +216,7 @@ expense-predictor/
 ├── security.py              # Security utilities (path validation, sanitization)
 ├── config.py                # Configuration loader module
 ├── config.yaml              # Configuration file for hyperparameters
+├── python_logging_framework.py  # Custom logging framework module
 ├── setup.py                 # Package setup and dependencies configuration
 ├── requirements.txt         # Production dependencies (pinned versions)
 ├── requirements-dev.txt     # Development dependencies (pinned versions)
@@ -279,12 +280,31 @@ The project uses a consistent logging approach throughout, powered by the `pytho
 
 ### Logging Framework
 
+This project includes a custom logging framework (`python_logging_framework.py`) that provides simplified logging setup with both file and console handlers.
+
+**Usage**:
+```python
+import python_logging_framework as plog
+
+logger = plog.initialise_logger('my_script', log_dir='logs')
+plog.log_info(logger, "Info message")
+plog.log_warning(logger, "Warning message")
+plog.log_error(logger, "Error message")
+plog.log_debug(logger, "Debug message")
+```
+
+**Location**: `python_logging_framework.py` in the repository root.
+
+**Features**:
 - **Unified Logging**: All components use `plog` for consistent logging behavior
-- **Log Levels**:
+- **Log Levels**: Support for debug, info, warning, and error levels
+  - `plog.log_debug()` - Debug messages for troubleshooting
   - `plog.log_info()` - Informational messages (successful operations, progress tracking)
+  - `plog.log_warning()` - Warning messages for non-critical issues
   - `plog.log_error()` - Error conditions and failures
 - **Automatic Log Files**: Logs are saved to the `logs/` directory with timestamps
-- **Configuration Loading**: Even configuration warnings are logged using plog
+- **Dual Output**: Messages are logged to both file and console simultaneously
+- **Flexible Configuration**: Customizable log directory and log level
 
 ### What Gets Logged
 
