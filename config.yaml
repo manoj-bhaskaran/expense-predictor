@@ -2,6 +2,9 @@
 # This file contains all configurable parameters for the expense prediction system.
 # You can modify these values to customize the behavior of the models and data processing.
 
+logging:
+  level: INFO
+
 # Data Processing Configuration
 data_processing:
   # Number of rows to skip when reading Excel files (bank statement specific)

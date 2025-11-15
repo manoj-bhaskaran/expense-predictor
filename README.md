@@ -68,13 +68,14 @@ The `config.yaml` file allows you to customize model hyperparameters and data pr
 - **Model Hyperparameters**: Fine-tune each machine learning model's parameters
 
 **Example configuration:**
+
 ```yaml
 data_processing:
-  skiprows: 12  # Number of header rows to skip in Excel files
+  skiprows: 12 # Number of header rows to skip in Excel files
 
 model_evaluation:
-  test_size: 0.2      # 20% of data for testing
-  random_state: 42    # Seed for reproducibility
+  test_size: 0.2 # 20% of data for testing
+  random_state: 42 # Seed for reproducibility
 
 decision_tree:
   max_depth: 5
@@ -116,25 +117,27 @@ python model_runner.py \
 
 ### Command-Line Arguments
 
-| Argument | Description | Default |
-|----------|-------------|---------|
-| `--future_date` | Future date for prediction (format: DD/MM/YYYY) | End of current quarter |
-| `--data_file` | Path to CSV file containing transaction data | `trandata.csv` |
-| `--excel_dir` | Directory containing Excel file | `.` (current directory) |
-| `--excel_file` | Name of Excel file with additional data | None |
-| `--log_dir` | Directory for log files | `logs` |
-| `--output_dir` | Directory for prediction output files | `.` (current directory) |
-| `--skip_confirmation` | Skip confirmation prompts when overwriting files (for automation) | False |
+| Argument              | Description                                                       | Default                 |
+| --------------------- | ----------------------------------------------------------------- | ----------------------- |
+| `--future_date`       | Future date for prediction (format: DD/MM/YYYY)                   | End of current quarter  |
+| `--data_file`         | Path to CSV file containing transaction data                      | `trandata.csv`          |
+| `--excel_dir`         | Directory containing Excel file                                   | `.` (current directory) |
+| `--excel_file`        | Name of Excel file with additional data                           | None                    |
+| `--log_dir`           | Directory for log files                                           | `logs`                  |
+| `--output_dir`        | Directory for prediction output files                             | `.` (current directory) |
+| `--skip_confirmation` | Skip confirmation prompts when overwriting files (for automation) | False                   |
 
 ### Input Data Format
 
 #### CSV Transaction Data (trandata.csv)
 
 The CSV file should contain at least two columns:
+
 - `Date`: Transaction date (supports various date formats)
 - `Tran Amt`: Transaction amount (numeric)
 
 Example:
+
 ```csv
 Date,Tran Amt
 01/01/2024,150.00
@@ -145,6 +148,7 @@ Date,Tran Amt
 #### Excel Bank Statement (optional)
 
 If using an Excel file, it should contain:
+
 - `Value Date`: Transaction date
 - `Withdrawal Amount (INR )`: Withdrawal amounts
 - `Deposit Amount (INR )`: Deposit amounts
@@ -154,12 +158,14 @@ The script will automatically process these columns and merge them with CSV data
 ### Output
 
 The script generates prediction CSV files for each model:
+
 - `future_predictions_linear_regression.csv`
 - `future_predictions_decision_tree.csv`
 - `future_predictions_random_forest.csv`
 - `future_predictions_gradient_boosting.csv`
 
 Each file contains:
+
 - `Date`: Future dates
 - `Predicted Tran Amt`: Predicted transaction amounts
 
@@ -243,11 +249,13 @@ The system performs the following preprocessing steps:
 ## Model Performance
 
 The script uses an 80/20 train/test split to evaluate each model's generalization performance. Each model is evaluated using:
+
 - **RMSE (Root Mean Squared Error)**: Measures prediction accuracy
 - **MAE (Mean Absolute Error)**: Average absolute prediction error
 - **R-squared**: Proportion of variance explained by the model
 
 Performance metrics are reported separately for:
+
 - **Training Set**: Shows how well the model fits the training data
 - **Test Set**: Shows true generalization performance on unseen data
 
@@ -269,6 +277,7 @@ The project uses a consistent logging approach throughout, powered by the `pytho
 ### What Gets Logged
 
 Log files include detailed information about:
+
 - **Model Training**: Training progress, model performance metrics (RMSE, MAE, R²)
 - **Data Processing**:
   - Data validation results (file checks, column validation, date range validation)
@@ -283,11 +292,13 @@ Log files include detailed information about:
 ### Log File Location
 
 By default, logs are saved to:
+
 ```
 logs/model_runner.py_YYYY-MM-DD_HH-MM-SS.log
 ```
 
 You can customize the log directory using the `--log_dir` command-line argument:
+
 ```bash
 python model_runner.py --data_file trandata.csv --log_dir ./my_logs
 ```
@@ -296,6 +307,25 @@ python model_runner.py --data_file trandata.csv --log_dir ./my_logs
 
 Most helper functions accept an optional `logger` parameter. When called from `model_runner.py`, the logger is passed through the call chain. Functions can also operate without a logger (logger=None) for standalone usage.
 
+### Configuring log level
+
+You can control the effective log level with the following priority (highest -> lowest):
+
+- **CLI argument**: `--log-level` (choices: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`)
+- **Environment variable**: `EXPENSE_PREDICTOR_LOG_LEVEL`
+- **Config file**: `config.yaml` under `logging.level`
+- **Default**: `INFO`
+
+Examples:
+
+```bash
+# Run with debug logging via CLI:
+python model_runner.py --data_file trandata.csv --log-level DEBUG
+
+# Run with error-only logging via env var:
+EXPENSE_PREDICTOR_LOG_LEVEL=ERROR python model_runner.py --data_file trandata.csv
+```
+
 ## Security
 
 The application includes comprehensive security features to protect against common attack vectors:
@@ -303,6 +333,7 @@ The application includes comprehensive security features to protect against comm
 ### Path Injection Protection
 
 All user-provided file paths are validated and sanitized to prevent path traversal attacks:
+
 - Paths are resolved to absolute paths using `pathlib.Path().resolve()`
 - Path traversal patterns (`../`) are detected and rejected
 - Paths are normalized to prevent directory escaping
@@ -313,6 +344,7 @@ This applies to all path arguments: `--data_file`, `--excel_dir`, `--excel_file`
 ### File Extension Validation
 
 The application validates file extensions before processing:
+
 - CSV files must have `.csv` extension
 - Excel files must have `.xls` or `.xlsx` extension
 - Files with invalid extensions are rejected before processing
@@ -321,6 +353,7 @@ The application validates file extensions before processing:
 ### CSV Injection Prevention
 
 All prediction output files are sanitized to prevent CSV injection attacks:
+
 - Dangerous formula characters (`=`, `+`, `-`, `@`, tabs, newlines) are escaped
 - Values that could be interpreted as formulas are prefixed with a single quote
 - Protects users who open prediction CSVs in Excel or other spreadsheet applications
@@ -329,18 +362,21 @@ All prediction output files are sanitized to prevent CSV injection attacks:
 ### File Overwriting Protection
 
 The application protects against accidental data loss:
+
 - **Automatic Backups**: Creates timestamped backups before overwriting existing files
 - **User Confirmation**: Prompts for confirmation before overwriting prediction files
 - **Fail-Safe**: If backup creation fails, the write operation is aborted
 - **Automation Support**: Use `--skip_confirmation` to disable prompts for batch processing
 
 Example with confirmation prompts:
+
 ```bash
 python model_runner.py --data_file trandata.csv
 # Will prompt: "File 'future_predictions_linear_regression.csv' already exists. Overwrite? [y/N]:"
 ```
 
 Example for automated workflows (no prompts):
+
 ```bash
 python model_runner.py --data_file trandata.csv --skip_confirmation
 # Overwrites without confirmation, but still creates backups
@@ -349,6 +385,7 @@ python model_runner.py --data_file trandata.csv --skip_confirmation
 ### Excel File Security Warning
 
 When processing Excel files, the application logs security warnings:
+
 - Reminds users that Excel files may contain malicious formulas or macros
 - Encourages processing only Excel files from trusted sources
 - Warns about potential security risks in the log files
@@ -430,6 +467,7 @@ Current test coverage: **43%** (needs improvement to meet CI/CD requirements)
 - Total: 57 tests
 
 **Tested Components:**
+
 - File validation (CSV and Excel)
 - Date range validation
 - Column name matching
@@ -458,6 +496,7 @@ The project includes a comprehensive CI/CD pipeline with multiple automated work
 ### Automated Workflows
 
 1. **Testing (`test.yml`)** - Runs on all pull requests and pushes
+
    - Multi-version Python testing (3.9, 3.10, 3.11)
    - Automated test execution with pytest
    - Code coverage enforcement (minimum 80%)
@@ -466,12 +505,14 @@ The project includes a comprehensive CI/CD pipeline with multiple automated work
    - Coverage artifacts saved for review
 
 2. **Code Quality (`pre-commit.yml`)** - Runs on all pull requests and pushes
+
    - **Linting**: flake8 checks for syntax errors and code style
    - **Formatting**: Black code formatting validation
    - **Import Sorting**: isort checks for organized imports
    - **Type Checking**: mypy for static type analysis
 
 3. **Security Scanning (`security.yml`)** - Runs on pull requests, pushes, and weekly schedule
+
    - **Bandit**: Python security vulnerability scanner
      - Detects SQL injection, hard-coded secrets, weak crypto
      - Identifies path traversal and command injection risks
@@ -496,6 +537,7 @@ The project includes a comprehensive CI/CD pipeline with multiple automated work
 ### Branch Protection
 
 For production deployments, consider enabling branch protection rules:
+
 - Require status checks to pass before merging
 - Require pull request reviews
 - Require up-to-date branches before merging
@@ -513,6 +555,7 @@ To improve prediction accuracy, you can tune the model hyperparameters in `confi
 After modifying `config.yaml`, simply run the script again - no code changes needed!
 
 **Tips for tuning:**
+
 - Lower `max_depth` values prevent overfitting
 - Higher `min_samples_split` and `min_samples_leaf` create simpler models
 - Increase `n_estimators` for better performance (at the cost of training time)
@@ -523,42 +566,55 @@ After modifying `config.yaml`, simply run the script again - no code changes nee
 ### Common Issues
 
 **Issue**: `FileNotFoundError: CSV file not found` or `FileNotFoundError: Excel file not found`
+
 - **Solution**: Verify the file path is correct. Use absolute paths or ensure relative paths are correct from the script's directory. Check that the file exists and you have read permissions.
 
 **Issue**: `ValueError: Missing required columns in CSV file`
+
 - **Solution**: Ensure your CSV file contains both 'Date' and 'Tran Amt' columns. Check the column names match exactly (case-sensitive). The error message will show which columns were found.
 
 **Issue**: `ValueError: Invalid Excel file format`
+
 - **Solution**: Ensure the file has a .xls or .xlsx extension and is a valid Excel file. The script only supports Excel formats, not other spreadsheet formats like .ods or .csv.
 
 **Issue**: `ValueError: No valid dates found in the data`
+
 - **Solution**: Check that your Date column contains valid date values. Ensure dates are properly formatted and not all empty/null values.
 
 **Issue**: `ValueError: Data contains only future dates`
+
 - **Solution**: The training data must contain historical (past) dates. The script cannot train on future dates only.
 
 **Issue**: `KeyError` when reading Excel files
+
 - **Solution**: Ensure Excel file has correct column names. The script supports flexible column name matching, but column headers should include "Value Date", "Withdrawal Amount", and "Deposit Amount"
 
 **Issue**: `ValueError: Incorrect date format`
+
 - **Solution**: Ensure dates are in DD/MM/YYYY format when using `--future_date`
 
 **Issue**: Import errors for `python_logging_framework` or `yaml`
+
 - **Solution**: Ensure all dependencies are installed: `pip install -r requirements.txt`
 
 **Issue**: Predictions seem inaccurate
+
 - **Solution**: Check that your training data has sufficient historical data (at least several months recommended). Review log files for model performance metrics. Try tuning hyperparameters in `config.yaml`.
 
 **Issue**: Different Excel file format (different skiprows)
+
 - **Solution**: Edit `config.yaml` and change the `skiprows` value under `data_processing` to match your bank statement format.
 
 **Issue**: `ValueError: Path traversal detected` or `ValueError: Invalid file extension`
+
 - **Solution**: These are security protections. Ensure you're using valid file paths without `../` patterns and that files have correct extensions (.csv, .xls, or .xlsx).
 
 **Issue**: File overwrite confirmation prompts blocking automation
+
 - **Solution**: Use the `--skip_confirmation` flag to disable prompts: `python model_runner.py --data_file trandata.csv --skip_confirmation`
 
 **Issue**: Cannot find backup files
+
 - **Solution**: Backup files are created with timestamps in the same directory as the output file. Look for files with `.backup_YYYYMMDD_HHMMSS` suffix.
 
 ## Contributing

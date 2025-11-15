@@ -64,6 +64,7 @@ parser.add_argument('--data_file', type=str, default='trandata.csv', help='Path 
 parser.add_argument('--log_dir', type=str, default='logs', help='Directory where log files will be saved')
 parser.add_argument('--output_dir', type=str, default='.', help='Directory where prediction files will be saved')
 parser.add_argument('--skip_confirmation', action='store_true', help='Skip confirmation prompts for overwriting files (useful for automation)')
+parser.add_argument('--log-level', type=str, default=None, choices=['DEBUG','INFO','WARNING','ERROR','CRITICAL'], help='Logging level (overrides env and config)')
 args = parser.parse_args()
 
 # Validate and create log directory with security checks
@@ -75,11 +76,42 @@ except (ValueError, FileNotFoundError) as e:
     print(f"Error: Invalid log directory path: {e}")
     exit(1)
 
+# Determine log level string by priority: CLI arg -> env var -> config -> default
+env_log = os.getenv('EXPENSE_PREDICTOR_LOG_LEVEL')
+config_log = None
+try:
+    config_log = config.get('logging', {}).get('level')
+except Exception:
+    config_log = None
+
+if args.log_level:
+    log_level_str = args.log_level
+elif env_log:
+    log_level_str = env_log
+elif config_log:
+    log_level_str = config_log
+else:
+    log_level_str = 'INFO'
+
+# Normalize and validate
+accepted = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
+if not isinstance(log_level_str, str) or log_level_str.upper() not in accepted:
+    logging.warning(f"Invalid log level '{log_level_str}', defaulting to INFO")
+    log_level_str = 'INFO'
+else:
+    log_level_str = log_level_str.upper()
+
+# Convert to numeric level
+log_level = getattr(logging, log_level_str, logging.INFO)
+
 logger = plog.initialise_logger(
     script_name='model_runner.py',
     log_dir=log_dir_path,
-    log_level=logging.INFO
+    log_level=log_level
 )
+
+# Log startup chosen level
+plog.log_info(logger, f"Log level set to: {log_level_str}")
 
 if args.future_date:
     try:
