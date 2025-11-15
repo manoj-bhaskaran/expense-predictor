@@ -141,6 +141,23 @@ Each template includes:
     Labels: bug,dependencies,critical,good first issue,priority: critical
 ```
 
+#### **diagnose_github_connection.sh** - Diagnostic Tool
+- Comprehensive GitHub API connectivity diagnostics
+- Checks gh installation, authentication, network, DNS, proxy
+- Tests API access with timeout protection
+- Provides actionable troubleshooting recommendations
+- Essential for diagnosing connection issues
+
+**Tests performed:**
+- ✅ GitHub CLI installation check
+- ✅ Authentication status and token scopes
+- ✅ DNS resolution for api.github.com
+- ✅ Network connectivity (ICMP, HTTPS)
+- ✅ Direct API access via curl
+- ✅ API access via gh CLI (with timeout)
+- ✅ Proxy configuration detection
+- ✅ gh CLI configuration review
+
 ### 4. Comprehensive Documentation
 
 #### **QUICKSTART_ISSUES.md** - Quick Start Guide
@@ -281,9 +298,11 @@ expense-predictor/
 ├── REVIEW_SUMMARY.md                  # Executive summary
 ├── QUICKSTART_ISSUES.md               # Quick start guide
 ├── DELIVERABLES.md                    # This file
+├── LABEL_MANAGEMENT.md                # Label management documentation
 │
 ├── create_github_issues.sh            # Main automation script
 ├── test_issue_parsing.sh              # Testing utility
+├── diagnose_github_connection.sh      # API diagnostics tool
 │
 └── github_issues/
     ├── README.md                      # Template documentation
@@ -416,8 +435,11 @@ After implementing high priority:
 - ✅ 30 issues identified and documented
 - ✅ 7 detailed GitHub issue templates
 - ✅ Automated creation script with verbose output
+- ✅ Automatic label creation with color coding
+- ✅ Timeout protection for all API operations
 - ✅ Testing and preview utilities
-- ✅ Comprehensive documentation (4 guides)
+- ✅ Diagnostic tool for troubleshooting connectivity
+- ✅ Comprehensive documentation (5 guides)
 - ✅ Action plan with timelines
 - ✅ Repository health assessment
 

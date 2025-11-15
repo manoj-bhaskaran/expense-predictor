@@ -2,6 +2,26 @@
 
 This guide shows you how to quickly create all identified issues in your GitHub repository.
 
+## ⚠️ Important: GitHub CLI Required
+
+The automated script **requires GitHub CLI (gh)** to be installed. Before proceeding, ensure you have it installed:
+
+**Check if installed:**
+```bash
+gh --version
+```
+
+If not installed, see [Prerequisites](#-prerequisites) below.
+
+**Diagnostic tool available:**
+```bash
+./diagnose_github_connection.sh
+```
+
+This will check your gh installation, authentication, and API connectivity.
+
+---
+
 ## 🎯 One-Command Setup
 
 If you have GitHub CLI installed and authenticated:
@@ -250,8 +270,38 @@ Or visit: https://github.com/manoj-bhaskaran/expense-predictor/issues
 
 ## 🐛 Troubleshooting
 
+### Use the Diagnostic Tool
+
+First, run the diagnostic script to identify issues:
+
+```bash
+./diagnose_github_connection.sh
+```
+
+This will check:
+- ✅ GitHub CLI installation
+- ✅ Authentication status
+- ✅ DNS resolution
+- ✅ Network connectivity
+- ✅ GitHub API access
+- ✅ Proxy configuration
+- ✅ gh CLI configuration
+
+The script provides specific recommendations based on what it finds.
+
 ### "gh: command not found"
 **Solution:** Install GitHub CLI (see Prerequisites section)
+
+```bash
+# macOS
+brew install gh
+
+# Ubuntu/Debian
+sudo apt install gh
+
+# Verify installation
+gh --version
+```
 
 ### "Not authenticated with GitHub"
 **Solution:** Run `gh auth login` and follow prompts
@@ -274,6 +324,25 @@ chmod +x create_github_issues.sh
 ⚠  Issue already exists: #105
 ⚠  Skipping to avoid duplicates
 ```
+
+### "Cannot connect to GitHub API" or "Timed out"
+**Symptoms:**
+```
+✗  Cannot connect to GitHub API
+✗  Timed out creating issue (60s limit)
+```
+
+**Solution:** Run the diagnostic script first:
+```bash
+./diagnose_github_connection.sh
+```
+
+Common causes:
+- **gh not installed** - Install GitHub CLI
+- **Not authenticated** - Run `gh auth login`
+- **Network/firewall issues** - Check connectivity to api.github.com
+- **Proxy blocking** - Configure proxy or add GitHub to allowlist
+- **Rate limiting** - Wait and try again later
 
 ---
 
