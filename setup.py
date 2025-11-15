@@ -1,7 +1,8 @@
 """Setup configuration for Expense Predictor."""
 
-from setuptools import setup, find_packages
 from pathlib import Path
+
+from setuptools import find_packages, setup
 
 # Read the README file
 this_directory = Path(__file__).parent
@@ -9,7 +10,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="expense-predictor",
-    version="1.14.0",
+    version="1.15.0",
     author="Manoj Bhaskaran",
     author_email="",
     description="A machine learning-based expense prediction system",

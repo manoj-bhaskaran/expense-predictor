@@ -1,19 +1,22 @@
-import pandas as pd
-from pandas.tseries.offsets import DateOffset
+import logging
+import os
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
-import logging
+
+import pandas as pd
 import xlrd
+from pandas.tseries.offsets import DateOffset
+
 import python_logging_framework as plog
 from config import config
-import os
-from security import sanitize_dataframe_for_csv, create_backup, confirm_overwrite
 from exceptions import DataValidationError
+from security import confirm_overwrite, create_backup, sanitize_dataframe_for_csv
 
 # Define constants
-TRANSACTION_AMOUNT_LABEL = 'Tran Amt'
-DAY_OF_WEEK = 'Day of the Week'
-VALUE_DATE_LABEL = 'Value Date'
+TRANSACTION_AMOUNT_LABEL = "Tran Amt"
+DAY_OF_WEEK = "Day of the Week"
+VALUE_DATE_LABEL = "Value Date"
+
 
 def validate_csv_file(file_path: str, logger: Optional[logging.Logger] = None) -> None:
     """
@@ -43,7 +46,7 @@ def validate_csv_file(file_path: str, logger: Optional[logging.Logger] = None) -
         columns = df.columns.tolist()
 
         # Check for required columns
-        required_columns = ['Date', TRANSACTION_AMOUNT_LABEL]
+        required_columns = ["Date", TRANSACTION_AMOUNT_LABEL]
         missing_columns = [col for col in required_columns if col not in columns]
 
         if missing_columns:
@@ -57,6 +60,7 @@ def validate_csv_file(file_path: str, logger: Optional[logging.Logger] = None) -
     except pd.errors.ParserError as e:
         plog.log_error(logger, f"CSV file parsing error: {e}")
         raise DataValidationError(f"CSV file is not properly formatted: {e}") from e
+
 
 def validate_excel_file(file_path: str, logger: Optional[logging.Logger] = None) -> None:
     """
@@ -89,7 +93,7 @@ def validate_excel_file(file_path: str, logger: Optional[logging.Logger] = None)
         raise DataValidationError(f"Path is not a file: {file_path}")
 
     # Check file extension
-    valid_extensions = ['.xls', '.xlsx']
+    valid_extensions = [".xls", ".xlsx"]
     file_extension = os.path.splitext(file_path)[1].lower()
 
     if file_extension not in valid_extensions:
@@ -98,7 +102,7 @@ def validate_excel_file(file_path: str, logger: Optional[logging.Logger] = None)
 
     # Try to open the Excel file to ensure it's valid
     try:
-        engine = 'xlrd' if file_path.endswith('.xls') else 'openpyxl'
+        engine = "xlrd" if file_path.endswith(".xls") else "openpyxl"
         pd.ExcelFile(file_path, engine=engine)
         plog.log_info(logger, f"Excel file validation passed: {file_path}")
     except xlrd.biffh.XLRDError as e:
@@ -115,6 +119,7 @@ def validate_excel_file(file_path: str, logger: Optional[logging.Logger] = None)
         plog.log_error(logger, f"Excel file validation failed: {e}")
         raise DataValidationError(f"Excel file is corrupted or cannot be read: {e}") from e
 
+
 def validate_date_range(df: pd.DataFrame, logger: Optional[logging.Logger] = None) -> None:
     """
     Validate date range in the DataFrame.
@@ -127,17 +132,17 @@ def validate_date_range(df: pd.DataFrame, logger: Optional[logging.Logger] = Non
     DataValidationError: If date range is invalid (missing Date column,
                         no valid dates, NaT values, or all future dates)
     """
-    if 'Date' not in df.columns:
+    if "Date" not in df.columns:
         plog.log_error(logger, "Date column not found in DataFrame")
         raise DataValidationError("Date column not found in DataFrame")
 
     # Check if there are any valid dates
-    if df['Date'].isna().all():
+    if df["Date"].isna().all():
         plog.log_error(logger, "No valid dates found in the data")
         raise DataValidationError("No valid dates found in the data")
 
-    start_date = df['Date'].min()
-    end_date = df['Date'].max()
+    start_date = df["Date"].min()
+    end_date = df["Date"].max()
 
     # Check for NaT (Not a Time) values
     if pd.isna(start_date) or pd.isna(end_date):
@@ -151,7 +156,10 @@ def validate_date_range(df: pd.DataFrame, logger: Optional[logging.Logger] = Non
         raise DataValidationError(f"Data contains only future dates. Start date: {start_date.strftime('%Y-%m-%d')}")
 
     # Log date range info
-    plog.log_info(logger, f"Date range validation passed. Start: {start_date.strftime('%Y-%m-%d')}, End: {end_date.strftime('%Y-%m-%d')}")
+    plog.log_info(
+        logger, f"Date range validation passed. Start: {start_date.strftime('%Y-%m-%d')}, End: {end_date.strftime('%Y-%m-%d')}"
+    )
+
 
 def find_column_name(df_columns: pd.Index, expected_name: str) -> Optional[str]:
     """
@@ -170,26 +178,27 @@ def find_column_name(df_columns: pd.Index, expected_name: str) -> Optional[str]:
     # First try exact match
     if expected_name in df_columns:
         return expected_name
-    
+
     # Normalize the expected name (remove extra spaces around parentheses)
-    normalized_expected = expected_name.replace(' (', '(').replace(' )', ')')
-    
+    normalized_expected = expected_name.replace(" (", "(").replace(" )", ")")
+
     # Try normalized version
     if normalized_expected in df_columns:
         return normalized_expected
-    
+
     # Try with spaces around parentheses
-    spaced_expected = expected_name.replace('(', ' (').replace(')', ' )')
+    spaced_expected = expected_name.replace("(", " (").replace(")", " )")
     if spaced_expected in df_columns:
         return spaced_expected
-    
+
     # If still not found, try fuzzy matching by checking if the base name matches
-    base_name = expected_name.split('(')[0].strip()
+    base_name = expected_name.split("(")[0].strip()
     for col in df_columns:
-        if col.startswith(base_name) and '(' in col:
+        if col.startswith(base_name) and "(" in col:
             return col
-    
+
     return None
+
 
 def get_quarter_end_date(current_date: datetime) -> datetime:
     """
@@ -204,10 +213,9 @@ def get_quarter_end_date(current_date: datetime) -> datetime:
     quarter = (current_date.month - 1) // 3 + 1
     return datetime(current_date.year, 3 * quarter, 1) + DateOffset(months=1) - DateOffset(days=1)
 
+
 def get_training_date_range(
-    df: pd.DataFrame,
-    date_column: str = 'Date',
-    logger: Optional[logging.Logger] = None
+    df: pd.DataFrame, date_column: str = "Date", logger: Optional[logging.Logger] = None
 ) -> pd.DatetimeIndex:
     """
     Get the complete date range for training data.
@@ -252,13 +260,15 @@ def get_training_date_range(
     # Log the range
     plog.log_info(
         logger,
-        f"Creating complete date range from {start_date.strftime('%Y-%m-%d')} "
-        f"to {end_date.strftime('%Y-%m-%d')}"
+        f"Creating complete date range from {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}",
     )
 
     return pd.date_range(start=start_date, end=end_date)
 
-def _process_dataframe(df: pd.DataFrame, logger: Optional[logging.Logger] = None) -> Tuple[pd.DataFrame, pd.Series, pd.DataFrame]:
+
+def _process_dataframe(
+    df: pd.DataFrame, logger: Optional[logging.Logger] = None
+) -> Tuple[pd.DataFrame, pd.Series, pd.DataFrame]:
     """
     Process a DataFrame for training (internal helper function).
 
@@ -272,16 +282,18 @@ def _process_dataframe(df: pd.DataFrame, logger: Optional[logging.Logger] = None
     Returns:
     tuple: A tuple containing X_train, y_train, and the processed DataFrame.
     """
-    if not pd.to_numeric(df[TRANSACTION_AMOUNT_LABEL], errors='coerce').notnull().all():
+    if not pd.to_numeric(df[TRANSACTION_AMOUNT_LABEL], errors="coerce").notnull().all():
         plog.log_error(logger, f"The '{TRANSACTION_AMOUNT_LABEL}' column contains non-numeric values")
-        raise DataValidationError(f"The '{TRANSACTION_AMOUNT_LABEL}' column contains non-numeric values. Please check the data.")
+        raise DataValidationError(
+            f"The '{TRANSACTION_AMOUNT_LABEL}' column contains non-numeric values. Please check the data."
+        )
 
     plog.log_info(logger, "Converting transaction amounts to numeric values")
     df[TRANSACTION_AMOUNT_LABEL] = pd.to_numeric(df[TRANSACTION_AMOUNT_LABEL])
-    df = df.dropna(subset=['Date'])
-    df['Date'] = pd.to_datetime(df['Date'], dayfirst=True, errors='coerce')
-    df = df.dropna(subset=['Date'])
-    df = df.drop_duplicates(subset=['Date'], keep='last')
+    df = df.dropna(subset=["Date"])
+    df["Date"] = pd.to_datetime(df["Date"], dayfirst=True, errors="coerce")
+    df = df.dropna(subset=["Date"])
+    df = df.drop_duplicates(subset=["Date"], keep="last")
     plog.log_info(logger, f"Data cleaning completed. Rows after cleaning: {len(df)}")
 
     # Validate date range
@@ -289,22 +301,23 @@ def _process_dataframe(df: pd.DataFrame, logger: Optional[logging.Logger] = None
 
     # Use helper function to get complete date range for training
     complete_date_range = get_training_date_range(df, logger=logger)
-    df = df.set_index('Date').reindex(complete_date_range).fillna({TRANSACTION_AMOUNT_LABEL: 0}).reset_index()
-    df.rename(columns={'index': 'Date'}, inplace=True)
+    df = df.set_index("Date").reindex(complete_date_range).fillna({TRANSACTION_AMOUNT_LABEL: 0}).reset_index()
+    df.rename(columns={"index": "Date"}, inplace=True)
     plog.log_info(logger, f"Date range filled. Total rows: {len(df)}")
 
     plog.log_info(logger, "Engineering features: day of week, month, day of month")
-    df[DAY_OF_WEEK] = df['Date'].dt.day_name()
-    df['Month'] = df['Date'].dt.month
-    df['Day of the Month'] = df['Date'].dt.day
+    df[DAY_OF_WEEK] = df["Date"].dt.day_name()
+    df["Month"] = df["Date"].dt.month
+    df["Day of the Month"] = df["Date"].dt.day
 
     df = pd.get_dummies(df, columns=[DAY_OF_WEEK], drop_first=True)
     plog.log_info(logger, f"Feature engineering completed. Total features: {len(df.columns) - 2}")
 
-    x_train = df.drop(['Date', TRANSACTION_AMOUNT_LABEL], axis=1)
+    x_train = df.drop(["Date", TRANSACTION_AMOUNT_LABEL], axis=1)
     y_train = df[TRANSACTION_AMOUNT_LABEL]
 
     return x_train, y_train, df
+
 
 def preprocess_data(file_path: str, logger: Optional[logging.Logger] = None) -> Tuple[pd.DataFrame, pd.Series, pd.DataFrame]:
     """
@@ -323,6 +336,7 @@ def preprocess_data(file_path: str, logger: Optional[logging.Logger] = None) -> 
     df = pd.read_csv(file_path)
     return _process_dataframe(df, logger=logger)
 
+
 def prepare_future_dates(future_date: Optional[str] = None) -> Tuple[pd.DataFrame, pd.DatetimeIndex]:
     """
     Prepare future dates for prediction.
@@ -334,25 +348,28 @@ def prepare_future_dates(future_date: Optional[str] = None) -> Tuple[pd.DataFram
     tuple: A tuple containing the DataFrame with future dates and the future date range.
     """
     start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-    
+
     if future_date is None:
         end_date = get_quarter_end_date(start_date)
     else:
         end_date = datetime.strptime(future_date, "%d-%m-%Y")
         if end_date <= start_date:
             raise DataValidationError("Future date must be in the future.")
-        
-    future_dates = pd.date_range(start=start_date, end=end_date)
-    future_df = pd.DataFrame({'Date': future_dates})
 
-    future_df[DAY_OF_WEEK] = future_df['Date'].dt.day_name().astype('category')
-    future_df['Month'] = future_df['Date'].dt.month
-    future_df['Day of the Month'] = future_df['Date'].dt.day
+    future_dates = pd.date_range(start=start_date, end=end_date)
+    future_df = pd.DataFrame({"Date": future_dates})
+
+    future_df[DAY_OF_WEEK] = future_df["Date"].dt.day_name().astype("category")
+    future_df["Month"] = future_df["Date"].dt.month
+    future_df["Day of the Month"] = future_df["Date"].dt.day
     future_df = pd.get_dummies(future_df, columns=[DAY_OF_WEEK], drop_first=True)
 
     return future_df, future_dates
 
-def preprocess_and_append_csv(file_path: str, excel_path: Optional[str] = None, logger: Optional[logging.Logger] = None) -> Tuple[pd.DataFrame, pd.Series, pd.DataFrame]:
+
+def preprocess_and_append_csv(
+    file_path: str, excel_path: Optional[str] = None, logger: Optional[logging.Logger] = None
+) -> Tuple[pd.DataFrame, pd.Series, pd.DataFrame]:
     """
     Preprocess input data from a CSV file and optionally append data from an Excel file.
 
@@ -375,11 +392,11 @@ def preprocess_and_append_csv(file_path: str, excel_path: Optional[str] = None, 
     if excel_path:
         # Validate Excel file before reading
         validate_excel_file(excel_path, logger=logger)
-        engine = 'xlrd' if excel_path.endswith('.xls') else 'openpyxl'
+        engine = "xlrd" if excel_path.endswith(".xls") else "openpyxl"
         sheet_names = pd.ExcelFile(excel_path, engine=engine).sheet_names
         plog.log_info(logger, f"Available sheets: {sheet_names}")
 
-        skiprows = config['data_processing']['skiprows']
+        skiprows = config["data_processing"]["skiprows"]
         excel_data = pd.read_excel(excel_path, sheet_name=sheet_names[0], engine=engine, skiprows=skiprows)
         excel_data.columns = excel_data.columns.str.strip()
         plog.log_info(logger, f"Columns in the sheet: {excel_data.columns.tolist()}")
@@ -387,10 +404,12 @@ def preprocess_and_append_csv(file_path: str, excel_path: Optional[str] = None, 
         value_date_col = find_column_name(excel_data.columns, VALUE_DATE_LABEL)
         if value_date_col is None:
             plog.log_error(logger, f"{VALUE_DATE_LABEL} column not found. Available columns: {excel_data.columns.tolist()}")
-            raise DataValidationError(f"{VALUE_DATE_LABEL} column not found in Excel file. Available columns: {excel_data.columns.tolist()}")
+            raise DataValidationError(
+                f"{VALUE_DATE_LABEL} column not found in Excel file. Available columns: {excel_data.columns.tolist()}"
+            )
 
         plog.log_info(logger, f"Using '{value_date_col}' as {VALUE_DATE_LABEL} column")
-        excel_data[value_date_col] = pd.to_datetime(excel_data[value_date_col], dayfirst=True, errors='coerce')
+        excel_data[value_date_col] = pd.to_datetime(excel_data[value_date_col], dayfirst=True, errors="coerce")
 
         excel_data = excel_data.dropna(subset=[value_date_col])
         # Rename to standard VALUE_DATE_LABEL for consistency in downstream processing
@@ -398,34 +417,43 @@ def preprocess_and_append_csv(file_path: str, excel_path: Optional[str] = None, 
             excel_data = excel_data.rename(columns={value_date_col: VALUE_DATE_LABEL})
 
         # Find the actual column names with flexible matching
-        withdrawal_col = find_column_name(excel_data.columns, 'Withdrawal Amount (INR )')
-        deposit_col = find_column_name(excel_data.columns, 'Deposit Amount (INR )')
+        withdrawal_col = find_column_name(excel_data.columns, "Withdrawal Amount (INR )")
+        deposit_col = find_column_name(excel_data.columns, "Deposit Amount (INR )")
 
         if withdrawal_col is None or deposit_col is None:
-            plog.log_error(logger, f"Required columns not found. Expected: 'Withdrawal Amount (INR )' and 'Deposit Amount (INR )'. Found: {excel_data.columns.tolist()}")
-            raise DataValidationError(f"Required columns not found in Excel file. Available columns: {excel_data.columns.tolist()}")
+            plog.log_error(
+                logger,
+                f"Required columns not found. Expected: 'Withdrawal Amount (INR )' and 'Deposit Amount (INR )'. "
+                f"Found: {excel_data.columns.tolist()}",
+            )
+            raise DataValidationError(
+                f"Required columns not found in Excel file. Available columns: {excel_data.columns.tolist()}"
+            )
 
         plog.log_info(logger, f"Using columns: '{withdrawal_col}' for withdrawals and '{deposit_col}' for deposits")
-        excel_data['expense'] = excel_data[withdrawal_col].fillna(0) * -1 + excel_data[deposit_col].fillna(0)
-        daily_expenses = excel_data.groupby(VALUE_DATE_LABEL)['expense'].sum().reset_index()
-        daily_expenses.columns = ['Date', 'expense']
-        daily_expenses.rename(columns={'expense': TRANSACTION_AMOUNT_LABEL}, inplace=True)
+        excel_data["expense"] = excel_data[withdrawal_col].fillna(0) * -1 + excel_data[deposit_col].fillna(0)
+        daily_expenses = excel_data.groupby(VALUE_DATE_LABEL)["expense"].sum().reset_index()
+        daily_expenses.columns = ["Date", "expense"]
+        daily_expenses.rename(columns={"expense": TRANSACTION_AMOUNT_LABEL}, inplace=True)
         df = pd.concat([df, daily_expenses], ignore_index=True)
 
-    df = df.dropna(subset=['Date'])
-    df['Date'] = pd.to_datetime(df['Date'], dayfirst=True, errors='coerce')
-    df = df.drop_duplicates(subset=['Date'], keep='last')
-    df = df.sort_values(by='Date').reset_index(drop=True)
+    df = df.dropna(subset=["Date"])
+    df["Date"] = pd.to_datetime(df["Date"], dayfirst=True, errors="coerce")
+    df = df.drop_duplicates(subset=["Date"], keep="last")
+    df = df.sort_values(by="Date").reset_index(drop=True)
 
     # Use helper function to get complete date range for training
     complete_date_range = get_training_date_range(df, logger=logger)
-    df = df.set_index('Date').reindex(complete_date_range).fillna({TRANSACTION_AMOUNT_LABEL: 0}).reset_index()
-    df.rename(columns={'index': 'Date'}, inplace=True)
+    df = df.set_index("Date").reindex(complete_date_range).fillna({TRANSACTION_AMOUNT_LABEL: 0}).reset_index()
+    df.rename(columns={"index": "Date"}, inplace=True)
 
     # Process the dataframe directly without modifying the input file
     return _process_dataframe(df, logger=logger)
 
-def write_predictions(predicted_df: pd.DataFrame, output_path: str, logger: Optional[logging.Logger] = None, skip_confirmation: bool = False) -> None:
+
+def write_predictions(
+    predicted_df: pd.DataFrame, output_path: str, logger: Optional[logging.Logger] = None, skip_confirmation: bool = False
+) -> None:
     """
     Write predictions to a CSV file with security measures.
 

@@ -1,0 +1,66 @@
+# .pre-commit-config.yaml
+# See https://pre-commit.com for more information
+
+default_language_version:
+  python: python3
+
+repos:
+  # Code formatting
+  - repo: https://github.com/psf/black
+    rev: 24.3.0
+    hooks:
+      - id: black
+        language_version: python3
+        args: ['--line-length=127']
+
+  # Import sorting
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        args: ['--profile', 'black', '--line-length=127']
+
+  # Linting
+  - repo: https://github.com/pycqa/flake8
+    rev: 6.1.0
+    hooks:
+      - id: flake8
+        args: ['--max-line-length=127', '--max-complexity=10']
+        additional_dependencies: [flake8-docstrings]
+
+  # Type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.5.0
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-PyYAML, types-python-dateutil]
+        args: ['--ignore-missing-imports']
+
+  # Security scanning
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        args: ['-r', '.', '--exclude', './tests']
+
+  # Basic checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: debug-statements
+      - id: mixed-line-ending
+
+  # YAML linting
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.32.0
+    hooks:
+      - id: yamllint
+        args: ['-d', '{extends: default, rules: {line-length: {max: 120}}}']

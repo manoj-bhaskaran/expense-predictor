@@ -6,52 +6,43 @@ All configurable parameters (magic numbers, hyperparameters) are centralized her
 """
 
 import os
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
 import yaml
+
 import python_logging_framework as plog
 from exceptions import ConfigurationError
 
 # Get the directory where this script is located
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-CONFIG_FILE = os.path.join(SCRIPT_DIR, 'config.yaml')
+CONFIG_FILE = os.path.join(SCRIPT_DIR, "config.yaml")
 
 # Message constants
 _DEFAULT_CONFIG_MSG = "Using default configuration."
 
 # Default configuration (used as fallback if config.yaml is not found or incomplete)
 DEFAULT_CONFIG = {
-    'data_processing': {
-        'skiprows': 12
+    "data_processing": {"skiprows": 12},
+    "model_evaluation": {"test_size": 0.2, "random_state": 42},
+    "decision_tree": {"max_depth": 5, "min_samples_split": 10, "min_samples_leaf": 5, "ccp_alpha": 0.01, "random_state": 42},
+    "random_forest": {
+        "n_estimators": 100,
+        "max_depth": 10,
+        "min_samples_split": 10,
+        "min_samples_leaf": 5,
+        "max_features": "sqrt",
+        "ccp_alpha": 0.01,
+        "random_state": 42,
     },
-    'model_evaluation': {
-        'test_size': 0.2,
-        'random_state': 42
+    "gradient_boosting": {
+        "n_estimators": 100,
+        "learning_rate": 0.1,
+        "max_depth": 5,
+        "min_samples_split": 10,
+        "min_samples_leaf": 5,
+        "max_features": "sqrt",
+        "random_state": 42,
     },
-    'decision_tree': {
-        'max_depth': 5,
-        'min_samples_split': 10,
-        'min_samples_leaf': 5,
-        'ccp_alpha': 0.01,
-        'random_state': 42
-    },
-    'random_forest': {
-        'n_estimators': 100,
-        'max_depth': 10,
-        'min_samples_split': 10,
-        'min_samples_leaf': 5,
-        'max_features': 'sqrt',
-        'ccp_alpha': 0.01,
-        'random_state': 42
-    },
-    'gradient_boosting': {
-        'n_estimators': 100,
-        'learning_rate': 0.1,
-        'max_depth': 5,
-        'min_samples_split': 10,
-        'min_samples_leaf': 5,
-        'max_features': 'sqrt',
-        'random_state': 42
-    }
 }
 
 
@@ -65,7 +56,7 @@ def load_config() -> Dict[str, Any]:
     """
     if os.path.exists(CONFIG_FILE):
         try:
-            with open(CONFIG_FILE, 'r') as f:
+            with open(CONFIG_FILE, "r") as f:
                 config = yaml.safe_load(f)
                 # Merge with defaults to ensure all keys exist
                 return _merge_configs(DEFAULT_CONFIG, config)

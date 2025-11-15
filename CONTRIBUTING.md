@@ -102,7 +102,43 @@ nano .env
 
 **Note:** The `.env` file is in `.gitignore` and will not be committed to version control. This allows each developer to have their own local configuration without affecting others.
 
-### 6. Verify Setup
+### 6. Set Up Pre-commit Hooks
+
+Pre-commit hooks automatically check your code before each commit, catching issues early and ensuring code quality.
+
+```bash
+# Install pre-commit hooks
+pre-commit install
+
+# (Optional) Run on all files to test
+pre-commit run --all-files
+```
+
+**What the hooks do:**
+- **black**: Auto-formats code for consistent style
+- **isort**: Auto-sorts imports alphabetically
+- **flake8**: Checks for code style issues and errors
+- **mypy**: Performs static type checking
+- **bandit**: Scans for security vulnerabilities
+- **Basic checks**: Removes trailing whitespace, fixes EOF, checks YAML/TOML, etc.
+- **yamllint**: Validates YAML file formatting
+
+**Skipping hooks (use sparingly):**
+```bash
+# Skip all hooks for a single commit
+git commit --no-verify -m "Emergency fix"
+
+# Skip specific hooks
+SKIP=mypy,bandit git commit -m "WIP: work in progress"
+```
+
+**Updating hooks:**
+```bash
+# Update hook versions to latest
+pre-commit autoupdate
+```
+
+### 7. Verify Setup
 
 ```bash
 # Run tests to verify everything works

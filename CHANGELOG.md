@@ -7,6 +7,98 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.15.0] - 2025-11-15
+
+### Added
+
+- **Pre-commit Hooks Configuration** ([#85](https://github.com/manoj-bhaskaran/expense-predictor/issues/85))
+  - Created `.pre-commit-config.yaml` with comprehensive pre-commit hooks
+  - Configured hooks for code formatting (black, isort)
+  - Added linting checks (flake8 with max-line-length=127, max-complexity=10)
+  - Integrated type checking (mypy with ignore-missing-imports)
+  - Added security scanning (bandit excluding tests directory)
+  - Included basic checks (trailing whitespace, EOF fixer, YAML/TOML validation, etc.)
+  - Added YAML linting (yamllint with 120-character line length)
+  - Hook versions match requirements-dev.txt for consistency:
+    - black==24.3.0
+    - isort==5.12.0
+    - flake8==6.1.0
+    - mypy==1.5.0
+    - bandit==1.7.5
+    - pre-commit-hooks==4.4.0
+    - yamllint==1.32.0
+
+### Documentation
+
+- **README.md** ([#85](https://github.com/manoj-bhaskaran/expense-predictor/issues/85))
+  - Added new "Pre-commit Hooks" section in Development
+  - Documented setup instructions and what gets checked
+  - Updated project structure to include `.pre-commit-config.yaml`
+  - Added reference to CONTRIBUTING.md for detailed information
+
+- **CONTRIBUTING.md** ([#85](https://github.com/manoj-bhaskaran/expense-predictor/issues/85))
+  - Added new section "6. Set Up Pre-commit Hooks" in Development Setup
+  - Documented what each hook does (black, isort, flake8, mypy, bandit, basic checks, yamllint)
+  - Provided instructions for skipping hooks when necessary
+  - Added commands for updating hook versions
+  - Renumbered subsequent sections accordingly
+
+### Improved
+
+- **Developer Experience** ([#85](https://github.com/manoj-bhaskaran/expense-predictor/issues/85))
+  - Developers can now run `pre-commit install` to enable local pre-commit hooks
+  - Automatic code quality checks before each commit
+  - Catches formatting, linting, and security issues early (before CI/CD)
+  - Faster feedback loop: local checks are faster than waiting for CI/CD
+  - Reduced CI/CD failures: issues caught locally before pushing
+  - Consistent code formatting across all contributors
+  - Auto-formatters (black, isort) fix issues automatically
+
+- **Code Quality** ([#85](https://github.com/manoj-bhaskaran/expense-predictor/issues/85))
+  - Ensures all code meets quality standards before commit
+  - Automatic formatting prevents style debates
+  - Type checking catches potential bugs early
+  - Security scanning identifies vulnerabilities before they reach the repository
+  - Configuration matches CI/CD pipeline for consistency
+
+### Notes
+
+**Breaking Changes**: None. This is a backward-compatible release.
+
+**Context**:
+- Issue #85 requested adding `.pre-commit-config.yaml` file
+- pre-commit was already in requirements-dev.txt (version 3.4.0)
+- CI/CD workflow `.github/workflows/pre-commit.yml` already existed
+- This completes the pre-commit setup by enabling local hooks
+
+**Version Justification**:
+- Minor version bump (1.14.0 → 1.15.0) per Semantic Versioning
+- New feature added (pre-commit hooks configuration)
+- Backward compatible: no changes to existing functionality
+- Enhancement to developer experience without breaking changes
+
+**Pre-commit Hooks Coverage**:
+- Code formatters: 2 hooks (black, isort) - auto-fix on commit
+- Linters: 1 hook (flake8) - check-only
+- Type checking: 1 hook (mypy) - check-only
+- Security: 1 hook (bandit) - check-only
+- Basic checks: 9 hooks (whitespace, EOF, YAML, TOML, merge conflicts, etc.)
+- YAML validation: 1 hook (yamllint) - check-only
+- Total: 15 pre-commit hooks configured
+
+**Integration with CI/CD**:
+- Pre-commit configuration mirrors CI/CD checks in `.github/workflows/pre-commit.yml`
+- Same tools with same arguments (black, isort, flake8)
+- Ensures local checks match CI/CD expectations
+- Reduces "works on my machine" issues
+
+**Files Modified**:
+- `.pre-commit-config.yaml` (new file)
+- `CONTRIBUTING.md` (added pre-commit setup section)
+- `README.md` (added pre-commit hooks section, updated project structure)
+- `setup.py` (version bumped to 1.15.0)
+- `CHANGELOG.md` (this file)
+
 ## [1.14.0] - 2025-11-15
 
 ### Added

@@ -42,6 +42,7 @@ class ExpensePredictorError(Exception):
             # Catches all application-specific errors
             logger.error(f"Application error: {e}")
     """
+
     pass
 
 
@@ -65,6 +66,7 @@ class DataValidationError(ExpensePredictorError):
         if 'Date' not in df.columns:
             raise DataValidationError("Missing required column: Date")
     """
+
     pass
 
 
@@ -88,6 +90,7 @@ class ConfigurationError(ExpensePredictorError):
         if config['test_size'] < 0 or config['test_size'] > 1:
             raise ConfigurationError("test_size must be between 0 and 1")
     """
+
     pass
 
 
@@ -112,4 +115,5 @@ class ModelTrainingError(ExpensePredictorError):
         except ValueError as e:
             raise ModelTrainingError(f"Model training failed: {e}") from e
     """
+
     pass

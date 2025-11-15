@@ -9,28 +9,30 @@ This module tests all helper functions including:
 """
 
 import os
-import pytest
-import pandas as pd
 import tempfile
 from datetime import datetime, timedelta
+
+import pandas as pd
+import pytest
 from pandas.tseries.offsets import DateOffset
+
+from exceptions import DataValidationError
 
 # Import functions to test
 from helpers import (
-    validate_csv_file,
-    validate_excel_file,
-    validate_date_range,
+    DAY_OF_WEEK,
+    TRANSACTION_AMOUNT_LABEL,
+    VALUE_DATE_LABEL,
     find_column_name,
     get_quarter_end_date,
     get_training_date_range,
-    preprocess_data,
     prepare_future_dates,
+    preprocess_data,
+    validate_csv_file,
+    validate_date_range,
+    validate_excel_file,
     write_predictions,
-    TRANSACTION_AMOUNT_LABEL,
-    DAY_OF_WEEK,
-    VALUE_DATE_LABEL
 )
-from exceptions import DataValidationError
 
 
 @pytest.mark.unit
@@ -102,22 +104,20 @@ class TestValidateDateRange:
 
     def test_validate_date_range_missing_date_column(self, mock_logger):
         """Test validation with missing Date column."""
-        df = pd.DataFrame({'Tran Amt': [100, 200, 300]})
+        df = pd.DataFrame({"Tran Amt": [100, 200, 300]})
         with pytest.raises(DataValidationError, match="Date column not found"):
             validate_date_range(df, logger=mock_logger)
 
     def test_validate_date_range_all_nat(self, mock_logger):
         """Test validation with all NaT (Not a Time) values."""
-        df = pd.DataFrame({'Date': [pd.NaT, pd.NaT, pd.NaT]})
+        df = pd.DataFrame({"Date": [pd.NaT, pd.NaT, pd.NaT]})
         with pytest.raises(DataValidationError, match="No valid dates found"):
             validate_date_range(df, logger=mock_logger)
 
     def test_validate_date_range_future_dates(self, mock_logger):
         """Test validation with only future dates."""
         future_date = datetime.now() + timedelta(days=365)
-        df = pd.DataFrame({
-            'Date': pd.date_range(start=future_date, periods=5, freq='D')
-        })
+        df = pd.DataFrame({"Date": pd.date_range(start=future_date, periods=5, freq="D")})
         with pytest.raises(DataValidationError, match="Data contains only future dates"):
             validate_date_range(df, logger=mock_logger)
 
@@ -132,32 +132,32 @@ class TestFindColumnName:
 
     def test_find_column_name_exact_match(self):
         """Test finding column with exact match."""
-        columns = pd.Index(['Date', 'Tran Amt', 'Value Date'])
-        result = find_column_name(columns, 'Date')
-        assert result == 'Date'
+        columns = pd.Index(["Date", "Tran Amt", "Value Date"])
+        result = find_column_name(columns, "Date")
+        assert result == "Date"
 
     def test_find_column_name_normalized_match(self):
         """Test finding column with normalized spacing (no space before parenthesis)."""
-        columns = pd.Index(['Withdrawal Amount(INR)', 'Deposit Amount(INR)'])
-        result = find_column_name(columns, 'Withdrawal Amount (INR )')
-        assert result == 'Withdrawal Amount(INR)'
+        columns = pd.Index(["Withdrawal Amount(INR)", "Deposit Amount(INR)"])
+        result = find_column_name(columns, "Withdrawal Amount (INR )")
+        assert result == "Withdrawal Amount(INR)"
 
     def test_find_column_name_spaced_match(self):
         """Test finding column with spaces around parentheses."""
-        columns = pd.Index(['Withdrawal Amount (INR )', 'Deposit Amount (INR )'])
-        result = find_column_name(columns, 'Withdrawal Amount(INR)')
-        assert result == 'Withdrawal Amount (INR )'
+        columns = pd.Index(["Withdrawal Amount (INR )", "Deposit Amount (INR )"])
+        result = find_column_name(columns, "Withdrawal Amount(INR)")
+        assert result == "Withdrawal Amount (INR )"
 
     def test_find_column_name_fuzzy_match(self):
         """Test finding column with fuzzy base name match."""
-        columns = pd.Index(['Withdrawal Amount (INR)', 'Deposit Amount (INR)'])
-        result = find_column_name(columns, 'Withdrawal Amount (different)')
-        assert result == 'Withdrawal Amount (INR)'
+        columns = pd.Index(["Withdrawal Amount (INR)", "Deposit Amount (INR)"])
+        result = find_column_name(columns, "Withdrawal Amount (different)")
+        assert result == "Withdrawal Amount (INR)"
 
     def test_find_column_name_not_found(self):
         """Test finding column that doesn't exist."""
-        columns = pd.Index(['Date', 'Amount'])
-        result = find_column_name(columns, 'NonExistent')
+        columns = pd.Index(["Date", "Amount"])
+        result = find_column_name(columns, "NonExistent")
         assert result is None
 
 
@@ -228,7 +228,7 @@ class TestGetTrainingDateRange:
         assert isinstance(result, pd.DatetimeIndex)
 
         # Check that start date matches the minimum date in the DataFrame
-        expected_start = sample_dataframe['Date'].min()
+        expected_start = sample_dataframe["Date"].min()
         assert result[0] == expected_start
 
         # Check that end date is yesterday
@@ -238,16 +238,13 @@ class TestGetTrainingDateRange:
 
     def test_get_training_date_range_custom_column(self, mock_logger):
         """Test getting date range with custom column name."""
-        df = pd.DataFrame({
-            'CustomDate': pd.date_range(start='2024-01-01', periods=10),
-            'Tran Amt': [100] * 10
-        })
+        df = pd.DataFrame({"CustomDate": pd.date_range(start="2024-01-01", periods=10), "Tran Amt": [100] * 10})
 
-        result = get_training_date_range(df, date_column='CustomDate', logger=mock_logger)
+        result = get_training_date_range(df, date_column="CustomDate", logger=mock_logger)
 
         # Check that result uses the custom column
         assert isinstance(result, pd.DatetimeIndex)
-        assert result[0] == df['CustomDate'].min()
+        assert result[0] == df["CustomDate"].min()
 
     def test_get_training_date_range_without_logger(self, sample_dataframe):
         """Test getting date range without logger."""
@@ -255,14 +252,11 @@ class TestGetTrainingDateRange:
 
         # Check that function works without logger
         assert isinstance(result, pd.DatetimeIndex)
-        assert result[0] == sample_dataframe['Date'].min()
+        assert result[0] == sample_dataframe["Date"].min()
 
     def test_get_training_date_range_nat_start_date(self, mock_logger):
         """Test getting date range with NaT start date."""
-        df = pd.DataFrame({
-            'Date': [pd.NaT, pd.NaT],
-            'Tran Amt': [100, 200]
-        })
+        df = pd.DataFrame({"Date": [pd.NaT, pd.NaT], "Tran Amt": [100, 200]})
 
         with pytest.raises(DataValidationError, match="Invalid start or end date found"):
             get_training_date_range(df, logger=mock_logger)
@@ -271,11 +265,8 @@ class TestGetTrainingDateRange:
         """Test that date range excludes today."""
         # Create DataFrame with dates including today
         today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        dates = pd.date_range(start=today - timedelta(days=10), end=today, freq='D')
-        df = pd.DataFrame({
-            'Date': dates,
-            'Tran Amt': [100] * len(dates)
-        })
+        dates = pd.date_range(start=today - timedelta(days=10), end=today, freq="D")
+        df = pd.DataFrame({"Date": dates, "Tran Amt": [100] * len(dates)})
 
         result = get_training_date_range(df, logger=mock_logger)
 
@@ -288,10 +279,7 @@ class TestGetTrainingDateRange:
 
     def test_get_training_date_range_time_normalized(self, mock_logger):
         """Test that end date has time normalized to midnight."""
-        df = pd.DataFrame({
-            'Date': pd.date_range(start='2024-01-01', periods=5),
-            'Tran Amt': [100] * 5
-        })
+        df = pd.DataFrame({"Date": pd.date_range(start="2024-01-01", periods=5), "Tran Amt": [100] * 5})
 
         result = get_training_date_range(df, logger=mock_logger)
 
@@ -304,10 +292,7 @@ class TestGetTrainingDateRange:
 
     def test_get_training_date_range_continuous_range(self, mock_logger):
         """Test that the returned date range is continuous."""
-        df = pd.DataFrame({
-            'Date': pd.date_range(start='2024-01-01', periods=10),
-            'Tran Amt': [100] * 10
-        })
+        df = pd.DataFrame({"Date": pd.date_range(start="2024-01-01", periods=10), "Tran Amt": [100] * 10})
 
         result = get_training_date_range(df, logger=mock_logger)
 
@@ -318,10 +303,7 @@ class TestGetTrainingDateRange:
     def test_get_training_date_range_single_date(self, mock_logger):
         """Test getting date range with single date in DataFrame."""
         single_date = (datetime.now() - timedelta(days=30)).replace(hour=0, minute=0, second=0, microsecond=0)
-        df = pd.DataFrame({
-            'Date': [single_date],
-            'Tran Amt': [100]
-        })
+        df = pd.DataFrame({"Date": [single_date], "Tran Amt": [100]})
 
         result = get_training_date_range(df, logger=mock_logger)
 
@@ -347,18 +329,18 @@ class TestPreprocessData:
         assert df is not None
 
         # Check that X_train doesn't contain Date or Tran Amt columns
-        assert 'Date' not in X_train.columns
+        assert "Date" not in X_train.columns
         assert TRANSACTION_AMOUNT_LABEL not in X_train.columns
 
         # Check that y_train has the same length as X_train
         assert len(X_train) == len(y_train)
 
         # Check that feature engineering was applied
-        assert 'Month' in X_train.columns
-        assert 'Day of the Month' in X_train.columns
+        assert "Month" in X_train.columns
+        assert "Day of the Month" in X_train.columns
 
         # Check for one-hot encoded day of week columns (at least some should exist)
-        day_columns = [col for col in X_train.columns if 'Day of the Week' in col]
+        day_columns = [col for col in X_train.columns if "Day of the Week" in col]
         assert len(day_columns) > 0
 
     def test_preprocess_data_invalid_file(self, sample_invalid_columns_csv_path, mock_logger):
@@ -385,9 +367,9 @@ class TestPrepareFutureDates:
         assert future_dates is not None
 
         # Check that future_df has the required columns
-        assert 'Date' in future_df.columns
-        assert 'Month' in future_df.columns
-        assert 'Day of the Month' in future_df.columns
+        assert "Date" in future_df.columns
+        assert "Month" in future_df.columns
+        assert "Day of the Month" in future_df.columns
 
         # Check that dates start from today
         assert future_dates[0].date() == datetime.now().date()
@@ -424,13 +406,13 @@ class TestPrepareFutureDates:
         future_df, future_dates = prepare_future_dates(custom_date)
 
         # Check for one-hot encoded day of week columns
-        day_columns = [col for col in future_df.columns if 'Day of the Week' in col]
+        day_columns = [col for col in future_df.columns if "Day of the Week" in col]
         assert len(day_columns) > 0
 
         # Check that Month and Day values are correct
         for idx, date in enumerate(future_dates):
-            assert future_df.loc[idx, 'Month'] == date.month
-            assert future_df.loc[idx, 'Day of the Month'] == date.day
+            assert future_df.loc[idx, "Month"] == date.month
+            assert future_df.loc[idx, "Day of the Month"] == date.day
 
 
 @pytest.mark.unit
@@ -439,11 +421,10 @@ class TestWritePredictions:
 
     def test_write_predictions_new_file(self, temp_dir, mock_logger):
         """Test writing predictions to a new file."""
-        predicted_df = pd.DataFrame({
-            'Date': pd.date_range(start='2024-01-01', periods=5),
-            'Predicted Tran Amt': [100.0, 150.0, 200.0, 175.0, 125.0]
-        })
-        output_path = os.path.join(temp_dir, 'predictions.csv')
+        predicted_df = pd.DataFrame(
+            {"Date": pd.date_range(start="2024-01-01", periods=5), "Predicted Tran Amt": [100.0, 150.0, 200.0, 175.0, 125.0]}
+        )
+        output_path = os.path.join(temp_dir, "predictions.csv")
 
         write_predictions(predicted_df, output_path, logger=mock_logger, skip_confirmation=True)
 
@@ -453,59 +434,55 @@ class TestWritePredictions:
         # Read and verify content
         result_df = pd.read_csv(output_path)
         assert len(result_df) == 5
-        assert 'Date' in result_df.columns
-        assert 'Predicted Tran Amt' in result_df.columns
+        assert "Date" in result_df.columns
+        assert "Predicted Tran Amt" in result_df.columns
 
     def test_write_predictions_overwrite_with_backup(self, temp_dir, mock_logger):
         """Test overwriting existing file (backup creation tested in security module tests)."""
-        predicted_df = pd.DataFrame({
-            'Date': pd.date_range(start='2024-01-01', periods=3),
-            'Predicted Tran Amt': [100.0, 150.0, 200.0]
-        })
-        output_path = os.path.join(temp_dir, 'predictions.csv')
+        predicted_df = pd.DataFrame(
+            {"Date": pd.date_range(start="2024-01-01", periods=3), "Predicted Tran Amt": [100.0, 150.0, 200.0]}
+        )
+        output_path = os.path.join(temp_dir, "predictions.csv")
 
         # Create initial file
         write_predictions(predicted_df, output_path, logger=mock_logger, skip_confirmation=True)
         initial_df = pd.read_csv(output_path)
-        assert abs(initial_df['Predicted Tran Amt'].iloc[0] - 100.0) < 0.001
+        assert abs(initial_df["Predicted Tran Amt"].iloc[0] - 100.0) < 0.001
 
         # Overwrite with new data
-        new_predicted_df = pd.DataFrame({
-            'Date': pd.date_range(start='2024-02-01', periods=3),
-            'Predicted Tran Amt': [300.0, 350.0, 400.0]
-        })
+        new_predicted_df = pd.DataFrame(
+            {"Date": pd.date_range(start="2024-02-01", periods=3), "Predicted Tran Amt": [300.0, 350.0, 400.0]}
+        )
         write_predictions(new_predicted_df, output_path, logger=mock_logger, skip_confirmation=True)
 
         # Check that file was updated
         result_df = pd.read_csv(output_path)
-        assert abs(result_df['Predicted Tran Amt'].iloc[0] - 300.0) < 0.001
+        assert abs(result_df["Predicted Tran Amt"].iloc[0] - 300.0) < 0.001
 
         # Backup creation is tested separately in security module tests
 
     def test_write_predictions_csv_injection_prevention(self, temp_dir, mock_logger):
         """Test that CSV injection is prevented."""
         # Create DataFrame with potentially dangerous values
-        predicted_df = pd.DataFrame({
-            'Date': pd.date_range(start='2024-01-01', periods=3),
-            'Predicted Tran Amt': ['=1+1', '+2+2', '-3-3']
-        })
-        output_path = os.path.join(temp_dir, 'predictions.csv')
+        predicted_df = pd.DataFrame(
+            {"Date": pd.date_range(start="2024-01-01", periods=3), "Predicted Tran Amt": ["=1+1", "+2+2", "-3-3"]}
+        )
+        output_path = os.path.join(temp_dir, "predictions.csv")
 
         write_predictions(predicted_df, output_path, logger=mock_logger, skip_confirmation=True)
 
         # Read and verify that dangerous characters are escaped
-        with open(output_path, 'r') as f:
+        with open(output_path, "r") as f:
             content = f.read()
             # Check that formulas are escaped with single quote
-            assert "'=1+1" in content or "\"'=1+1\"" in content
+            assert "'=1+1" in content or '"\'=1+1"' in content
 
     def test_write_predictions_without_logger(self, temp_dir):
         """Test writing predictions without logger."""
-        predicted_df = pd.DataFrame({
-            'Date': pd.date_range(start='2024-01-01', periods=3),
-            'Predicted Tran Amt': [100.0, 150.0, 200.0]
-        })
-        output_path = os.path.join(temp_dir, 'predictions.csv')
+        predicted_df = pd.DataFrame(
+            {"Date": pd.date_range(start="2024-01-01", periods=3), "Predicted Tran Amt": [100.0, 150.0, 200.0]}
+        )
+        output_path = os.path.join(temp_dir, "predictions.csv")
 
         write_predictions(predicted_df, output_path, skip_confirmation=True)
 
@@ -519,12 +496,12 @@ class TestConstants:
 
     def test_transaction_amount_label(self):
         """Test TRANSACTION_AMOUNT_LABEL constant."""
-        assert TRANSACTION_AMOUNT_LABEL == 'Tran Amt'
+        assert TRANSACTION_AMOUNT_LABEL == "Tran Amt"
 
     def test_day_of_week(self):
         """Test DAY_OF_WEEK constant."""
-        assert DAY_OF_WEEK == 'Day of the Week'
+        assert DAY_OF_WEEK == "Day of the Week"
 
     def test_value_date_label(self):
         """Test VALUE_DATE_LABEL constant."""
-        assert VALUE_DATE_LABEL == 'Value Date'
+        assert VALUE_DATE_LABEL == "Value Date"

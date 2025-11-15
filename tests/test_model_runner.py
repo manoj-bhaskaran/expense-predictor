@@ -6,22 +6,24 @@ including data loading, preprocessing, model training, and prediction output.
 """
 
 import os
-import sys
-import pytest
-import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
-import tempfile
 import shutil
+import sys
+import tempfile
+from datetime import datetime, timedelta
+
+import numpy as np
+import pandas as pd
+import pytest
+from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeRegressor
+
+from config import config
 
 # Import main components
-from helpers import preprocess_and_append_csv, prepare_future_dates
-from sklearn.linear_model import LinearRegression
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
-from sklearn.metrics import mean_absolute_error, r2_score, mean_squared_error
-from sklearn.model_selection import train_test_split
-from config import config
+from helpers import prepare_future_dates, preprocess_and_append_csv
 
 
 @pytest.mark.integration
@@ -39,24 +41,23 @@ class TestDataPreprocessingPipeline:
         assert len(X) == len(y)
 
         # Verify feature engineering
-        assert 'Month' in X.columns
-        assert 'Day of the Month' in X.columns
+        assert "Month" in X.columns
+        assert "Day of the Month" in X.columns
 
         # Verify no Date or Tran Amt in features
-        assert 'Date' not in X.columns
-        assert 'Tran Amt' not in X.columns
+        assert "Date" not in X.columns
+        assert "Tran Amt" not in X.columns
 
         # Verify target variable
-        assert y.name == 'Tran Amt'
+        assert y.name == "Tran Amt"
 
     def test_preprocess_fills_missing_dates(self, temp_dir, mock_logger):
         """Test that preprocessing fills in missing dates with zeros."""
         # Create CSV with gaps in dates
-        csv_path = os.path.join(temp_dir, 'gap_dates.csv')
-        df = pd.DataFrame({
-            'Date': ['01/01/2024', '05/01/2024', '10/01/2024'],  # Gaps between dates
-            'Tran Amt': [100.0, 200.0, 300.0]
-        })
+        csv_path = os.path.join(temp_dir, "gap_dates.csv")
+        df = pd.DataFrame(
+            {"Date": ["01/01/2024", "05/01/2024", "10/01/2024"], "Tran Amt": [100.0, 200.0, 300.0]}  # Gaps between dates
+        )
         df.to_csv(csv_path, index=False)
 
         _, y, processed_df = preprocess_and_append_csv(csv_path, logger=mock_logger)
@@ -72,11 +73,13 @@ class TestDataPreprocessingPipeline:
 
     def test_preprocess_removes_duplicates(self, temp_dir, mock_logger):
         """Test that preprocessing removes duplicate dates (keeps last)."""
-        csv_path = os.path.join(temp_dir, 'duplicate_dates.csv')
-        df = pd.DataFrame({
-            'Date': ['01/01/2024', '01/01/2024', '02/01/2024'],
-            'Tran Amt': [100.0, 200.0, 150.0]  # Duplicate date with different amounts
-        })
+        csv_path = os.path.join(temp_dir, "duplicate_dates.csv")
+        df = pd.DataFrame(
+            {
+                "Date": ["01/01/2024", "01/01/2024", "02/01/2024"],
+                "Tran Amt": [100.0, 200.0, 150.0],  # Duplicate date with different amounts
+            }
+        )
         df.to_csv(csv_path, index=False)
 
         _, _, processed_df = preprocess_and_append_csv(csv_path, logger=mock_logger)
@@ -84,7 +87,7 @@ class TestDataPreprocessingPipeline:
         # Check that duplicate was removed and last value was kept
         # The processed dataframe will have many rows due to date filling
         # But the original date should have the last value (200.0)
-        jan_1_value = processed_df[processed_df['Date'] == '2024-01-01']['Tran Amt'].iloc[0]
+        jan_1_value = processed_df[processed_df["Date"] == "2024-01-01"]["Tran Amt"].iloc[0]
         assert abs(jan_1_value - 200.0) < 0.001
 
 
@@ -115,11 +118,11 @@ class TestModelTrainingPipeline:
 
         # Train model with config parameters
         model = DecisionTreeRegressor(
-            max_depth=config['decision_tree']['max_depth'],
-            min_samples_split=config['decision_tree']['min_samples_split'],
-            min_samples_leaf=config['decision_tree']['min_samples_leaf'],
-            random_state=config['decision_tree']['random_state'],
-            ccp_alpha=0.0
+            max_depth=config["decision_tree"]["max_depth"],
+            min_samples_split=config["decision_tree"]["min_samples_split"],
+            min_samples_leaf=config["decision_tree"]["min_samples_leaf"],
+            random_state=config["decision_tree"]["random_state"],
+            ccp_alpha=0.0,
         )
         model.fit(X, y)
 
@@ -136,11 +139,11 @@ class TestModelTrainingPipeline:
 
         # Train model
         model = RandomForestRegressor(
-            n_estimators=config['random_forest']['n_estimators'],
-            max_depth=config['random_forest']['max_depth'],
-            random_state=config['random_forest']['random_state'],
+            n_estimators=config["random_forest"]["n_estimators"],
+            max_depth=config["random_forest"]["max_depth"],
+            random_state=config["random_forest"]["random_state"],
             min_samples_leaf=1,
-            max_features=1.0
+            max_features=1.0,
         )
         model.fit(X, y)
 
@@ -157,10 +160,10 @@ class TestModelTrainingPipeline:
 
         # Train model
         model = GradientBoostingRegressor(
-            n_estimators=config['gradient_boosting']['n_estimators'],
-            learning_rate=config['gradient_boosting']['learning_rate'],
-            max_depth=config['gradient_boosting']['max_depth'],
-            random_state=config['gradient_boosting']['random_state']
+            n_estimators=config["gradient_boosting"]["n_estimators"],
+            learning_rate=config["gradient_boosting"]["learning_rate"],
+            max_depth=config["gradient_boosting"]["max_depth"],
+            random_state=config["gradient_boosting"]["random_state"],
         )
         model.fit(X, y)
 
@@ -180,12 +183,10 @@ class TestTrainTestSplit:
         """Test that train/test split uses correct ratio from config."""
         X, y, _ = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
 
-        test_size = config['model_evaluation']['test_size']
-        random_state = config['model_evaluation']['random_state']
+        test_size = config["model_evaluation"]["test_size"]
+        random_state = config["model_evaluation"]["random_state"]
 
-        X_train, X_test, _, _ = train_test_split(
-            X, y, test_size=test_size, shuffle=False, random_state=random_state
-        )
+        X_train, X_test, _, _ = train_test_split(X, y, test_size=test_size, shuffle=False, random_state=random_state)
 
         # Check split sizes (allow for rounding differences)
         total_size = len(X)
@@ -199,12 +200,10 @@ class TestTrainTestSplit:
         """Test that split preserves temporal order (shuffle=False)."""
         X, y, _ = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
 
-        test_size = config['model_evaluation']['test_size']
-        random_state = config['model_evaluation']['random_state']
+        test_size = config["model_evaluation"]["test_size"]
+        random_state = config["model_evaluation"]["random_state"]
 
-        X_train, X_test, _, _ = train_test_split(
-            X, y, test_size=test_size, shuffle=False, random_state=random_state
-        )
+        X_train, X_test, _, _ = train_test_split(X, y, test_size=test_size, shuffle=False, random_state=random_state)
 
         # Verify indices are sequential (train comes before test)
         assert X_train.index[-1] < X_test.index[0]
@@ -240,8 +239,8 @@ class TestModelEvaluation:
         """Test metrics calculation on both train and test sets."""
         X, y, _ = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
 
-        test_size = config['model_evaluation']['test_size']
-        random_state = config['model_evaluation']['random_state']
+        test_size = config["model_evaluation"]["test_size"]
+        random_state = config["model_evaluation"]["random_state"]
 
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=test_size, shuffle=False, random_state=random_state
@@ -317,19 +316,16 @@ class TestFuturePredictionPipeline:
         y_predict = np.round(y_predict, 2)
 
         # Create output DataFrame
-        predicted_df = pd.DataFrame({
-            'Date': future_dates,
-            'Predicted Tran Amt': y_predict
-        })
+        predicted_df = pd.DataFrame({"Date": future_dates, "Predicted Tran Amt": y_predict})
 
         # Verify format
-        assert 'Date' in predicted_df.columns
-        assert 'Predicted Tran Amt' in predicted_df.columns
+        assert "Date" in predicted_df.columns
+        assert "Predicted Tran Amt" in predicted_df.columns
         assert len(predicted_df) == len(future_dates)
 
         # Verify rounding to 2 decimal places
-        for value in predicted_df['Predicted Tran Amt']:
-            decimal_places = len(str(value).split('.')[-1]) if '.' in str(value) else 0
+        for value in predicted_df["Predicted Tran Amt"]:
+            decimal_places = len(str(value).split(".")[-1]) if "." in str(value) else 0
             assert decimal_places <= 2
 
     def test_feature_alignment(self, sample_csv_path, mock_logger):
@@ -360,8 +356,8 @@ class TestFullEndToEndPipeline:
         X, y, _ = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
 
         # 2. Split data
-        test_size = config['model_evaluation']['test_size']
-        random_state = config['model_evaluation']['random_state']
+        test_size = config["model_evaluation"]["test_size"]
+        random_state = config["model_evaluation"]["random_state"]
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=test_size, shuffle=False, random_state=random_state
         )
@@ -388,21 +384,18 @@ class TestFullEndToEndPipeline:
         y_predict = np.round(y_predict, 2)
 
         # 8. Create output
-        predicted_df = pd.DataFrame({
-            'Date': future_dates,
-            'Predicted Tran Amt': y_predict
-        })
+        predicted_df = pd.DataFrame({"Date": future_dates, "Predicted Tran Amt": y_predict})
 
         # 9. Save to file
-        output_path = os.path.join(temp_dir, 'test_predictions.csv')
+        output_path = os.path.join(temp_dir, "test_predictions.csv")
         predicted_df.to_csv(output_path, index=False)
 
         # 10. Verify output file
         assert os.path.exists(output_path)
         result_df = pd.read_csv(output_path)
         assert len(result_df) == len(future_dates)
-        assert 'Date' in result_df.columns
-        assert 'Predicted Tran Amt' in result_df.columns
+        assert "Date" in result_df.columns
+        assert "Predicted Tran Amt" in result_df.columns
 
 
 @pytest.mark.unit
@@ -412,27 +405,27 @@ class TestConfigIntegration:
     def test_config_parameters_loaded(self):
         """Test that config parameters are loaded correctly."""
         # Verify data processing config
-        assert 'data_processing' in config
-        assert 'skiprows' in config['data_processing']
+        assert "data_processing" in config
+        assert "skiprows" in config["data_processing"]
 
         # Verify model evaluation config
-        assert 'model_evaluation' in config
-        assert 'test_size' in config['model_evaluation']
-        assert 'random_state' in config['model_evaluation']
+        assert "model_evaluation" in config
+        assert "test_size" in config["model_evaluation"]
+        assert "random_state" in config["model_evaluation"]
 
         # Verify model configs
-        assert 'decision_tree' in config
-        assert 'random_forest' in config
-        assert 'gradient_boosting' in config
+        assert "decision_tree" in config
+        assert "random_forest" in config
+        assert "gradient_boosting" in config
 
     def test_config_values_valid(self):
         """Test that config values are within valid ranges."""
         # Test size should be between 0 and 1
-        assert 0 < config['model_evaluation']['test_size'] < 1
+        assert 0 < config["model_evaluation"]["test_size"] < 1
 
         # Random state should be non-negative
-        assert config['model_evaluation']['random_state'] >= 0
+        assert config["model_evaluation"]["random_state"] >= 0
 
         # Model parameters should be positive
-        assert config['random_forest']['n_estimators'] > 0
-        assert config['gradient_boosting']['learning_rate'] > 0
+        assert config["random_forest"]["n_estimators"] > 0
+        assert config["gradient_boosting"]["learning_rate"] > 0
