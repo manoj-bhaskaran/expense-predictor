@@ -200,14 +200,15 @@ check_and_create_labels() {
     fi
 
     print_info "Labels needed: ${needed_labels}"
+    echo ""  # Flush output
 
     # Get existing labels from repo
     print_info "Fetching existing labels from repository..."
-    local existing_labels_raw=$(gh label list --repo "$REPO" --json name --jq '.[].name' 2>/dev/null)
-
-    if [ $? -ne 0 ]; then
-        print_warning "Could not fetch existing labels. Proceeding anyway..."
-        return
+    local existing_labels_raw
+    if ! existing_labels_raw=$(gh label list --repo "$REPO" --json name --jq '.[].name' 2>&1); then
+        print_warning "Could not fetch existing labels: ${existing_labels_raw}"
+        print_info "Will attempt to create labels anyway..."
+        existing_labels_raw=""
     fi
 
     # Convert to array for easier checking
@@ -221,24 +222,41 @@ check_and_create_labels() {
 
     # Process each needed label
     IFS=',' read -ra LABELS <<< "$needed_labels"
+    local total_labels=${#LABELS[@]}
+    local current=0
+
     for label in "${LABELS[@]}"; do
+        ((current++))
         # Trim whitespace
         label=$(echo "$label" | xargs)
 
+        # Skip empty labels
+        if [ -z "$label" ]; then
+            continue
+        fi
+
         # Check if label exists
         if [ -n "${existing_labels_map[$label]}" ]; then
-            print_info "  ✓ Label exists: ${label}"
+            print_info "  [$current/$total_labels] ✓ Label exists: ${label}"
             ((exists_count++))
         else
             # Create the label with appropriate color
             local color=$(get_label_color "$label")
-            print_info "  + Creating label: ${label} (color: #${color})"
+            print_info "  [$current/$total_labels] + Creating label: ${label} (color: #${color})"
 
-            if gh label create "$label" --color "$color" --repo "$REPO" 2>/dev/null; then
+            # Capture both stdout and stderr
+            local create_output
+            if create_output=$(gh label create "$label" --color "$color" --repo "$REPO" 2>&1); then
                 print_success "    Created: ${label}"
                 ((created_count++))
             else
-                print_warning "    Could not create label: ${label} (may already exist)"
+                # Show the actual error if verbose mode is on
+                if [ "$VERBOSE" = true ]; then
+                    print_warning "    Could not create label: ${label}"
+                    print_info "    Error: ${create_output}"
+                else
+                    print_warning "    Could not create label: ${label} (may already exist)"
+                fi
                 ((exists_count++))
             fi
         fi
