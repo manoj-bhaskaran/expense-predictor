@@ -15,6 +15,7 @@ from config import load_config, get_config, _merge_configs, DEFAULT_CONFIG
 from exceptions import ConfigurationError
 
 
+@pytest.mark.unit
 class TestLoadConfig:
     """Tests for load_config function."""
 
@@ -131,6 +132,7 @@ class TestLoadConfig:
             os.remove(temp_file)
 
 
+@pytest.mark.unit
 class TestMergeConfigs:
     """Tests for _merge_configs function."""
 
@@ -176,6 +178,7 @@ class TestMergeConfigs:
         assert result['key']['nested'] == 2
 
 
+@pytest.mark.unit
 class TestGetConfig:
     """Tests for get_config function."""
 
@@ -200,6 +203,7 @@ class TestGetConfig:
             assert section in result
 
 
+@pytest.mark.unit
 class TestDefaultConfig:
     """Tests for DEFAULT_CONFIG constant."""
 

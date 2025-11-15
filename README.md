@@ -445,6 +445,59 @@ pytest tests/test_helpers.py::TestFindColumnName -v
 pytest tests/test_helpers.py::TestFindColumnName::test_find_column_name_exact_match -v
 ```
 
+#### Running Tests by Category (Markers)
+
+Tests are organized using pytest markers for selective execution. This allows you to run specific categories of tests for faster feedback during development.
+
+**Available Test Markers:**
+
+- `unit`: Unit tests for individual functions (fast, isolated)
+- `integration`: Integration tests for complete workflows (slower)
+- `slow`: Tests that take longer to run (model training, full pipelines)
+- `validation`: Tests for data validation functions
+
+**Run tests by category:**
+
+```bash
+# Run only unit tests (fast feedback during development)
+pytest -m unit
+
+# Run only integration tests
+pytest -m integration
+
+# Run only validation tests
+pytest -m validation
+
+# Skip slow tests during development
+pytest -m "not slow"
+
+# Run everything except integration tests
+pytest -m "not integration"
+
+# Combine markers (unit AND validation tests)
+pytest -m "unit and validation"
+
+# Run unit OR integration tests
+pytest -m "unit or integration"
+```
+
+**Use Cases:**
+
+- **Fast development cycle**: Run `pytest -m unit` for quick feedback
+- **Pre-commit checks**: Run `pytest -m "not slow"` to skip time-consuming tests
+- **Full validation**: Run `pytest` (all tests) before pushing
+- **CI/CD staging**: Run unit tests first, then integration tests (see `.github/workflows/test.yml`)
+
+**Verbose output with markers:**
+
+```bash
+# See which tests are being run
+pytest -m unit -v
+
+# Show marker information
+pytest --markers
+```
+
 #### Coverage Reports
 
 ```bash

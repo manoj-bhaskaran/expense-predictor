@@ -16,6 +16,8 @@ from security import validate_and_resolve_path
 from exceptions import DataValidationError
 
 
+@pytest.mark.unit
+@pytest.mark.validation
 class TestHelpersEdgeCases:
     """Edge case tests for helpers.py."""
 
@@ -62,6 +64,7 @@ class TestHelpersEdgeCases:
         assert len(processed_df) > 0
 
 
+@pytest.mark.unit
 class TestSecurityEdgeCases:
     """Edge case tests for security.py."""
 
@@ -89,6 +92,8 @@ class TestSecurityEdgeCases:
         assert result.exists()
 
 
+@pytest.mark.unit
+@pytest.mark.validation
 class TestHelpersValidationEdgeCases:
     """Additional validation edge cases."""
 

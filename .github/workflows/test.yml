@@ -40,9 +40,19 @@ jobs:
         pip install -r requirements.txt
         pip install -r requirements-dev.txt
 
-    - name: Run tests with coverage
+    - name: Run unit tests (fast)
       run: |
-        pytest tests/ -v --cov=. --cov-report=xml --cov-report=term-missing --cov-report=html
+        pytest -m unit -v --cov=. --cov-report=xml --cov-report=term-missing --cov-report=html
+
+    - name: Run integration tests
+      if: success()
+      run: |
+        pytest -m integration -v --cov=. --cov-append --cov-report=xml --cov-report=term-missing --cov-report=html
+
+    - name: Run validation tests
+      if: success()
+      run: |
+        pytest -m validation -v --cov=. --cov-append --cov-report=xml --cov-report=term-missing --cov-report=html
 
     - name: Check coverage threshold
       run: |

@@ -24,6 +24,7 @@ from sklearn.model_selection import train_test_split
 from config import config
 
 
+@pytest.mark.integration
 class TestDataPreprocessingPipeline:
     """Test the full data preprocessing pipeline."""
 
@@ -87,6 +88,8 @@ class TestDataPreprocessingPipeline:
         assert abs(jan_1_value - 200.0) < 0.001
 
 
+@pytest.mark.integration
+@pytest.mark.slow
 class TestModelTrainingPipeline:
     """Test model training functionality."""
 
@@ -169,6 +172,7 @@ class TestModelTrainingPipeline:
         assert len(y_pred) == len(y)
 
 
+@pytest.mark.integration
 class TestTrainTestSplit:
     """Test train/test split functionality."""
 
@@ -206,6 +210,7 @@ class TestTrainTestSplit:
         assert X_train.index[-1] < X_test.index[0]
 
 
+@pytest.mark.integration
 class TestModelEvaluation:
     """Test model evaluation metrics."""
 
@@ -266,6 +271,7 @@ class TestModelEvaluation:
         assert not np.isnan(train_r2) and not np.isnan(test_r2)
 
 
+@pytest.mark.integration
 class TestFuturePredictionPipeline:
     """Test the future prediction generation pipeline."""
 
@@ -343,6 +349,8 @@ class TestFuturePredictionPipeline:
         assert list(X.columns) == list(future_df_aligned.columns)
 
 
+@pytest.mark.integration
+@pytest.mark.slow
 class TestFullEndToEndPipeline:
     """Test the complete end-to-end pipeline."""
 
@@ -397,6 +405,7 @@ class TestFullEndToEndPipeline:
         assert 'Predicted Tran Amt' in result_df.columns
 
 
+@pytest.mark.unit
 class TestConfigIntegration:
     """Test integration with configuration system."""
 
