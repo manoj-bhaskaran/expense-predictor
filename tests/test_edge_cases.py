@@ -9,6 +9,7 @@ import pytest
 import pandas as pd
 import tempfile
 from datetime import datetime
+from typing import cast
 
 from helpers import validate_excel_file, preprocess_and_append_csv
 from security import validate_and_resolve_path
@@ -71,7 +72,8 @@ class TestSecurityEdgeCases:
     def test_validate_none_path(self, mock_logger):
         """Test validation with None path."""
         with pytest.raises(ValueError, match="Path must be a non-empty string"):
-            validate_and_resolve_path(None, logger=mock_logger)  # type: ignore[arg-type]
+            # Intentionally pass None to test error handling
+            validate_and_resolve_path(cast(str, None), logger=mock_logger)
 
     def test_validate_path_with_quotes(self, temp_dir, mock_logger):
         """Test validation strips quotes from path."""
