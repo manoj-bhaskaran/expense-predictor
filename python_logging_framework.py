@@ -1,10 +1,9 @@
 """
-Mock python_logging_framework for testing purposes.
+Logging framework for Expense Predictor.
 
-This is a minimal implementation to allow tests to run when the actual
-python_logging_framework package cannot be installed.
-
-All functions are marked with pragma: no cover since this is test infrastructure.
+Provides simplified logging initialization with file and console handlers.
+This framework offers a consistent logging approach across the application
+with automatic log file management and formatted output.
 """
 
 import logging
@@ -13,7 +12,7 @@ from datetime import datetime
 from typing import Optional
 
 
-def initialise_logger(script_name: str, log_dir: str = 'logs', log_level: int = logging.INFO) -> logging.Logger:  # pragma: no cover
+def initialise_logger(script_name: str, log_dir: str = 'logs', log_level: int = logging.INFO) -> logging.Logger:
     """
     Initialize a logger with file and console handlers.
 
@@ -61,7 +60,7 @@ def initialise_logger(script_name: str, log_dir: str = 'logs', log_level: int = 
     return logger
 
 
-def log_info(logger: Optional[logging.Logger], message: str) -> None:  # pragma: no cover
+def log_info(logger: Optional[logging.Logger], message: str) -> None:
     """
     Log an info message.
 
@@ -75,7 +74,7 @@ def log_info(logger: Optional[logging.Logger], message: str) -> None:  # pragma:
         print(f"INFO: {message}")
 
 
-def log_error(logger: Optional[logging.Logger], message: str) -> None:  # pragma: no cover
+def log_error(logger: Optional[logging.Logger], message: str) -> None:
     """
     Log an error message.
 
@@ -89,7 +88,7 @@ def log_error(logger: Optional[logging.Logger], message: str) -> None:  # pragma
         print(f"ERROR: {message}")
 
 
-def log_warning(logger: Optional[logging.Logger], message: str) -> None:  # pragma: no cover
+def log_warning(logger: Optional[logging.Logger], message: str) -> None:
     """
     Log a warning message.
 
@@ -103,7 +102,7 @@ def log_warning(logger: Optional[logging.Logger], message: str) -> None:  # prag
         print(f"WARNING: {message}")
 
 
-def log_debug(logger: Optional[logging.Logger], message: str) -> None:  # pragma: no cover
+def log_debug(logger: Optional[logging.Logger], message: str) -> None:
     """
     Log a debug message.
 

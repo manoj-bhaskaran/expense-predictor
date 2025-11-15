@@ -7,6 +7,83 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.12.1] - 2025-11-15
+
+### Fixed
+
+- **Logging Framework Clarification** ([#82](https://github.com/manoj-bhaskaran/expense-predictor/issues/82))
+  - Clarified that `python_logging_framework.py` is the official logging framework implementation
+  - Removed "Mock" designation from module header
+  - Updated module docstring to accurately describe its purpose and functionality
+  - Removed all `# pragma: no cover` comments from logging framework functions
+  - GitHub dependency was already removed in v1.9.0; confirmed local version is the standard
+
+### Added
+
+- **Comprehensive Logging Framework Tests** ([#82](https://github.com/manoj-bhaskaran/expense-predictor/issues/82))
+  - Created `tests/test_logging_framework.py` with 22 comprehensive unit tests
+  - Tests for `initialise_logger()`: default params, custom log level, directory creation, file creation, handler management, formatters
+  - Tests for `log_info()`, `log_error()`, `log_warning()`, `log_debug()`: with and without logger
+  - Integration tests: full logging workflow, debug level logging, log file naming conventions
+  - Achieved 100% test coverage for python_logging_framework.py module
+  - Total test count increased from 141 to 163 tests
+  - Overall test coverage increased to 89.15%
+
+### Documentation
+
+- **Enhanced README.md** ([#82](https://github.com/manoj-bhaskaran/expense-predictor/issues/82))
+  - Added comprehensive "Logging Framework" section with usage examples
+  - Included code examples demonstrating all logging functions
+  - Added feature list: unified logging, log levels, automatic log files, dual output, flexible configuration
+  - Updated project structure to include `python_logging_framework.py`
+  - Improved clarity on logging framework location and purpose
+  - Enhanced logging documentation with complete API usage
+
+### Improved
+
+- **Code Quality** ([#82](https://github.com/manoj-bhaskaran/expense-predictor/issues/82))
+  - Logging framework now properly tested with comprehensive test suite
+  - Removed misleading "mock" designation that caused contributor confusion
+  - Clear documentation establishes single source of truth for logging
+  - No duplicate versions to maintain
+  - Contributors now understand which code to modify
+
+- **Developer Experience** ([#82](https://github.com/manoj-bhaskaran/expense-predictor/issues/82))
+  - Clear usage examples in README for logging framework
+  - Tests demonstrate proper logging framework usage patterns
+  - Eliminated confusion between "mock" and "real" implementations
+  - Single, well-documented logging framework
+
+### Notes
+
+**Breaking Changes**: None. This is a backward-compatible release.
+
+**Context**:
+- Issue #82 requested clarification on python_logging_framework usage strategy
+- The GitHub dependency was already removed in v1.9.0 (requirements.txt line 15-16)
+- The local version was marked as "mock" with pragma: no cover comments
+- This release completes the transition by updating documentation and adding tests
+
+**Version Justification**:
+- Patch version bump (1.12.0 → 1.12.1) per Semantic Versioning
+- No functional changes to the logging framework code
+- Documentation improvements and test additions only
+- Removes technical debt (pragma comments)
+- Clarifies existing functionality
+
+**Test Coverage**:
+- New tests: 22 tests for logging framework
+- Total tests: 163 (up from 141)
+- python_logging_framework.py coverage: 100%
+- Overall project coverage: 89.15%
+- All tests pass successfully
+
+**Files Modified**:
+- `python_logging_framework.py` (header updated, pragma comments removed)
+- `tests/test_logging_framework.py` (new file with 22 tests)
+- `README.md` (enhanced logging framework documentation)
+- `CHANGELOG.md` (this file)
+
 ## [1.12.0] - 2025-11-15
 
 ### Added
