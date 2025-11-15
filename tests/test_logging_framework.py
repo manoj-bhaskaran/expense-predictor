@@ -45,7 +45,7 @@ class TestInitialiseLogger:
             log_dir = os.path.join(temp_base, 'new_logs')
             assert not os.path.exists(log_dir)
 
-            logger = plog.initialise_logger('test_script', log_dir=log_dir)
+            _ = plog.initialise_logger('test_script', log_dir=log_dir)
 
             assert os.path.exists(log_dir)
             assert os.path.isdir(log_dir)
@@ -53,7 +53,7 @@ class TestInitialiseLogger:
     def test_initialise_logger_creates_log_file(self):
         """Test that logger creates a log file in the specified directory."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            logger = plog.initialise_logger('test_logfile', log_dir=temp_dir)
+            _ = plog.initialise_logger('test_logfile', log_dir=temp_dir)
 
             # Find log files in the directory
             log_files = [f for f in os.listdir(temp_dir) if f.startswith('test_logfile_')]
@@ -276,7 +276,7 @@ class TestLoggingIntegration:
         """Test that log files follow the expected naming convention."""
         with tempfile.TemporaryDirectory() as temp_dir:
             script_name = 'my_script'
-            logger = plog.initialise_logger(script_name, log_dir=temp_dir)
+            _ = plog.initialise_logger(script_name, log_dir=temp_dir)
 
             # Find log files
             log_files = [f for f in os.listdir(temp_dir) if f.startswith(script_name)]
