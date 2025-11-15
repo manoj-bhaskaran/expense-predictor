@@ -78,7 +78,7 @@ class TestDataPreprocessingPipeline:
         })
         df.to_csv(csv_path, index=False)
 
-        X, y, processed_df = preprocess_and_append_csv(csv_path, logger=mock_logger)
+        _, _, processed_df = preprocess_and_append_csv(csv_path, logger=mock_logger)
 
         # Check that duplicate was removed and last value was kept
         # The processed dataframe will have many rows due to date filling
@@ -92,7 +92,7 @@ class TestModelTrainingPipeline:
 
     def test_linear_regression_training(self, sample_csv_path, mock_logger):
         """Test Linear Regression model training."""
-        X, y, df = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
+        X, y, _ = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
 
         # Train model
         model = LinearRegression()
@@ -108,14 +108,15 @@ class TestModelTrainingPipeline:
 
     def test_decision_tree_training(self, sample_csv_path, mock_logger):
         """Test Decision Tree model training with config parameters."""
-        X, y, df = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
+        X, y, _ = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
 
         # Train model with config parameters
         model = DecisionTreeRegressor(
             max_depth=config['decision_tree']['max_depth'],
             min_samples_split=config['decision_tree']['min_samples_split'],
             min_samples_leaf=config['decision_tree']['min_samples_leaf'],
-            random_state=config['decision_tree']['random_state']
+            random_state=config['decision_tree']['random_state'],
+            ccp_alpha=0.0
         )
         model.fit(X, y)
 
@@ -128,13 +129,15 @@ class TestModelTrainingPipeline:
 
     def test_random_forest_training(self, sample_csv_path, mock_logger):
         """Test Random Forest model training with config parameters."""
-        X, y, df = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
+        X, y, _ = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
 
         # Train model
         model = RandomForestRegressor(
             n_estimators=config['random_forest']['n_estimators'],
             max_depth=config['random_forest']['max_depth'],
-            random_state=config['random_forest']['random_state']
+            random_state=config['random_forest']['random_state'],
+            min_samples_leaf=1,
+            max_features=1.0
         )
         model.fit(X, y)
 
@@ -147,7 +150,7 @@ class TestModelTrainingPipeline:
 
     def test_gradient_boosting_training(self, sample_csv_path, mock_logger):
         """Test Gradient Boosting model training with config parameters."""
-        X, y, df = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
+        X, y, _ = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
 
         # Train model
         model = GradientBoostingRegressor(
@@ -171,12 +174,12 @@ class TestTrainTestSplit:
 
     def test_train_test_split_ratio(self, sample_csv_path, mock_logger):
         """Test that train/test split uses correct ratio from config."""
-        X, y, df = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
+        X, y, _ = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
 
         test_size = config['model_evaluation']['test_size']
         random_state = config['model_evaluation']['random_state']
 
-        X_train, X_test, y_train, y_test = train_test_split(
+        X_train, X_test, _, _ = train_test_split(
             X, y, test_size=test_size, shuffle=False, random_state=random_state
         )
 
@@ -190,12 +193,12 @@ class TestTrainTestSplit:
 
     def test_train_test_split_temporal_order(self, sample_csv_path, mock_logger):
         """Test that split preserves temporal order (shuffle=False)."""
-        X, y, df = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
+        X, y, _ = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
 
         test_size = config['model_evaluation']['test_size']
         random_state = config['model_evaluation']['random_state']
 
-        X_train, X_test, y_train, y_test = train_test_split(
+        X_train, X_test, _, _ = train_test_split(
             X, y, test_size=test_size, shuffle=False, random_state=random_state
         )
 
@@ -208,7 +211,7 @@ class TestModelEvaluation:
 
     def test_evaluation_metrics_calculation(self, sample_csv_path, mock_logger):
         """Test that evaluation metrics are calculated correctly."""
-        X, y, df = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
+        X, y, _ = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
 
         # Train simple model
         model = LinearRegression()
@@ -230,7 +233,7 @@ class TestModelEvaluation:
 
     def test_metrics_on_train_and_test_sets(self, sample_csv_path, mock_logger):
         """Test metrics calculation on both train and test sets."""
-        X, y, df = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
+        X, y, _ = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
 
         test_size = config['model_evaluation']['test_size']
         random_state = config['model_evaluation']['random_state']
@@ -269,7 +272,7 @@ class TestFuturePredictionPipeline:
     def test_future_prediction_generation(self, sample_csv_path, mock_logger):
         """Test complete future prediction pipeline."""
         # Load and preprocess data
-        X, y, df = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
+        X, y, _ = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
 
         # Train model
         model = LinearRegression()
@@ -292,7 +295,7 @@ class TestFuturePredictionPipeline:
 
     def test_prediction_output_format(self, sample_csv_path, mock_logger):
         """Test that prediction output has correct format."""
-        X, y, df = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
+        X, y, _ = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
 
         # Train model
         model = LinearRegression()
@@ -325,10 +328,10 @@ class TestFuturePredictionPipeline:
 
     def test_feature_alignment(self, sample_csv_path, mock_logger):
         """Test that future features are correctly aligned with training features."""
-        X, y, df = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
+        X, _, _ = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
 
         # Prepare future dates
-        future_df, future_dates = prepare_future_dates()
+        future_df, _ = prepare_future_dates()
 
         # Align features
         future_df_aligned = future_df.reindex(columns=X.columns, fill_value=0)
@@ -346,7 +349,7 @@ class TestFullEndToEndPipeline:
     def test_complete_pipeline(self, sample_csv_path, temp_dir, mock_logger):
         """Test complete pipeline from CSV to prediction output."""
         # 1. Load and preprocess data
-        X, y, df = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
+        X, y, _ = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
 
         # 2. Split data
         test_size = config['model_evaluation']['test_size']
