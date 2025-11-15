@@ -92,18 +92,38 @@ Command-line arguments control file paths and runtime behavior. No environment v
 
 ## Usage
 
-### Basic Usage
+The Expense Predictor can be run in two ways:
 
-Run the model with default settings (uses current quarter end as prediction date):
+### Method 1: As an Installed Package (Recommended)
 
+After installing the package with `pip install .` or `pip install -e .`, you can use the `expense-predictor` command:
+
+**Basic Usage:**
+```bash
+expense-predictor --data_file trandata.csv
+```
+
+**Advanced Usage:**
+```bash
+expense-predictor \
+  --future_date 31/12/2025 \
+  --data_file ./data/trandata.csv \
+  --excel_dir ./data \
+  --excel_file bank_statement.xls \
+  --log_dir ./logs \
+  --output_dir ./predictions
+```
+
+### Method 2: As a Python Script
+
+You can also run the script directly without installation:
+
+**Basic Usage:**
 ```bash
 python model_runner.py --data_file trandata.csv
 ```
 
-### Advanced Usage
-
-Specify a custom future date and additional data sources:
-
+**Advanced Usage:**
 ```bash
 python model_runner.py \
   --future_date 31/12/2025 \
@@ -289,7 +309,7 @@ logs/model_runner.py_YYYY-MM-DD_HH-MM-SS.log
 
 You can customize the log directory using the `--log_dir` command-line argument:
 ```bash
-python model_runner.py --data_file trandata.csv --log_dir ./my_logs
+expense-predictor --data_file trandata.csv --log_dir ./my_logs
 ```
 
 ### Logger Parameter
@@ -336,13 +356,13 @@ The application protects against accidental data loss:
 
 Example with confirmation prompts:
 ```bash
-python model_runner.py --data_file trandata.csv
+expense-predictor --data_file trandata.csv
 # Will prompt: "File 'future_predictions_linear_regression.csv' already exists. Overwrite? [y/N]:"
 ```
 
 Example for automated workflows (no prompts):
 ```bash
-python model_runner.py --data_file trandata.csv --skip_confirmation
+expense-predictor --data_file trandata.csv --skip_confirmation
 # Overwrites without confirmation, but still creates backups
 ```
 
@@ -563,7 +583,7 @@ After modifying `config.yaml`, simply run the script again - no code changes nee
 - **Solution**: These are security protections. Ensure you're using valid file paths without `../` patterns and that files have correct extensions (.csv, .xls, or .xlsx).
 
 **Issue**: File overwrite confirmation prompts blocking automation
-- **Solution**: Use the `--skip_confirmation` flag to disable prompts: `python model_runner.py --data_file trandata.csv --skip_confirmation`
+- **Solution**: Use the `--skip_confirmation` flag to disable prompts: `expense-predictor --data_file trandata.csv --skip_confirmation`
 
 **Issue**: Cannot find backup files
 - **Solution**: Backup files are created with timestamps in the same directory as the output file. Look for files with `.backup_YYYYMMDD_HHMMSS` suffix.
