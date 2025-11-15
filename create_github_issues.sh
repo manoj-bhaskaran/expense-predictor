@@ -25,6 +25,7 @@ ISSUES_DIR="${SCRIPT_DIR}/github_issues"
 # Configuration
 DRY_RUN=false
 VERBOSE=false
+SKIP_LABELS=false
 REPO=""
 CREATED_COUNT=0
 FAILED_COUNT=0
@@ -514,6 +515,10 @@ parse_arguments() {
                 VERBOSE=true
                 shift
                 ;;
+            --skip-labels)
+                SKIP_LABELS=true
+                shift
+                ;;
             --repo)
                 REPO="$2"
                 shift 2
@@ -543,6 +548,7 @@ ${BOLD}Description:${NC}
 ${BOLD}Options:${NC}
   --dry-run         Show what would be created without actually creating issues
   --verbose, -v     Show verbose output including gh commands being executed
+  --skip-labels     Skip automatic label creation (useful if gh label commands hang)
   --repo OWNER/REPO Specify the repository (default: auto-detect from git)
   -h, --help        Show this help message
 
@@ -604,11 +610,15 @@ main() {
         print_info "Running in dry-run mode for repository: ${REPO}"
     fi
 
-    # Check and create labels (skip in dry-run mode)
-    if [ "$DRY_RUN" = false ]; then
+    # Check and create labels (skip in dry-run mode or if --skip-labels flag set)
+    if [ "$DRY_RUN" = false ] && [ "$SKIP_LABELS" = false ]; then
         check_and_create_labels
     else
-        print_info "Skipping label creation in dry-run mode"
+        if [ "$SKIP_LABELS" = true ]; then
+            print_warning "Skipping label creation (--skip-labels flag set)"
+        else
+            print_info "Skipping label creation in dry-run mode"
+        fi
         echo ""
     fi
 
