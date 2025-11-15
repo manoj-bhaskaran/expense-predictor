@@ -47,11 +47,12 @@ jobs:
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
       if: matrix.python-version == '3.11'
+      continue-on-error: true  # Optional: Don't fail if Codecov token not set
       with:
         file: ./coverage.xml
         flags: unittests
         name: codecov-umbrella
-        fail_ci_if_error: true
+        fail_ci_if_error: false
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
@@ -66,6 +67,7 @@ jobs:
 
     - name: Comment PR with coverage
       if: github.event_name == 'pull_request' && matrix.python-version == '3.11'
+      continue-on-error: true  # Optional: Don't fail if PR comment fails
       uses: py-cov-action/python-coverage-comment-action@v3
       with:
         GITHUB_TOKEN: ${{ github.token }}
