@@ -4,7 +4,7 @@
 # Core ML and Data Processing
 numpy==1.26.4
 pandas==2.2.0
-scikit-learn==1.4.0
+scikit-learn==1.5.0
 
 # Excel file support
 xlrd==2.0.1
