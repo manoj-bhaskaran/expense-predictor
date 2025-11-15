@@ -19,6 +19,7 @@ import argparse
 from model_runner import parse_args, main
 
 
+@pytest.mark.unit
 class TestParseArgs:
     """Test command-line argument parsing."""
 
@@ -92,6 +93,8 @@ class TestParseArgs:
         assert args.skip_confirmation is True
 
 
+@pytest.mark.integration
+@pytest.mark.slow
 class TestMainExecutionFlow:
     """Test the main execution flow of model_runner."""
 
@@ -232,6 +235,7 @@ class TestMainExecutionFlow:
         assert len(output_files) > 0
 
 
+@pytest.mark.unit
 class TestErrorHandling:
     """Test error handling in model_runner CLI."""
 
@@ -250,6 +254,8 @@ class TestErrorHandling:
             main(args)
 
 
+@pytest.mark.integration
+@pytest.mark.slow
 class TestArgumentCombinations:
     """Test various combinations of CLI arguments."""
 
@@ -337,6 +343,8 @@ class TestArgumentCombinations:
                 os.remove(os.path.join(temp_data['output_dir'], file))
 
 
+@pytest.mark.integration
+@pytest.mark.slow
 class TestModelOutputVerification:
     """Test that all models produce valid output."""
 
@@ -433,6 +441,7 @@ class TestModelOutputVerification:
                 assert len(df) > 0
 
 
+@pytest.mark.integration
 class TestLoggingIntegration:
     """Test logging integration in main execution."""
 

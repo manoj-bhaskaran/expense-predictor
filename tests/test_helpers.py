@@ -33,6 +33,8 @@ from helpers import (
 from exceptions import DataValidationError
 
 
+@pytest.mark.unit
+@pytest.mark.validation
 class TestValidateCsvFile:
     """Tests for validate_csv_file function."""
 
@@ -67,6 +69,8 @@ class TestValidateCsvFile:
         validate_csv_file(sample_csv_path)
 
 
+@pytest.mark.unit
+@pytest.mark.validation
 class TestValidateExcelFile:
     """Tests for validate_excel_file function."""
 
@@ -86,6 +90,8 @@ class TestValidateExcelFile:
             validate_excel_file(temp_dir, logger=mock_logger)
 
 
+@pytest.mark.unit
+@pytest.mark.validation
 class TestValidateDateRange:
     """Tests for validate_date_range function."""
 
@@ -120,6 +126,7 @@ class TestValidateDateRange:
         validate_date_range(sample_dataframe)
 
 
+@pytest.mark.unit
 class TestFindColumnName:
     """Tests for find_column_name function."""
 
@@ -154,6 +161,7 @@ class TestFindColumnName:
         assert result is None
 
 
+@pytest.mark.unit
 class TestGetQuarterEndDate:
     """Tests for get_quarter_end_date function."""
 
@@ -207,6 +215,8 @@ class TestGetQuarterEndDate:
         assert result == expected
 
 
+@pytest.mark.unit
+@pytest.mark.validation
 class TestGetTrainingDateRange:
     """Tests for get_training_date_range function."""
 
@@ -323,6 +333,7 @@ class TestGetTrainingDateRange:
         assert result[-1] == yesterday
 
 
+@pytest.mark.integration
 class TestPreprocessData:
     """Tests for preprocess_data function."""
 
@@ -361,6 +372,7 @@ class TestPreprocessData:
             preprocess_data("/nonexistent/file.csv", logger=mock_logger)
 
 
+@pytest.mark.unit
 class TestPrepareFutureDates:
     """Tests for prepare_future_dates function."""
 
@@ -421,6 +433,7 @@ class TestPrepareFutureDates:
             assert future_df.loc[idx, 'Day of the Month'] == date.day
 
 
+@pytest.mark.unit
 class TestWritePredictions:
     """Tests for write_predictions function."""
 
@@ -500,6 +513,7 @@ class TestWritePredictions:
         assert os.path.exists(output_path)
 
 
+@pytest.mark.unit
 class TestConstants:
     """Test that constants are defined correctly."""
 

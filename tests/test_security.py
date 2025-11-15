@@ -29,6 +29,7 @@ from security import (
 )
 
 
+@pytest.mark.unit
 class TestValidateAndResolvePath:
     """Tests for validate_and_resolve_path function."""
 
@@ -62,6 +63,7 @@ class TestValidateAndResolvePath:
         assert result.is_absolute()
 
 
+@pytest.mark.unit
 class TestValidateFilePath:
     """Tests for validate_file_path function."""
 
@@ -95,6 +97,7 @@ class TestValidateFilePath:
                 os.remove(temp_path)
 
 
+@pytest.mark.unit
 class TestValidateDirectoryPath:
     """Tests for validate_directory_path function."""
 
@@ -123,6 +126,7 @@ class TestValidateDirectoryPath:
             validate_directory_path("/nonexistent/directory", must_exist=True)
 
 
+@pytest.mark.unit
 class TestSanitizeCsvValue:
     """Tests for sanitize_csv_value function."""
 
@@ -178,6 +182,7 @@ class TestSanitizeCsvValue:
         assert result == ''
 
 
+@pytest.mark.unit
 class TestSanitizeDataframeForCsv:
     """Tests for sanitize_dataframe_for_csv function."""
 
@@ -218,6 +223,7 @@ class TestSanitizeDataframeForCsv:
         assert result.empty
 
 
+@pytest.mark.unit
 class TestCreateBackup:
     """Tests for create_backup function."""
 
@@ -263,6 +269,7 @@ class TestCreateBackup:
             os.remove(backup_path)
 
 
+@pytest.mark.unit
 class TestConfirmOverwrite:
     """Tests for confirm_overwrite function."""
 
@@ -285,6 +292,7 @@ class TestConfirmOverwrite:
         assert result is True
 
 
+@pytest.mark.unit
 class TestConstants:
     """Test that security constants are defined correctly."""
 

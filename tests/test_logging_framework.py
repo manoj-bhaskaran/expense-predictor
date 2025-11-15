@@ -15,6 +15,7 @@ from unittest.mock import patch, MagicMock
 import python_logging_framework as plog
 
 
+@pytest.mark.unit
 class TestInitialiseLogger:
     """Tests for initialise_logger function."""
 
@@ -97,6 +98,7 @@ class TestInitialiseLogger:
                 assert '%(message)s' in format_string
 
 
+@pytest.mark.unit
 class TestLogInfo:
     """Tests for log_info function."""
 
@@ -128,6 +130,7 @@ class TestLogInfo:
         assert f"INFO: {message}" in captured.out
 
 
+@pytest.mark.unit
 class TestLogError:
     """Tests for log_error function."""
 
@@ -159,6 +162,7 @@ class TestLogError:
         assert f"ERROR: {message}" in captured.out
 
 
+@pytest.mark.unit
 class TestLogWarning:
     """Tests for log_warning function."""
 
@@ -190,6 +194,7 @@ class TestLogWarning:
         assert f"WARNING: {message}" in captured.out
 
 
+@pytest.mark.unit
 class TestLogDebug:
     """Tests for log_debug function."""
 
@@ -221,6 +226,7 @@ class TestLogDebug:
         assert f"DEBUG: {message}" in captured.out
 
 
+@pytest.mark.unit
 class TestLoggingIntegration:
     """Integration tests for logging framework."""
 
