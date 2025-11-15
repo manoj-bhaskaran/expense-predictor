@@ -9,8 +9,8 @@
 #   ./create_github_issues.sh --dry-run
 ###############################################################################
 
-# Keep it simple for Git Bash: only exit on error
-set -e
+# Keep it simple for Git Bash – no set -e/pipefail
+# We will check errors manually where it matters.
 
 # Colours
 RED='\033[0;31m'
@@ -32,17 +32,10 @@ CREATED_COUNT=0
 SKIPPED_COUNT=0
 FAILED_COUNT=0
 
-# Global array of issue files
-ISSUE_FILES=()
-
-###############################################################################
-# Utility / printing
-###############################################################################
-
 info()    { echo -e "${BLUE}ℹ${NC}  $*"; }
 ok()      { echo -e "${GREEN}✓${NC}  $*"; }
 warn()    { echo -e "${YELLOW}⚠${NC}  $*"; }
-err()     { echo -e "${RED}✗${NC}  $*"; }
+err()     { echo -e "${RED}✗${NC}  $*" >&2; }
 step()    { echo -e "\n${BOLD}${MAGENTA}▶${NC} ${BOLD}$*${NC}"; }
 line()    { echo -e "${CYAN}──────────────────────────────────────────────────────────────${NC}"; }
 
@@ -51,10 +44,6 @@ header() {
     echo -e   "${BOLD}${CYAN}  GitHub Issue Creator${NC}"
     echo -e   "${BOLD}${CYAN}══════════════════════════════════════════════════════════════${NC}\n"
 }
-
-###############################################################################
-# Argument parsing
-###############################################################################
 
 usage() {
     cat <<EOF
@@ -91,10 +80,6 @@ parse_args() {
     done
 }
 
-###############################################################################
-# Environment / repo checks
-###############################################################################
-
 check_gh_cli() {
     step "Checking GitHub CLI"
     if ! command -v gh >/dev/null 2>&1; then
@@ -128,7 +113,7 @@ detect_repo() {
 
     if git -C "$SCRIPT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
         local url
-        url=$(git -C "$SCRIPT_DIR" remote get-url origin 2>/dev/null || true)
+        url=$(git -C "$SCRIPT_DIR" remote get-url origin 2>/dev/null || echo "")
         if [[ -n "$url" && "$url" =~ github\.com[:/]+([^/]+)/([^/.]+) ]]; then
             REPO="${BASH_REMATCH[1]}/${BASH_REMATCH[2]}"
             ok "Detected repository from git remote: $REPO"
@@ -145,29 +130,27 @@ detect_repo() {
     ok "Using repository: $REPO"
 }
 
-check_issues_dir() {
+get_issue_files() {
     step "Checking issue templates directory"
     if [[ ! -d "$ISSUES_DIR" ]]; then
         err "Directory not found: $ISSUES_DIR"
         exit 1
     fi
 
-    # Fill ISSUE_FILES array
-    mapfile -t ISSUE_FILES < <(find "$ISSUES_DIR" -maxdepth 1 -type f -name 'issue*' | sort)
+    shopt -s nullglob
+    local files=( "$ISSUES_DIR"/issue* )
+    shopt -u nullglob
 
-    local count="${#ISSUE_FILES[@]}"
-    if [[ "$count" -eq 0 ]]; then
+    if [[ ${#files[@]} -eq 0 ]]; then
         err "No issue* files found in $ISSUES_DIR"
         exit 1
     fi
 
-    ok "Found $count issue file(s) in $ISSUES_DIR"
+    ok "Found ${#files[@]} issue file(s) in $ISSUES_DIR"
+    ISSUE_FILES=( "${files[@]}" )
 }
 
-###############################################################################
-# Label parsing and management
-###############################################################################
-
+# Extract labels from a file's "## Labels" section
 extract_labels_from_file() {
     local file="$1"
     awk '
@@ -181,9 +164,22 @@ extract_labels_from_file() {
 }
 
 collect_all_labels() {
+    local lbl
+    local all=""
+
     for f in "${ISSUE_FILES[@]}"; do
-        extract_labels_from_file "$f"
-    done | sed '/^$/d' | sort -u
+        while read -r lbl; do
+            [[ -z "$lbl" ]] && continue
+            all+="$lbl"$'\n'
+        done < <(extract_labels_from_file "$f")
+    done
+
+    if [[ -z "$all" ]]; then
+        echo ""
+        return
+    fi
+
+    echo "$all" | sort -u
 }
 
 random_color() {
@@ -194,7 +190,7 @@ ensure_labels_exist() {
     step "Ensuring labels exist in repository"
 
     local labels
-    labels=$(collect_all_labels || true)
+    labels=$(collect_all_labels)
 
     if [[ -z "$labels" ]]; then
         info "No labels found in templates; skipping label creation."
@@ -211,7 +207,7 @@ ensure_labels_exist() {
 
     info "Fetching existing labels from GitHub..."
     local existing
-    existing=$(gh label list --repo "$REPO" --json name --jq '.[].name' 2>/dev/null || true)
+    existing=$(gh label list --repo "$REPO" --json name --jq '.[].name' 2>/dev/null || echo "")
 
     local created=0
     local already=0
@@ -237,10 +233,6 @@ ensure_labels_exist() {
     ok "Label sync complete: $already existing, $created created."
 }
 
-###############################################################################
-# Issue creation
-###############################################################################
-
 extract_title() {
     local file="$1"
     grep -m1 '^# ' "$file" | sed 's/^# //'
@@ -257,7 +249,7 @@ create_issue_from_file() {
     info "[$index/$total] Processing file: $fname"
 
     local title
-    title=$(extract_title "$file" || true)
+    title=$(extract_title "$file" || echo "")
     if [[ -z "$title" ]]; then
         warn "No title (# heading) found in $fname – skipping."
         ((SKIPPED_COUNT++))
@@ -269,11 +261,17 @@ create_issue_from_file() {
     local -a label_args=()
     while read -r lbl; do
         [[ -z "$lbl" ]] && continue
-        label_args+=("--label" "$lbl")
+        label_args+=( "--label" "$lbl" )
     done < <(extract_labels_from_file "$file")
 
-    if [[ "${#label_args[@]}" -gt 0 ]]; then
-        info "Labels: $(printf '%s ' "${label_args[@]}" | sed 's/--label //g')"
+    if [[ ${#label_args[@]} -gt 0 ]]; then
+        # Just show the label names (strip the "--label" tokens)
+        local show_labels=""
+        local i
+        for (( i=0; i<${#label_args[@]}; i+=2 )); do
+            show_labels+="${label_args[i+1]} "
+        done
+        info "Labels: $show_labels"
     else
         info "No labels for this issue."
     fi
@@ -284,7 +282,7 @@ create_issue_from_file() {
         --repo "$REPO" \
         --search "$title in:title" \
         --json number,title \
-        --jq '.[] | select(.title == "'"$title"'") | .number' 2>/dev/null || true)
+        --jq '.[] | select(.title == "'"$title"'") | .number' 2>/dev/null || echo "")
 
     if [[ -n "$existing" ]]; then
         warn "Issue already exists (#$existing) with this exact title – skipping."
@@ -325,10 +323,6 @@ create_all_issues() {
     done
 }
 
-###############################################################################
-# Main
-###############################################################################
-
 main() {
     header
     parse_args "$@"
@@ -340,7 +334,7 @@ main() {
     check_gh_cli
     check_gh_auth
     detect_repo
-    check_issues_dir
+    get_issue_files
     ensure_labels_exist
     create_all_issues
 
