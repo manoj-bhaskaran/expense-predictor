@@ -166,6 +166,30 @@ Each file contains:
 - `Date`: Future dates
 - `Predicted Tran Amt`: Predicted transaction amounts
 
+## Documentation
+
+Comprehensive documentation is available:
+
+- **[README.md](README.md)** - This file - overview, installation, and usage
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture, design decisions, and model selection rationale
+- **[MODELS.md](MODELS.md)** - Model evaluation guide and hyperparameter tuning
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contribution guidelines for developers
+- **[DATA.md](DATA.md)** - Data format specifications and requirements
+- **[CHANGELOG.md](CHANGELOG.md)** - Version history and release notes
+- **[API Documentation](docs/)** - Auto-generated API documentation (Sphinx)
+
+### Building API Documentation
+
+To build the HTML API documentation:
+
+```bash
+cd docs
+make html
+open _build/html/index.html  # View in browser
+```
+
+See [docs/README.md](docs/README.md) for details.
+
 ## Project Structure
 
 ```
@@ -180,10 +204,19 @@ expense-predictor/
 ├── pytest.ini               # Pytest configuration
 ├── .coveragerc             # Coverage configuration
 ├── .env.example            # Example environment configuration
+├── sample_data.csv         # Sample transaction data for testing
 ├── README.md               # This file
+├── ARCHITECTURE.md         # Architecture and design documentation
+├── MODELS.md               # Model evaluation and tuning guide
+├── CONTRIBUTING.md         # Contribution guidelines
 ├── LICENSE                 # MIT License
 ├── CHANGELOG.md            # Version history
 ├── DATA.md                 # Data format documentation
+├── docs/                   # Sphinx API documentation
+│   ├── conf.py             # Sphinx configuration
+│   ├── index.rst           # Documentation home page
+│   ├── api/                # API reference documentation
+│   └── Makefile            # Documentation build script
 ├── tests/                  # Test suite
 │   ├── conftest.py         # Pytest fixtures and configuration
 │   ├── test_helpers.py     # Unit tests for helpers.py

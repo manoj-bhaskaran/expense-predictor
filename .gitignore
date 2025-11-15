@@ -36,3 +36,10 @@ ENV/
 *.xls
 *.xlsx
 !tests/test_data/*.csv
+!sample_data.csv
+
+# Documentation
+docs/_build/
+docs/_static/
+docs/_templates/
+docs/_autosummary/

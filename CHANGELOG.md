@@ -7,6 +7,120 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2025-11-15
+
+### Added
+
+- **Comprehensive Documentation** ([#51](https://github.com/manoj-bhaskaran/expense-predictor/issues/51))
+  - **ARCHITECTURE.md**: Complete architecture and design documentation
+    - System overview with component diagram
+    - Detailed model selection rationale for all four models
+    - Feature engineering justification and implementation details
+    - Data flow diagrams for each pipeline stage
+    - Performance benchmarking guidelines and expected ranges
+    - Design decisions with explanations (train/test split, YAML config, CLI, etc.)
+    - Security architecture and defense-in-depth strategy
+    - Scalability considerations and future enhancements
+
+  - **MODELS.md**: Model evaluation and selection guide
+    - Detailed explanation of each model's strengths and weaknesses
+    - Comprehensive interpretation guide for RMSE, MAE, and R² metrics
+    - Model comparison framework with decision flowchart
+    - Scenario-based model recommendations
+    - Hyperparameter tuning guide with practical examples
+    - Common issues and solutions
+    - Step-by-step example workflow
+
+  - **CONTRIBUTING.md**: Complete contribution guidelines
+    - Code of conduct and standards
+    - Development setup instructions
+    - Detailed development workflow (branching, testing, committing)
+    - Code style guidelines with PEP 8 specifics
+    - Docstring format with examples (Google-style)
+    - Testing requirements and best practices
+    - Pull request process and template
+    - Commit message guidelines (Conventional Commits)
+    - Documentation guidelines
+    - Bug report and feature request templates
+
+  - **API Documentation (Sphinx)**:
+    - Complete Sphinx documentation setup in `docs/` directory
+    - Auto-generated API reference from docstrings
+    - Module documentation for model_runner, helpers, security, config
+    - Installation guide (docs/installation.rst)
+    - Configuration with sphinx-rtd-theme
+    - Makefile for building HTML, PDF, and other formats
+    - Documentation README with build instructions
+
+  - **Sample Data**:
+    - Added `sample_data.csv` with 3 months of realistic transaction data
+    - 91 sample transactions with varying amounts
+    - Properly formatted for immediate testing
+    - Excluded from .gitignore for easy access
+
+### Changed
+
+- **README.md Updates** ([#51](https://github.com/manoj-bhaskaran/expense-predictor/issues/51))
+  - Added new "Documentation" section with links to all documentation
+  - Updated project structure to include new documentation files
+  - Added instructions for building Sphinx documentation
+  - Improved organization with clear navigation to specialized docs
+
+- **.gitignore Updates** ([#51](https://github.com/manoj-bhaskaran/expense-predictor/issues/51))
+  - Added exception for `sample_data.csv` to include in repository
+  - Added Sphinx build directories (`docs/_build/`, `docs/_static/`, etc.)
+  - Ensures documentation build artifacts are not committed
+
+### Documentation
+
+This release focuses entirely on filling critical documentation gaps:
+
+**Before v1.7.0**:
+- Basic README with usage instructions
+- DATA.md with data format details
+- CHANGELOG with version history
+- Code had good docstrings but no compiled API docs
+
+**After v1.7.0**:
+- ✅ Architecture documentation explaining design decisions
+- ✅ Model evaluation guide for choosing and tuning models
+- ✅ Contribution guidelines for developers
+- ✅ Auto-generated API documentation (Sphinx)
+- ✅ Sample data included in repository
+- ✅ Clear navigation between all documentation
+
+**Documentation Coverage**:
+- Project description and purpose ✓
+- Features and capabilities ✓ (README.md)
+- Installation instructions ✓ (README.md, docs/installation.rst)
+- Usage examples ✓ (README.md)
+- Data format requirements ✓ (DATA.md)
+- Model performance benchmarks ✓ (ARCHITECTURE.md, MODELS.md)
+- Troubleshooting guide ✓ (README.md)
+- Contributing guidelines ✓ (CONTRIBUTING.md)
+- License information ✓ (README.md, LICENSE)
+- API documentation ✓ (docs/)
+- Schema definition ✓ (DATA.md)
+- Sample data ✓ (sample_data.csv)
+- ML model selection rationale ✓ (ARCHITECTURE.md)
+- Feature engineering justification ✓ (ARCHITECTURE.md)
+- Configuration guide ✓ (README.md, docs/api/config.rst)
+
+### Improved
+
+- **Developer Experience**: Comprehensive contribution guidelines make it easier for new contributors
+- **User Experience**: Clear model selection guide helps users choose the right model
+- **Maintainability**: Architecture documentation preserves design decisions
+- **Discoverability**: Centralized documentation section in README
+- **Onboarding**: Sample data allows immediate experimentation
+- **API Reference**: Sphinx documentation provides searchable API reference
+
+### Notes
+
+This is a documentation-only release with no code changes. All previous functionality remains unchanged. Users can upgrade without any breaking changes.
+
+The project now has comprehensive documentation covering all aspects from high-level architecture to low-level API details.
+
 ## [1.6.0] - 2025-11-15
 
 ### Added
@@ -586,6 +700,7 @@ When reporting issues, please include:
 
 ---
 
+[1.7.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.7.0
 [1.6.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.6.0
 [1.5.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.5.0
 [1.4.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.4.0
