@@ -1,6 +1,3 @@
-```bash
-#!/usr/bin/env bash
-
 ################################################################################
 # Script: create_github_issues.sh
 # Description: Automatically create GitHub issues from markdown templates
@@ -775,4 +772,3 @@ main() {
 
 # Run main function
 main "$@"
-```
