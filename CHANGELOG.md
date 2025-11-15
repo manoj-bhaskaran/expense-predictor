@@ -7,6 +7,119 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.0] - 2025-11-15
+
+### Added
+
+- **Dependency Management Improvements** ([#52](https://github.com/manoj-bhaskaran/expense-predictor/issues/52))
+  - Created `setup.py` with proper package configuration
+    - Includes `python_requires=">=3.9"` to enforce minimum Python version
+    - Specifies all dependencies with pinned versions
+    - Includes package metadata and classifiers
+    - Defines console script entry point for `expense-predictor` command
+    - Supports optional development dependencies via `extras_require`
+
+  - Created `.python-version` file
+    - Specifies Python 3.9 as the default version
+    - Used by tools like pyenv for automatic version selection
+    - Ensures consistent Python version across development environments
+
+  - Added `bandit` security scanner to development dependencies
+    - Version 1.7.5 for Python code security analysis
+    - Complements existing security scanning workflow
+
+### Changed
+
+- **Pinned All Dependencies** ([#52](https://github.com/manoj-bhaskaran/expense-predictor/issues/52))
+  - **Production dependencies** (`requirements.txt`):
+    - `numpy==1.26.4` (was unpinned)
+    - `pandas==2.2.0` (was unpinned)
+    - `scikit-learn==1.4.0` (was unpinned)
+    - `xlrd==2.0.1` (was unpinned)
+    - `pyyaml==6.0.1` (was unpinned)
+    - Added clear section headers and comments for better organization
+    - Kept GitHub dependency for `python_logging_framework` (author's own package)
+
+  - **Development dependencies** (`requirements-dev.txt`):
+    - Changed all `>=` version specifiers to `==` for exact versions
+    - `pytest==7.4.0`, `pytest-cov==4.1.0`, `pytest-mock==3.11.1`
+    - `flake8==6.1.0`, `black==23.7.0`, `isort==5.12.0`, `mypy==1.5.0`
+    - `sphinx==7.1.0`, `pre-commit==3.4.0`, and all other dev tools
+    - Added `bandit==1.7.5` for security scanning
+    - Updated `matplotlib==3.8.0`, `seaborn==0.13.0` to stable versions
+
+- **Documentation Updates** ([#52](https://github.com/manoj-bhaskaran/expense-predictor/issues/52))
+  - **README.md**:
+    - Fixed Python version inconsistency (was "3.7+" in Requirements, "3.9+" in badge)
+    - Now consistently specifies "Python 3.9 or higher" throughout
+    - Added note about tested Python versions (3.9, 3.10, 3.11)
+    - Updated project structure to include `setup.py` and `.python-version`
+    - Clarified that `requirements.txt` contains pinned versions
+
+### Fixed
+
+- **Python Version Specification** ([#52](https://github.com/manoj-bhaskaran/expense-predictor/issues/52))
+  - Resolved inconsistency between README (Python 3.7+) and badge (Python 3.9+)
+  - Now consistently requires Python 3.9+ across all documentation and configuration
+  - Aligns with CI/CD test matrix (Python 3.9, 3.10, 3.11)
+
+- **Dependency Version Compatibility** ([#52](https://github.com/manoj-bhaskaran/expense-predictor/issues/52))
+  - Pinned all dependency versions to prevent breaking changes from newer versions
+  - Eliminates risk of unexpected behavior from automatic dependency upgrades
+  - Ensures reproducible builds across different environments and time periods
+  - Removed local path dependency issue (was already fixed in v1.0.1)
+
+### Improved
+
+- **Development Experience** ([#52](https://github.com/manoj-bhaskaran/expense-predictor/issues/52))
+  - Developers can now install the package in editable mode: `pip install -e .`
+  - Development dependencies installable via: `pip install -e ".[dev]"`
+  - Consistent Python version across team via `.python-version` file
+  - No more "works on my machine" issues from version drift
+
+- **Deployment and Distribution** ([#52](https://github.com/manoj-bhaskaran/expense-predictor/issues/52))
+  - Package installable via standard Python tools (pip, setuptools)
+  - Can be built and distributed as a wheel: `python setup.py bdist_wheel`
+  - Console script `expense-predictor` available after installation
+  - Proper package metadata for PyPI compatibility (future publishing)
+
+- **Dependency Security** ([#52](https://github.com/manoj-bhaskaran/expense-predictor/issues/52))
+  - Pinned versions allow targeted security updates
+  - Dependabot can now suggest specific version updates
+  - Security scanning (Bandit, Safety) works with known dependency versions
+  - Reproducible security audits across time
+
+- **Build Reproducibility** ([#52](https://github.com/manoj-bhaskaran/expense-predictor/issues/52))
+  - Same dependencies installed regardless of when/where build occurs
+  - CI/CD builds are now fully reproducible
+  - Easier to debug dependency-related issues
+  - Clear upgrade path when updating dependencies
+
+### Notes
+
+**Breaking Changes**: None. This is a backward-compatible release.
+
+**Migration Guide**:
+1. If you have an existing installation, reinstall dependencies:
+   ```bash
+   pip install -r requirements.txt
+   pip install -r requirements-dev.txt  # for development
+   ```
+
+2. Or use the new setup.py:
+   ```bash
+   pip install -e .              # production dependencies
+   pip install -e ".[dev]"       # with development dependencies
+   ```
+
+3. If using pyenv or similar tools, the `.python-version` file will automatically select Python 3.9
+
+**Version Justification**:
+- Minor version bump (1.7.0 → 1.8.0) per Semantic Versioning
+- Adds new features (setup.py, .python-version) without breaking changes
+- Improves dependency tracking and compatibility (non-breaking enhancement)
+- No API changes or removal of functionality
+
 ## [1.7.0] - 2025-11-15
 
 ### Added
@@ -700,6 +813,7 @@ When reporting issues, please include:
 
 ---
 
+[1.8.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.8.0
 [1.7.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.7.0
 [1.6.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.6.0
 [1.5.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.5.0
