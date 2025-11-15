@@ -253,7 +253,7 @@ check_and_create_labels() {
     IFS=',' read -ra LABELS <<< "$needed_labels"
     local total_labels=${#LABELS[@]}
     local current=0
-    print_info "Here 1"
+    print_info "${LABELS[@]}"
     for label in "${LABELS[@]}"; do
         ((current++))
         # Trim whitespace
