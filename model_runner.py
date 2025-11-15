@@ -57,6 +57,17 @@ load_dotenv()
 # Get the directory where this script is located
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# Set up command-line argument parsing
+parser = argparse.ArgumentParser(description='Expense Predictor')
+parser.add_argument('--future_date', type=str, help='Future date for prediction (e.g., 31/12/2025)')
+parser.add_argument('--excel_dir', type=str, default='.', help='Directory where the Excel file is located')
+parser.add_argument('--excel_file', type=str, help='Name of the Excel file containing additional data')
+parser.add_argument('--data_file', type=str, default='trandata.csv', help='Path to the CSV file containing transaction data')
+parser.add_argument('--log_dir', type=str, default='logs', help='Directory where log files will be saved')
+parser.add_argument('--output_dir', type=str, default='.', help='Directory where prediction files will be saved')
+parser.add_argument('--skip_confirmation', action='store_true', help='Skip confirmation prompts for overwriting files (useful for automation)')
+parser.add_argument('--log-level', type=str, default=None, choices=['DEBUG','INFO','WARNING','ERROR','CRITICAL'], help='Logging level (overrides env and config)')
+args = parser.parse_args()
 
 def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
     """
@@ -132,14 +143,23 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
     )
     return parser.parse_args(args)
 
+# Normalize and validate
+accepted = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
+if not isinstance(log_level_str, str) or log_level_str.upper() not in accepted:
+    logging.warning(f"Invalid log level '{log_level_str}', defaulting to INFO")
+    log_level_str = 'INFO'
+else:
+    log_level_str = log_level_str.upper()
 
 def get_future_date(future_date_arg: Optional[str], logger: logging.Logger) -> str:
     """
     Get the future date for predictions.
 
-    Args:
-        future_date_arg: Date string in DD/MM/YYYY format or None.
-        logger: Logger instance.
+logger = plog.initialise_logger(
+    script_name='model_runner.py',
+    log_dir=log_dir_path,
+    log_level=log_level
+)
 
     Returns:
         str: Future date in DD-MM-YYYY format for predictions.
