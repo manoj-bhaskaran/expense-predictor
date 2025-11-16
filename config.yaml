@@ -25,6 +25,14 @@ model_evaluation:
   # Default: 42
   random_state: 42
 
+  # Minimum total samples required for training
+  # Default: 30 (recommended minimum for meaningful ML predictions)
+  min_total_samples: 30
+
+  # Minimum test samples required after split
+  # Default: 10 (ensures adequate test set for evaluation)
+  min_test_samples: 10
+
 # Model Hyperparameters
 # These parameters control the behavior and complexity of each machine learning model
 

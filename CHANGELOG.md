@@ -7,6 +7,112 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.18.0] - 2025-11-16
+
+### Added
+
+- **Minimum Data Validation Before Model Training** ([#108](https://github.com/manoj-bhaskaran/expense-predictor/issues/108))
+  - Added `validate_minimum_data()` function to validate sufficient training data (helpers.py:214-257)
+  - Validates minimum total samples (default: 30) before attempting model training
+  - Validates minimum test samples (default: 10) after train/test split
+  - Prevents runtime errors with insufficient data
+  - Provides clear, actionable error messages guiding users on data requirements
+  - Integrated into model_runner.py main() execution flow (model_runner.py:410-413)
+  - Called after data preprocessing, before train_test_split
+
+- **Configurable Data Validation Thresholds** ([#108](https://github.com/manoj-bhaskaran/expense-predictor/issues/108))
+  - Added `min_total_samples` parameter to config.yaml (default: 30)
+  - Added `min_test_samples` parameter to config.yaml (default: 10)
+  - Users can customize thresholds based on their specific use case
+  - Graceful fallback to defaults if parameters not present in config
+
+### Changed
+
+- **Enhanced Error Messages** ([#108](https://github.com/manoj-bhaskaran/expense-predictor/issues/108))
+  - Insufficient data errors now include specific sample counts
+  - Error messages suggest concrete actions (add more data or adjust config)
+  - Test size validation considers configured test_size ratio
+  - Logs validation success with sample counts for transparency
+
+### Documentation
+
+- **README.md** ([#108](https://github.com/manoj-bhaskaran/expense-predictor/issues/108))
+  - Added comprehensive "Data Requirements" section
+  - Documented minimum sample requirements (30 total, 10 test)
+  - Explained configurable thresholds in config.yaml
+  - Provided guidance on what happens when data is insufficient
+  - Recommended 100+ transactions for best results
+
+- **config.yaml** ([#108](https://github.com/manoj-bhaskaran/expense-predictor/issues/108))
+  - Added detailed comments for min_total_samples parameter
+  - Added detailed comments for min_test_samples parameter
+  - Explained rationale for default values
+
+### Improved
+
+- **User Experience** ([#108](https://github.com/manoj-bhaskaran/expense-predictor/issues/108))
+  - Users receive clear error messages instead of cryptic failures
+  - Validation happens early, before expensive computation
+  - Error messages guide users on next steps
+  - Sets proper expectations about data requirements
+
+- **Code Reliability** ([#108](https://github.com/manoj-bhaskaran/expense-predictor/issues/108))
+  - Prevents crashes during train_test_split with 1 sample
+  - Prevents meaningless results with 2-5 samples
+  - Detects severe overfitting scenarios (5-20 samples) before training
+  - Validates test set size to ensure meaningful evaluation
+
+- **Developer Experience** ([#108](https://github.com/manoj-bhaskaran/expense-predictor/issues/108))
+  - Validation function is reusable and well-documented
+  - Clear separation of concerns (validation vs. training)
+  - Configurable thresholds enable different use cases
+  - Comprehensive logging for debugging
+
+### Impact
+
+- **Severity**: Critical
+- **Affected Functionality**: Model training pipeline
+- **User Impact**: Better error handling and guidance for insufficient data
+- **Breaking Changes**: None - backward compatible enhancement
+
+### Technical Details
+
+- **Files Modified**:
+  - `helpers.py` (added validate_minimum_data function, lines 214-257)
+  - `model_runner.py` (added validation call, lines 410-413; updated imports, lines 51-57)
+  - `config.yaml` (added min_total_samples and min_test_samples parameters, lines 28-34)
+  - `README.md` (added Data Requirements section)
+  - `CHANGELOG.md` (this file)
+  - `setup.py` (version bumped to 1.18.0)
+  - `tests/__init__.py` (version bumped to 1.18.0)
+
+- **Code References**:
+  - `helpers.py:214-257` - validate_minimum_data() function implementation
+  - `model_runner.py:410-413` - Validation call before train_test_split
+  - `config.yaml:28-34` - New configuration parameters
+
+### Notes
+
+**Version Justification**:
+- Minor version bump (1.17.2 → 1.18.0) per Semantic Versioning
+- New feature: Data validation before model training
+- Backward compatible: existing code works unchanged
+- No breaking changes to API or behavior
+- Enhancement prevents runtime failures
+
+**Benefits**:
+- Better user experience with clear error messages
+- Prevents wasted computation on insufficient data
+- Sets proper expectations about data requirements
+- Helps users understand why predictions might be poor
+- Early failure is better than cryptic late failure
+
+**Testing**:
+- Validation function uses existing DataValidationError exception
+- Integrates with existing logging framework (plog)
+- Uses existing config loading mechanism
+- No new dependencies required
+
 ## [1.17.2] - 2025-11-16
 
 ### Fixed

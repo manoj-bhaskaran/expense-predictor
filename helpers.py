@@ -211,6 +211,49 @@ def find_column_name(df_columns: pd.Index, expected_name: str) -> Optional[str]:
     return None
 
 
+def validate_minimum_data(
+    X: pd.DataFrame, min_total: int = 30, min_test: int = 10, logger: Optional[logging.Logger] = None
+) -> None:
+    """
+    Validate that sufficient data exists for training.
+
+    Args:
+        X: Feature dataframe
+        min_total: Minimum total samples required
+        min_test: Minimum test samples required after split
+        logger: Logger instance
+
+    Raises:
+        DataValidationError: If insufficient data
+    """
+    total_samples = len(X)
+
+    if total_samples < min_total:
+        msg = (
+            f"Insufficient data for training: {total_samples} samples found, "
+            f"but at least {min_total} samples are recommended for meaningful predictions. "
+            f"Please provide more historical transaction data."
+        )
+        plog.log_error(logger, msg)
+        raise DataValidationError(msg)
+
+    # Check if test set will have enough samples
+    test_size = config["model_evaluation"]["test_size"]
+    expected_test_samples = int(total_samples * test_size)
+
+    if expected_test_samples < min_test:
+        msg = (
+            f"Insufficient test data: with {total_samples} total samples and "
+            f"test_size={test_size}, only {expected_test_samples} test samples "
+            f"will be available. At least {min_test} are recommended. "
+            f"Consider reducing test_size in config.yaml or adding more data."
+        )
+        plog.log_error(logger, msg)
+        raise DataValidationError(msg)
+
+    plog.log_info(logger, f"Data validation passed: {total_samples} total samples, ~{expected_test_samples} test samples")
+
+
 def get_quarter_end_date(current_date: datetime) -> datetime:
     """
     Get the end date of the current quarter based on the provided date.
