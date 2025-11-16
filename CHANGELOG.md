@@ -7,6 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.18.1] - 2025-11-16
+
+### Fixed
+
+- **Line Profiler Version Consistency** ([#109](https://github.com/manoj-bhaskaran/expense-predictor/issues/109))
+  - Updated `line-profiler` from 4.1.0 to 4.1.3 in `setup.py` extras_require (setup.py:74)
+  - Resolved version mismatch between setup.py (4.1.0) and requirements-dev.txt (4.1.3)
+  - Both installation methods now install the same version: 4.1.3
+  - Ensures consistent development environments across all installation methods
+  - Version 4.1.3 is required for Python 3.12 compatibility (see v1.17.0 release notes)
+
+### Impact
+
+- **Severity**: High
+- **Affected Functionality**: Development environment consistency
+- **User Impact**: Both `pip install -e .[dev]` and `pip install -r requirements-dev.txt` now install line-profiler==4.1.3
+- **Breaking Changes**: None - backward compatible bug fix
+
+### Technical Details
+
+- **Files Modified**:
+  - `setup.py` (line-profiler version updated from 4.1.0 to 4.1.3 at line 74)
+  - `setup.py` (version bumped to 1.18.1)
+  - `tests/__init__.py` (version bumped to 1.18.1)
+  - `CHANGELOG.md` (this file)
+
+- **Root Cause**:
+  - PR #104 updated line-profiler in requirements-dev.txt for Python 3.12 compatibility
+  - The corresponding update in setup.py was inadvertently missed
+  - This created inconsistent environments depending on installation method
+
+- **Version Justification**:
+  - line-profiler 4.1.3 specifically fixes Python 3.12 compatibility issues
+  - Using the older 4.1.0 version defeats the Python 3.12 support added in v1.17.0
+  - Consistency across installation methods prevents "works on my machine" issues
+
+### Notes
+
+**Breaking Changes**: None. This is a backward-compatible release.
+
+**Version Justification**:
+- Patch version bump (1.18.0 → 1.18.1) per Semantic Versioning
+- Bug fix: resolves dependency version inconsistency
+- No API changes or new features
+- Backward compatible: existing code works unchanged
+
+**Migration Guide**:
+- For existing installations using `pip install -e .[dev]`: Re-run installation to get line-profiler 4.1.3
+- For installations using `pip install -r requirements-dev.txt`: No changes needed (already on 4.1.3)
+- To verify version: `pip show line-profiler | grep Version` (should show 4.1.3)
+
+**Related Issues and PRs**:
+- Issue #109: Version Mismatch: line-profiler Between setup.py and requirements-dev.txt
+- PR #104: Add Python 3.12 to test matrix and update documentation
+- Commit b7b1b13: fix: Update line-profiler to 4.1.3 for Python 3.12 compatibility
+
 ## [1.18.0] - 2025-11-16
 
 ### Added
