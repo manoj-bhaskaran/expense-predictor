@@ -212,14 +212,13 @@ def find_column_name(df_columns: pd.Index, expected_name: str) -> Optional[str]:
 
 
 def validate_minimum_data(
-    X: pd.DataFrame, y: pd.Series, min_total: int = 30, min_test: int = 10, logger: Optional[logging.Logger] = None
+    X: pd.DataFrame, min_total: int = 30, min_test: int = 10, logger: Optional[logging.Logger] = None
 ) -> None:
     """
     Validate that sufficient data exists for training.
 
     Args:
         X: Feature dataframe
-        y: Target series
         min_total: Minimum total samples required
         min_test: Minimum test samples required after split
         logger: Logger instance
@@ -252,9 +251,7 @@ def validate_minimum_data(
         plog.log_error(logger, msg)
         raise DataValidationError(msg)
 
-    plog.log_info(
-        logger, f"Data validation passed: {total_samples} total samples, " f"~{expected_test_samples} test samples"
-    )
+    plog.log_info(logger, f"Data validation passed: {total_samples} total samples, ~{expected_test_samples} test samples")
 
 
 def get_quarter_end_date(current_date: datetime) -> datetime:

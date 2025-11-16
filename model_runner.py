@@ -410,7 +410,7 @@ def main(args: Optional[List[str]] = None) -> int:
     # Validate minimum data requirements
     min_total_samples = config["model_evaluation"].get("min_total_samples", 30)
     min_test_samples = config["model_evaluation"].get("min_test_samples", 10)
-    validate_minimum_data(X, y, min_total=min_total_samples, min_test=min_test_samples, logger=logger)
+    validate_minimum_data(X, min_total=min_total_samples, min_test=min_test_samples, logger=logger)
 
     # Split data into training and test sets
     test_size = config["model_evaluation"]["test_size"]
