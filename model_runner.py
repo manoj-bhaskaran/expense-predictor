@@ -48,6 +48,7 @@ from sklearn.tree import DecisionTreeRegressor
 
 import python_logging_framework as plog
 from config import config
+from constants import TRANSACTION_AMOUNT_LABEL
 from helpers import (
     get_quarter_end_date,
     prepare_future_dates,
@@ -284,8 +285,6 @@ def train_and_evaluate_models(
         skip_confirmation: Whether to skip file overwrite confirmations.
         logger: Logger instance.
     """
-    TRANSACTION_AMOUNT_LABEL = "Tran Amt"
-
     # Dictionary of models to train and evaluate.
     models = {
         "Linear Regression": LinearRegression(),
