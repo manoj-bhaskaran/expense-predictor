@@ -1,0 +1,40 @@
+# Coverage configuration for full coverage audit
+# This configuration minimizes exclusions to identify all untested code
+# Only excludes test files themselves and infrastructure files
+
+[run]
+source = .
+omit =
+    # Only exclude test files
+    tests/*
+    # Exclude setup and infrastructure
+    setup.py
+    docs/conf.py
+    # Exclude third-party packages
+    */site-packages/*
+    */__pycache__/*
+    .venv/*
+    venv/*
+
+[report]
+# Minimal line exclusions - only truly unreachable code
+exclude_lines =
+    # Standard unreachable patterns
+    pragma: no cover
+    if TYPE_CHECKING:
+    @abstractmethod
+    # Only exclude if __name__ == __main__ blocks for scripts
+    if __name__ == .__main__.:
+
+# Show lines that weren't covered
+show_missing = True
+precision = 2
+
+# Don't fail on low coverage - this is an audit
+fail_under = 0
+
+[html]
+directory = coverage-audit/html
+
+[xml]
+output = coverage-audit/coverage.xml

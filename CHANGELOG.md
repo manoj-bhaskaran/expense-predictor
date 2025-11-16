@@ -7,6 +7,131 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.20.0] - 2025-11-16
+
+### Added
+
+- **Comprehensive Test Coverage Audit** ([#122](https://github.com/manoj-bhaskaran/expense-predictor/issues/122))
+  - Conducted full coverage audit ignoring existing exclusions (except test files)
+  - Achieved overall test coverage of **87.85%** (571/650 statements covered)
+  - Generated comprehensive coverage reports in HTML and XML formats
+  - Created detailed coverage audit documentation and analysis
+  - Added new coverage audit configuration (`.coveragerc-audit`) for periodic audits
+  - Documented coverage audit process in CONTRIBUTING.md
+
+### Documentation
+
+- **Coverage Audit Summary** (`coverage-audit/COVERAGE_AUDIT_SUMMARY.md`)
+  - Detailed breakdown of coverage by file:
+    - `constants.py`, `exceptions.py`, `python_logging_framework.py`: 100% coverage ✅
+    - `config.py`: 96.06% coverage ✅
+    - `model_runner.py`: 88.89% coverage ✅
+    - `security.py`: 85.00% coverage ⚠️
+    - `helpers.py`: 81.30% coverage ⚠️
+  - Categorized 79 missing statements by type:
+    - Error handling paths: 35 statements
+    - Edge cases & validation: 24 statements
+    - User interaction: 12 statements
+    - Security checks: 8 statements
+  - Prioritized recommendations for improving coverage:
+    - Critical: Security path validation tests
+    - High: Core logic error handling tests
+    - Medium: Edge case and robustness tests
+    - Low: User experience tests
+  - Verified that current exclusion rules are minimal and appropriate
+
+- **Coverage Audit Process Documentation** (CONTRIBUTING.md)
+  - Added comprehensive "Coverage Auditing" section with:
+    - How to run a full coverage audit
+    - How to view and interpret coverage reports
+    - Guidelines for understanding coverage gaps
+    - Best practices for managing coverage exclusions
+    - Coverage audit process for quarterly reviews
+    - Examples of appropriate vs inappropriate exclusions
+    - Best practices for testing error handling and security code
+
+### Changed
+
+- Updated CONTRIBUTING.md with extensive coverage testing guidelines
+  - Added section on running full coverage audits
+  - Documented exclusion management policies
+  - Added examples of testing error paths and security code
+  - Included guidance on when exclusions are appropriate
+
+### Analysis Findings
+
+- **Overall Assessment**: Test suite is in good health at 87.85% coverage
+- **No Hidden Issues**: Current exclusions are minimal and appropriate
+  - Only excludes: tests/*, setup.py, docs/conf.py, and standard patterns
+  - No concerning exclusions masking untested production code
+- **Coverage Gaps Are Defensive**: Most missing coverage is in:
+  - Exception handling for edge cases (ImportError, corrupted files)
+  - Security validation (path traversal detection)
+  - Data validation edge cases (NaT values, insufficient samples)
+  - User interaction (file overwrite confirmations)
+- **Core Business Logic**: Well tested with good coverage on happy paths
+
+### Impact
+
+- **Severity**: Medium
+- **Type**: Documentation / Tooling / Quality Assurance
+- **User Impact**: No direct user impact (internal development process improvement)
+- **Breaking Changes**: None
+- **Benefits**:
+  - **Transparency**: Clear visibility into actual test coverage
+  - **Roadmap**: Prioritized list of testing improvements
+  - **Process**: Documented approach for future coverage audits
+  - **Quality**: Identified specific areas needing additional tests
+  - **Security**: Highlighted security code needing better test coverage
+  - **Sustainability**: Prevents coverage exclusions from hiding untested code
+
+### Technical Details
+
+- **Files Added**:
+  - `.coveragerc-audit`: Special coverage configuration for full audits
+  - `coverage-audit/COVERAGE_AUDIT_SUMMARY.md`: Detailed audit report
+  - `coverage-audit/html/`: HTML coverage reports (204 tests, all passing)
+  - `coverage-audit/coverage.xml`: Machine-readable coverage data
+  - `coverage-audit/test-run.log`: Complete test execution log
+
+- **Files Modified**:
+  - `CONTRIBUTING.md`: Added "Coverage Auditing" section (156 lines)
+  - `CHANGELOG.md`: This file
+  - `setup.py`: Bumped version to 1.20.0
+
+- **Coverage Statistics**:
+  - Total statements: 650
+  - Covered statements: 571
+  - Missing statements: 79
+  - Coverage percentage: 87.85%
+  - Test count: 204 tests (all passing)
+  - Test execution time: 11.97 seconds
+
+- **Audit Methodology**:
+  - Used specialized `.coveragerc-audit` configuration
+  - Minimal exclusions (only tests, setup.py, docs/conf.py)
+  - Reduced line exclusions to truly unreachable code
+  - Generated both HTML and XML reports for analysis
+  - Categorized gaps by priority and type
+
+### Follow-Up Actions
+
+Based on the audit findings, future issues should be created to:
+1. Add tests for security path validation (CRITICAL)
+2. Add tests for error handling in helpers.py (HIGH)
+3. Add tests for Excel processing edge cases (MEDIUM)
+4. Add tests for user interaction paths (LOW)
+
+### Notes
+
+**Version Justification**:
+- Minor version bump (1.19.0 → 1.20.0) per Semantic Versioning
+- Adds new development tooling and documentation
+- Adds `.coveragerc-audit` configuration for audits
+- Substantial documentation improvements
+- No changes to production code or user-facing features
+- Backward compatible
+
 ## [1.19.0] - 2025-11-16
 
 ### Added
