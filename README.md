@@ -418,6 +418,7 @@ expense-predictor/
 ├── helpers.py               # Helper functions for data preprocessing
 ├── security.py              # Security utilities (path validation, sanitization)
 ├── config.py                # Configuration loader module
+├── constants.py             # Centralized constants for the application
 ├── config.yaml              # Configuration file for hyperparameters
 ├── python_logging_framework.py  # Custom logging framework module
 ├── setup.py                 # Package setup and dependencies configuration

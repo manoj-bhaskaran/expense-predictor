@@ -9,13 +9,9 @@ from pandas.tseries.offsets import DateOffset
 
 import python_logging_framework as plog
 from config import config
+from constants import DAY_OF_WEEK, TRANSACTION_AMOUNT_LABEL, VALUE_DATE_LABEL
 from exceptions import DataValidationError
 from security import confirm_overwrite, create_backup, sanitize_dataframe_for_csv
-
-# Define constants
-TRANSACTION_AMOUNT_LABEL = "Tran Amt"
-DAY_OF_WEEK = "Day of the Week"
-VALUE_DATE_LABEL = "Value Date"
 
 
 def validate_csv_file(file_path: str, logger: Optional[logging.Logger] = None) -> None:

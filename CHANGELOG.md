@@ -7,6 +7,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.18.2] - 2025-11-16
+
+### Changed
+
+- **Consolidate Constants into Single Module** ([#110](https://github.com/manoj-bhaskaran/expense-predictor/issues/110))
+  - Created new `constants.py` module for centralized constant definitions
+  - Moved `TRANSACTION_AMOUNT_LABEL`, `VALUE_DATE_LABEL`, and `DAY_OF_WEEK` constants from helpers.py to constants.py
+  - Removed duplicate `TRANSACTION_AMOUNT_LABEL` definition from model_runner.py (line 287)
+  - Updated helpers.py to import constants from constants module
+  - Updated model_runner.py to import constants from constants module
+  - Establishes single source of truth for all constants
+  - Prevents future DRY violations and inconsistencies
+
+### Impact
+
+- **Severity**: High
+- **Type**: Code Quality / Refactoring
+- **User Impact**: No functional changes - purely internal refactoring
+- **Breaking Changes**: None - backward compatible code improvement
+- **Benefits**:
+  - Single source of truth for constants
+  - Easier maintenance and updates
+  - Reduces risk of inconsistency
+  - Improved code organization
+  - Follows Python best practices
+
+### Technical Details
+
+- **Files Added**:
+  - `constants.py` - New module containing all shared constants
+
+- **Files Modified**:
+  - `helpers.py` (removed lines 16-18, added import from constants)
+  - `model_runner.py` (removed line 287, added import from constants)
+  - `setup.py` (added constants to py_modules, version bumped to 1.18.2)
+  - `tests/__init__.py` (version bumped to 1.18.2)
+  - `CHANGELOG.md` (this file)
+
+- **Testing**:
+  - All 191 existing tests pass
+  - No test modifications required
+  - Verified constant imports work correctly
+
+### Notes
+
+**Breaking Changes**: None. This is a backward-compatible release.
+
+**Version Justification**:
+- Patch version bump (1.18.1 → 1.18.2) per Semantic Versioning
+- Internal refactoring: improves code quality without changing functionality
+- No API changes or new features
+- Backward compatible: existing code works unchanged
+
+**Migration Guide**:
+- No migration needed - purely internal refactoring
+- All imports remain compatible
+- Existing code continues to work without modification
+
+**Related Issues and PRs**:
+- Issue #110: DRY Violation: TRANSACTION_AMOUNT_LABEL Defined in Multiple Files
+
 ## [1.18.1] - 2025-11-16
 
 ### Fixed
