@@ -48,7 +48,13 @@ from sklearn.tree import DecisionTreeRegressor
 
 import python_logging_framework as plog
 from config import config
-from helpers import get_quarter_end_date, prepare_future_dates, preprocess_and_append_csv, write_predictions
+from helpers import (
+    get_quarter_end_date,
+    prepare_future_dates,
+    preprocess_and_append_csv,
+    validate_minimum_data,
+    write_predictions,
+)
 from security import ALLOWED_CSV_EXTENSIONS, ALLOWED_EXCEL_EXTENSIONS, validate_directory_path, validate_file_path
 
 # Load environment variables from .env file (if it exists)
@@ -400,6 +406,11 @@ def main(args: Optional[List[str]] = None) -> int:
 
     # Preprocess data
     X, y, _ = preprocess_and_append_csv(file_path, excel_path=excel_path, logger=logger)
+
+    # Validate minimum data requirements
+    min_total_samples = config["model_evaluation"].get("min_total_samples", 30)
+    min_test_samples = config["model_evaluation"].get("min_test_samples", 10)
+    validate_minimum_data(X, y, min_total=min_total_samples, min_test=min_test_samples, logger=logger)
 
     # Split data into training and test sets
     test_size = config["model_evaluation"]["test_size"]

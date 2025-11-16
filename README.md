@@ -326,6 +326,24 @@ The application logs to both the console and log files in the specified log dire
 2025-11-16 10:30:15,125 - model_runner.py - DEBUG - Validating file path: ./data/sample.csv
 ```
 
+## Data Requirements
+
+The system validates minimum data requirements before training to ensure meaningful predictions:
+
+- **Minimum samples:** 30 transactions recommended for meaningful predictions
+- **Minimum test samples:** 10 transactions in test set (20% of data)
+- For best results, provide at least 100+ historical transactions
+- More data = better predictions
+
+These thresholds are configurable in `config.yaml` under `model_evaluation`:
+- `min_total_samples`: Minimum total samples required (default: 30)
+- `min_test_samples`: Minimum test samples required (default: 10)
+
+If your data doesn't meet these requirements, the system will:
+- Display a clear error message explaining the issue
+- Suggest how much more data is needed
+- Recommend adjusting the test_size in config.yaml if appropriate
+
 ### Input Data Format
 
 #### CSV Transaction Data (trandata.csv)
