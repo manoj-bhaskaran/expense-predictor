@@ -461,6 +461,161 @@ pytest tests/ -v
 pytest tests/ --tb=short
 ```
 
+### Coverage Auditing
+
+The project maintains a minimum test coverage threshold of 80%. However, coverage exclusions can sometimes hide untested code. To ensure comprehensive coverage, we periodically run full coverage audits.
+
+#### Running a Full Coverage Audit
+
+A full coverage audit runs tests with minimal exclusions to identify all untested code paths, regardless of current exclusion rules.
+
+```bash
+# Run the full coverage audit
+COVERAGE_FILE=.coverage-audit python -m pytest \
+  --cov=. \
+  --cov-config=.coveragerc-audit \
+  --cov-report=html:coverage-audit/html \
+  --cov-report=xml:coverage-audit/coverage.xml \
+  --cov-report=term-missing \
+  tests/ -v
+```
+
+This command uses a special configuration file (`.coveragerc-audit`) that:
+- Includes all production code
+- Excludes only test files, setup.py, and infrastructure
+- Minimizes line exclusions to only truly unreachable code
+- Does not fail on low coverage (for audit purposes)
+
+#### Viewing Coverage Reports
+
+```bash
+# Open the HTML coverage report in your browser
+open coverage-audit/html/index.html  # macOS
+xdg-open coverage-audit/html/index.html  # Linux
+start coverage-audit/html/index.html  # Windows
+```
+
+The HTML report shows:
+- Overall coverage percentage
+- Coverage by file
+- Line-by-line coverage with color coding
+- Missing coverage highlighted in red
+
+#### Understanding Coverage Gaps
+
+When reviewing coverage results, categorize missing coverage:
+
+1. **Error Handling Paths**: Exception scenarios that require specific conditions
+2. **Edge Cases**: Unusual input or boundary conditions
+3. **Security Checks**: Validation and attack prevention code
+4. **User Interaction**: Interactive prompts and confirmations
+
+**Example coverage gap categories:**
+- Missing tests for `ImportError` when dependencies are absent
+- Uncovered path traversal detection in security validation
+- Edge case for empty data files
+- User confirmation dialog paths
+
+#### Managing Coverage Exclusions
+
+Coverage exclusions should be used sparingly and with clear justification. Follow these guidelines:
+
+**Appropriate Exclusions:**
+- Test files: `tests/*`
+- Setup scripts: `setup.py`
+- Documentation: `docs/conf.py`
+- Type checking blocks: `if TYPE_CHECKING:`
+- Abstract methods: `@abstractmethod`
+- Script entry points: `if __name__ == .__main__.:`
+
+**Inappropriate Exclusions:**
+- Production code that's "hard to test"
+- Temporary workarounds that become permanent
+- Error handling code
+- Security validation logic
+
+**Adding Exclusions:**
+
+If you must add a coverage exclusion:
+
+1. Document WHY in the configuration file
+2. Create a tracking issue to remove it
+3. Set a timeline for re-evaluation
+4. Get approval from maintainers
+
+```ini
+# .coveragerc
+[run]
+omit =
+    # TEMPORARY: Excluding legacy_module.py pending refactor (Issue #456)
+    # TODO: Remove this exclusion after Q2 2024 refactor
+    legacy_module.py
+```
+
+**Reviewing Exclusions:**
+
+Periodically review exclusions to ensure they're still needed:
+
+```bash
+# Check current exclusions
+cat .coveragerc | grep -A 5 "omit ="
+
+# Compare with audit results
+diff <(grep "^omit" .coveragerc) <(grep "^omit" .coveragerc-audit)
+```
+
+#### Coverage Audit Process
+
+For comprehensive coverage audits (typically done quarterly or before major releases):
+
+1. **Run the audit** using the command above
+2. **Review the summary** in `coverage-audit/COVERAGE_AUDIT_SUMMARY.md`
+3. **Identify gaps** by priority (security > core logic > edge cases)
+4. **Create issues** for missing tests
+5. **Track progress** until gaps are addressed or explicitly accepted
+
+See the [latest coverage audit report](coverage-audit/COVERAGE_AUDIT_SUMMARY.md) for current status.
+
+#### Best Practices
+
+**For New Code:**
+- Write tests BEFORE writing production code (TDD)
+- Aim for >90% coverage on new modules
+- Test both happy paths and error paths
+- Include edge cases and boundary conditions
+
+**For Existing Code:**
+- When fixing bugs, add tests that reproduce the bug first
+- When refactoring, maintain or improve coverage
+- When adding features to existing modules, review and improve overall module coverage
+
+**For Error Handling:**
+Don't ignore error handling in coverage:
+```python
+# Bad: Untested error path
+try:
+    risky_operation()
+except Exception:
+    log_error("Failed")  # This line is not covered!
+    raise
+
+# Good: Test the error path
+def test_risky_operation_error(mocker):
+    """Test that errors are properly logged and raised."""
+    mocker.patch('module.risky_operation', side_effect=ValueError("test"))
+    with pytest.raises(ValueError):
+        function_that_calls_risky_operation()
+    # Verify error was logged
+```
+
+**For Security Code:**
+Security-critical code should have comprehensive test coverage:
+- Path validation and traversal detection
+- Input sanitization
+- Authentication and authorization
+- Data encryption/decryption
+- File system operations
+
 ## Pull Request Process
 
 ### Before Submitting

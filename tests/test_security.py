@@ -63,6 +63,33 @@ class TestValidateAndResolvePath:
         result = validate_and_resolve_path("/tmp/newpath", must_exist=False)
         assert result.is_absolute()
 
+    def test_invalid_path_format_null_bytes(self):
+        """Test that paths with null bytes raise ValueError."""
+        with pytest.raises(ValueError, match="Invalid path format"):
+            # Null bytes in paths cause OSError/ValueError in Path.resolve()
+            validate_and_resolve_path("test\x00path")
+
+    def test_invalid_path_format_oserror(self, mocker):
+        """Test handling of OSError from Path.resolve()."""
+        # Mock Path.resolve() to raise OSError
+        mocker.patch("pathlib.Path.resolve", side_effect=OSError("Invalid path"))
+        with pytest.raises(ValueError, match="Invalid path format"):
+            validate_and_resolve_path("/some/path")
+
+    def test_path_traversal_detection_with_mock(self, mocker):
+        """Test path traversal detection when '..' appears in resolved path components."""
+        # Mock the path resolution to return a path that contains .. in its string representation
+        # This simulates a malicious symlink or filesystem manipulation
+        mock_path = mocker.Mock(spec=Path)
+        # Configure the mock's __str__ method properly
+        type(mock_path).__str__ = mocker.Mock(return_value="/tmp/../etc/passwd")
+        mock_path.is_absolute.return_value = True
+
+        mocker.patch("pathlib.Path.resolve", return_value=mock_path)
+
+        with pytest.raises(ValueError, match="Path traversal detected"):
+            validate_and_resolve_path("/some/path")
+
 
 @pytest.mark.unit
 class TestValidateFilePath:
