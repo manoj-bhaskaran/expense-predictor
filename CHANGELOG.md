@@ -7,6 +7,106 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.19.0] - 2025-11-16
+
+### Added
+
+- **Add Type Validation for config.yaml Values** ([#112](https://github.com/manoj-bhaskaran/expense-predictor/issues/112))
+  - Implemented Pydantic-based type validation for all configuration parameters
+  - Added strict type checking to prevent runtime errors from invalid config types
+  - Created comprehensive validation models for all config sections:
+    - `LoggingConfig`: Validates log levels (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    - `DataProcessingConfig`: Validates skiprows (must be >= 0)
+    - `ModelEvaluationConfig`: Validates test_size (0.0-1.0) and random_state (>= 0)
+    - `DecisionTreeConfig`: Validates all Decision Tree hyperparameters with appropriate ranges
+    - `RandomForestConfig`: Validates Random Forest hyperparameters including max_features
+    - `GradientBoostingConfig`: Validates Gradient Boosting hyperparameters with learning_rate limits
+  - Added user-friendly error messages for validation failures
+  - Validation errors now fail fast at startup with clear, actionable messages
+  - Added 13 comprehensive validation tests covering:
+    - Invalid types (string instead of int/float)
+    - Out-of-range values (test_size > 1.0, negative values)
+    - Invalid enum values (invalid log levels)
+    - Multiple simultaneous validation errors
+  - Dependencies added: `pydantic==2.10.3`
+
+### Impact
+
+- **Severity**: High
+- **Type**: Feature / Enhancement
+- **User Impact**: Better user experience with clear error messages for configuration issues
+- **Breaking Changes**: None - backward compatible with existing valid configurations
+- **Benefits**:
+  - **Fail Fast**: Configuration errors detected at startup, not during model training
+  - **Clear Error Messages**: Instead of cryptic runtime errors like "TypeError: '<=' not supported between instances of 'str' and 'int'", users now see: "Invalid type for 'decision_tree.max_depth': expected integer, got 'five'"
+  - **Self-Documenting**: Pydantic models serve as schema documentation
+  - **Type Safety**: Strict mode prevents silent type coercion
+  - **Range Validation**: Ensures hyperparameters are within valid ranges
+  - **Better Debugging**: Non-technical users can easily identify and fix config errors
+
+### Technical Details
+
+- **Files Modified**:
+  - `config.py`: Added Pydantic models and validation logic (lines 26-107, 136-181)
+  - `requirements.txt`: Added pydantic==2.10.3
+  - `setup.py`: Added pydantic to install_requires, bumped version to 1.19.0
+  - `tests/__init__.py`: Bumped version to 1.19.0
+  - `tests/test_config.py`: Added 13 validation tests (lines 217-473)
+  - `CHANGELOG.md`: This file
+
+- **Validation Rules**:
+  - Logging level: Must be one of DEBUG, INFO, WARNING, ERROR, CRITICAL
+  - skiprows: Must be integer >= 0
+  - test_size: Must be float > 0.0 and < 1.0
+  - random_state: Must be integer >= 0
+  - max_depth: Must be integer >= 1
+  - min_samples_split: Must be integer >= 2
+  - min_samples_leaf: Must be integer >= 1
+  - ccp_alpha: Must be float >= 0.0
+  - n_estimators: Must be integer >= 1
+  - learning_rate: Must be float > 0.0 and <= 1.0
+  - max_features: Must be "sqrt", "log2", "auto", or numeric
+
+- **Testing**:
+  - All 27 config tests pass (including 13 new validation tests)
+  - Tests verify both valid and invalid configurations
+  - Tests ensure error messages are informative
+
+### Examples
+
+**Before (cryptic error during training):**
+```yaml
+decision_tree:
+  max_depth: "five"  # String instead of int
+```
+Error: `TypeError: '<=' not supported between instances of 'str' and 'int'`
+
+**After (clear error at startup):**
+```yaml
+decision_tree:
+  max_depth: "five"  # String instead of int
+```
+Error: `ConfigurationError: Configuration validation failed:
+  - Invalid type for 'decision_tree.max_depth': expected integer, got 'five'`
+
+### Notes
+
+**Breaking Changes**: None. This is a backward-compatible release. All existing valid configurations continue to work unchanged.
+
+**Version Justification**:
+- Minor version bump (1.18.3 → 1.19.0) per Semantic Versioning
+- New feature: Adds type validation capability
+- Backward compatible: Existing valid configs work without modification
+- No API changes to existing functions
+
+**Migration Guide**:
+- No migration needed for valid configurations
+- If you have invalid config values, the application will now fail at startup with a clear error message indicating what needs to be fixed
+- Simply correct the invalid values based on the error message
+
+**Related Issues and PRs**:
+- Issue #112: Add Type Validation for config.yaml Values
+
 ## [1.18.3] - 2025-11-16
 
 ### Changed

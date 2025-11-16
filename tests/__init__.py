@@ -5,4 +5,4 @@ This package contains unit tests, integration tests, and test fixtures
 for the expense prediction system.
 """
 
-__version__ = "1.18.3"
+__version__ = "1.19.0"

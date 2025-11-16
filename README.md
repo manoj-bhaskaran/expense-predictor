@@ -120,7 +120,24 @@ decision_tree:
 
 See `config.yaml` for the complete list of configurable parameters with detailed explanations.
 
-**Note:** If `config.yaml` is missing or invalid, the system will use sensible defaults and continue running.
+**Type Validation:**
+
+As of version 1.19.0, all configuration values are validated using Pydantic for type safety and early error detection. If you provide invalid types or out-of-range values, you'll receive clear error messages at startup:
+
+```
+ConfigurationError: Configuration validation failed:
+  - Invalid type for 'decision_tree.max_depth': expected integer, got 'five'
+  - Invalid value for 'model_evaluation.test_size': Input should be less than 1
+```
+
+**Validation Rules:**
+- `logging.level`: Must be DEBUG, INFO, WARNING, ERROR, or CRITICAL
+- `skiprows`: Must be non-negative integer
+- `test_size`: Must be between 0.0 and 1.0 (exclusive)
+- `random_state`: Must be non-negative integer
+- Model hyperparameters: Must be appropriate types with valid ranges (see config.py for details)
+
+**Note:** If `config.yaml` is missing, the system will use sensible defaults and continue running. If the file exists but contains invalid values, the application will fail fast with a clear error message.
 
 ### 2. Environment Variables (.env file)
 
