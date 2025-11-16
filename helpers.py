@@ -105,6 +105,17 @@ def validate_excel_file(file_path: str, logger: Optional[logging.Logger] = None)
         engine = "xlrd" if file_path.endswith(".xls") else "openpyxl"
         pd.ExcelFile(file_path, engine=engine)
         plog.log_info(logger, f"Excel file validation passed: {file_path}")
+    except ImportError as e:
+        # Missing openpyxl dependency for .xlsx files
+        if "openpyxl" in str(e):
+            plog.log_error(logger, f"Missing openpyxl dependency for .xlsx file processing: {e}")
+            raise DataValidationError(
+                f"Processing .xlsx files requires openpyxl. "
+                f"Install it with: pip install openpyxl"
+            ) from e
+        # Other import errors
+        plog.log_error(logger, f"Missing dependency for Excel file processing: {e}")
+        raise DataValidationError(f"Missing required dependency for Excel processing: {e}") from e
     except xlrd.biffh.XLRDError as e:
         # Corrupted or invalid .xls file
         plog.log_error(logger, f"Excel file is corrupted or invalid (XLS format error): {e}")
@@ -392,12 +403,25 @@ def preprocess_and_append_csv(
     if excel_path:
         # Validate Excel file before reading
         validate_excel_file(excel_path, logger=logger)
-        engine = "xlrd" if excel_path.endswith(".xls") else "openpyxl"
-        sheet_names = pd.ExcelFile(excel_path, engine=engine).sheet_names
-        plog.log_info(logger, f"Available sheets: {sheet_names}")
 
-        skiprows = config["data_processing"]["skiprows"]
-        excel_data = pd.read_excel(excel_path, sheet_name=sheet_names[0], engine=engine, skiprows=skiprows)
+        try:
+            engine = "xlrd" if excel_path.endswith(".xls") else "openpyxl"
+            sheet_names = pd.ExcelFile(excel_path, engine=engine).sheet_names
+            plog.log_info(logger, f"Available sheets: {sheet_names}")
+
+            skiprows = config["data_processing"]["skiprows"]
+            excel_data = pd.read_excel(excel_path, sheet_name=sheet_names[0], engine=engine, skiprows=skiprows)
+        except ImportError as e:
+            # Missing openpyxl dependency for .xlsx files
+            if "openpyxl" in str(e):
+                plog.log_error(logger, f"Missing openpyxl dependency for .xlsx file processing: {e}")
+                raise DataValidationError(
+                    f"Processing .xlsx files requires openpyxl. "
+                    f"Install it with: pip install openpyxl"
+                ) from e
+            # Other import errors
+            plog.log_error(logger, f"Missing dependency for Excel file processing: {e}")
+            raise DataValidationError(f"Missing required dependency for Excel processing: {e}") from e
         excel_data.columns = excel_data.columns.str.strip()
         plog.log_info(logger, f"Columns in the sheet: {excel_data.columns.tolist()}")
 

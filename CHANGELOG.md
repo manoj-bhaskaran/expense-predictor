@@ -7,6 +7,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.17.2] - 2025-11-16
+
+### Fixed
+
+- **Enhanced Error Handling for Excel File Processing** ([#107](https://github.com/manoj-bhaskaran/expense-predictor/issues/107))
+  - Added explicit `ImportError` handling for missing openpyxl dependency in `helpers.py`
+  - Better error messages when openpyxl is not installed for .xlsx file processing
+  - Error message now includes installation instructions: `pip install openpyxl`
+  - Improved error handling in both `validate_excel_file()` (helpers.py:108-118) and `preprocess_and_append_csv()` (helpers.py:414-424)
+  - Prevents confusing error messages when processing .xlsx files without openpyxl
+
+### Documentation
+
+- **Excel File Support Documentation** ([#107](https://github.com/manoj-bhaskaran/expense-predictor/issues/107))
+  - Added comprehensive "Excel File Support" section to README.md
+  - Documented the distinction between .xls and .xlsx formats
+  - Clarified that xlrd 2.0.1+ only supports .xls files (not .xlsx)
+  - Explained automatic format detection based on file extension
+  - Provided clear table showing which library handles which format:
+    - `.xls` files: xlrd 2.0.1 (Excel 97-2003)
+    - `.xlsx` files: openpyxl 3.1.2 (Excel 2007+)
+  - Added usage examples for both file formats
+  - Documented that both dependencies are included in requirements.txt
+
+### Improved
+
+- **Error Messages** ([#107](https://github.com/manoj-bhaskaran/expense-predictor/issues/107))
+  - Users now get actionable error messages with installation instructions
+  - Clear distinction between missing dependency errors and file corruption errors
+  - Improved debugging experience for Excel file processing issues
+
+### Impact
+
+- **Severity**: Low
+- **Affected Functionality**: Excel .xlsx file processing error handling
+- **User Impact**: Better error messages and documentation for Excel file support
+- **Breaking Changes**: None - backward compatible enhancement
+
+### Technical Details
+
+- **Files Modified**:
+  - `helpers.py` (added ImportError handling in two locations)
+  - `README.md` (added Excel File Support section)
+  - `CHANGELOG.md` (this file)
+  - `setup.py` (version bumped to 1.17.2)
+  - `tests/__init__.py` (version bumped to 1.17.2)
+
+- **Code References**:
+  - `helpers.py:108-118` - ImportError handling in validate_excel_file()
+  - `helpers.py:414-424` - ImportError handling in preprocess_and_append_csv()
+  - xlrd 2.0.0+ dropped .xlsx support per official changelog
+  - Both xlrd and openpyxl are production dependencies in requirements.txt
+
+### Notes
+
+**Version Justification**:
+- Patch version bump (1.17.1 → 1.17.2) per Semantic Versioning
+- Bug fix: Improved error handling for missing dependencies
+- Documentation improvements
+- No API changes or new features
+- Backward compatible: existing code works unchanged
+
+**Context**:
+- xlrd 2.0.0+ intentionally dropped .xlsx support due to security concerns with Excel formulas
+- The code already correctly uses openpyxl for .xlsx files (since v1.17.1)
+- This release adds better error messages and documentation to clarify the distinction
+- Both dependencies are already in requirements.txt - no installation changes needed
+
 ## [1.17.1] - 2025-11-16
 
 ### Fixed

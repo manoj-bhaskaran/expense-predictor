@@ -25,6 +25,41 @@ A machine learning-based expense prediction system that analyzes historical tran
 - Python 3.9 or higher (tested on Python 3.9, 3.10, 3.11, and 3.12)
 - See `requirements.txt` for pinned package dependencies
 
+## Excel File Support
+
+The Expense Predictor supports both legacy and modern Excel file formats with automatic format detection:
+
+| Format | File Extension | Supported Via | Use Case |
+|--------|----------------|---------------|----------|
+| **Excel 97-2003** | `.xls` | xlrd 2.0.1 | Legacy bank statements and older Excel files |
+| **Excel 2007+** | `.xlsx` | openpyxl 3.1.2 | Modern Excel files (recommended) |
+
+### How It Works
+
+- The application **automatically detects** the file format based on the file extension
+- `.xls` files are processed using the `xlrd` library
+- `.xlsx` files are processed using the `openpyxl` library
+- Both formats are fully supported and require no additional configuration
+
+### Important Notes
+
+- **xlrd 2.0.0+** dropped support for `.xlsx` files due to security concerns
+- For `.xlsx` files, `openpyxl` is required (automatically installed with the package)
+- Both dependencies are included in `requirements.txt` for seamless installation
+- The format is detected automatically - no manual configuration needed
+
+### Example Usage
+
+```bash
+# Process legacy .xls file
+expense-predictor --data_file trandata.csv --excel_file bank_statement.xls
+
+# Process modern .xlsx file
+expense-predictor --data_file trandata.csv --excel_file bank_statement.xlsx
+```
+
+Both commands work identically - the application handles the format detection internally.
+
 ## Installation
 
 ### 1. Clone the repository
