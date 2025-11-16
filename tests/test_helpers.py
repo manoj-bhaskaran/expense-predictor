@@ -70,6 +70,37 @@ class TestValidateCsvFile:
         """Test validation without logger (should still work)."""
         validate_csv_file(sample_csv_path)
 
+    def test_validate_csv_file_completely_empty(self, mock_logger):
+        """Test validation with completely empty CSV file (raises EmptyDataError)."""
+        # Create a truly empty CSV file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+            temp_file = f.name
+            # Don't write anything - file is completely empty
+
+        try:
+            with pytest.raises(DataValidationError, match="CSV file is empty"):
+                validate_csv_file(temp_file, logger=mock_logger)
+        finally:
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
+
+    def test_validate_csv_file_parser_error(self, mock_logger):
+        """Test validation with malformed CSV that causes parser error."""
+        # Create a CSV with malformed content
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+            temp_file = f.name
+            # Write malformed CSV content
+            f.write("Date,Transaction Amount\n")
+            f.write('"unclosed quote,123\n')
+            f.write('normal,456\n')
+
+        try:
+            with pytest.raises(DataValidationError, match="not properly formatted"):
+                validate_csv_file(temp_file, logger=mock_logger)
+        finally:
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
+
 
 @pytest.mark.unit
 @pytest.mark.validation
@@ -90,6 +121,88 @@ class TestValidateExcelFile:
         """Test validation when path is a directory."""
         with pytest.raises(DataValidationError, match="Path is not a file"):
             validate_excel_file(temp_dir, logger=mock_logger)
+
+    def test_validate_excel_file_missing_openpyxl(self, mocker, mock_logger):
+        """Test handling of missing openpyxl dependency for .xlsx files."""
+        # Create a temporary .xlsx file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".xlsx", delete=False) as f:
+            temp_file = f.name
+
+        try:
+            # Mock pd.ExcelFile to raise ImportError for openpyxl
+            mocker.patch("pandas.ExcelFile", side_effect=ImportError("Missing optional dependency 'openpyxl'"))
+
+            with pytest.raises(DataValidationError, match="requires openpyxl"):
+                validate_excel_file(temp_file, logger=mock_logger)
+        finally:
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
+
+    def test_validate_excel_file_missing_other_dependency(self, mocker, mock_logger):
+        """Test handling of other missing dependencies for Excel files."""
+        # Create a temporary .xlsx file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".xlsx", delete=False) as f:
+            temp_file = f.name
+
+        try:
+            # Mock pd.ExcelFile to raise a different ImportError
+            mocker.patch("pandas.ExcelFile", side_effect=ImportError("Missing some_other_package"))
+
+            with pytest.raises(DataValidationError, match="Missing required dependency"):
+                validate_excel_file(temp_file, logger=mock_logger)
+        finally:
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
+
+    def test_validate_excel_file_corrupted_xls(self, mocker, mock_logger):
+        """Test handling of corrupted .xls file."""
+        # Create a temporary .xls file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".xls", delete=False) as f:
+            temp_file = f.name
+            f.write("not valid xls content")
+
+        try:
+            # Mock to raise XLRDError
+            import xlrd.biffh
+            mocker.patch("pandas.ExcelFile", side_effect=xlrd.biffh.XLRDError("XLS format error"))
+
+            with pytest.raises(DataValidationError, match="corrupted or cannot be read"):
+                validate_excel_file(temp_file, logger=mock_logger)
+        finally:
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
+
+    def test_validate_excel_file_generic_corruption(self, mocker, mock_logger):
+        """Test handling of generic Excel file corruption."""
+        # Create a temporary .xlsx file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".xlsx", delete=False) as f:
+            temp_file = f.name
+
+        try:
+            # Mock pd.ExcelFile to raise ValueError
+            mocker.patch("pandas.ExcelFile", side_effect=ValueError("File is corrupted"))
+
+            with pytest.raises(DataValidationError, match="corrupted or cannot be read"):
+                validate_excel_file(temp_file, logger=mock_logger)
+        finally:
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
+
+    def test_validate_excel_file_unexpected_exception(self, mocker, mock_logger):
+        """Test handling of unexpected exceptions during Excel validation."""
+        # Create a temporary .xlsx file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".xlsx", delete=False) as f:
+            temp_file = f.name
+
+        try:
+            # Mock pd.ExcelFile to raise an unexpected exception
+            mocker.patch("pandas.ExcelFile", side_effect=Exception("Unexpected error"))
+
+            with pytest.raises(DataValidationError, match="corrupted or cannot be read"):
+                validate_excel_file(temp_file, logger=mock_logger)
+        finally:
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
 
 
 @pytest.mark.unit
@@ -124,6 +237,57 @@ class TestValidateDateRange:
     def test_validate_date_range_without_logger(self, sample_dataframe):
         """Test validation without logger."""
         validate_date_range(sample_dataframe)
+
+    def test_validate_date_range_with_nat_in_dates(self, mock_logger):
+        """Test validation with some NaT values that result in invalid min/max."""
+        # Create dataframe where all dates are NaT, caught by earlier check
+        df = pd.DataFrame({"Date": [pd.NaT]})
+        with pytest.raises(DataValidationError, match="No valid dates found"):
+            validate_date_range(df, logger=mock_logger)
+
+    def test_validate_date_range_with_some_nat_values(self, mock_logger):
+        """Test validation with mix of valid and NaT dates."""
+        # Create a dataframe with a mix that would result in NaT min/max
+        # This is hard to trigger because pandas handles NaT in min/max
+        # So we test a scenario where we have only NaT after filtering
+        import pandas as pd
+        df = pd.DataFrame({
+            "Date": [pd.Timestamp("2024-01-01"), pd.NaT, pd.Timestamp("2024-01-03")]
+        })
+        # This should pass validation (NaT is ignored in min/max)
+        validate_date_range(df, logger=mock_logger)
+
+
+@pytest.mark.unit
+@pytest.mark.validation
+class TestValidateMinimumData:
+    """Tests for validate_minimum_data function."""
+
+    def test_validate_minimum_data_sufficient_samples(self, mock_logger):
+        """Test validation with sufficient data."""
+        from helpers import validate_minimum_data
+        # Create a dataframe with enough samples
+        X = pd.DataFrame({"feature1": range(100)})
+        # Should not raise any exception
+        validate_minimum_data(X, min_total=30, min_test=10, logger=mock_logger)
+
+    def test_validate_minimum_data_insufficient_total(self, mock_logger):
+        """Test validation with insufficient total samples."""
+        from helpers import validate_minimum_data
+        # Create a dataframe with too few samples
+        X = pd.DataFrame({"feature1": range(20)})  # Less than min_total=30
+        with pytest.raises(DataValidationError, match="Insufficient data for training"):
+            validate_minimum_data(X, min_total=30, min_test=10, logger=mock_logger)
+
+    def test_validate_minimum_data_insufficient_test_samples(self, mock_logger):
+        """Test validation with insufficient test samples after split."""
+        from helpers import validate_minimum_data
+        # Create a dataframe with enough total but not enough for test split
+        # With test_size=0.2 (default in config), 40 samples gives 8 test samples
+        X = pd.DataFrame({"feature1": range(40)})
+        # Assuming config has test_size of 0.2, 40 * 0.2 = 8 < 10
+        with pytest.raises(DataValidationError, match="Insufficient test data"):
+            validate_minimum_data(X, min_total=30, min_test=10, logger=mock_logger)
 
 
 @pytest.mark.unit
