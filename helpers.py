@@ -351,8 +351,11 @@ def _process_dataframe(
 
     # Use helper function to get complete date range for training
     complete_date_range = get_training_date_range(df, logger=logger)
-    df = df.set_index("Date").reindex(complete_date_range).fillna({TRANSACTION_AMOUNT_LABEL: 0}).reset_index()
-    df.rename(columns={"index": "Date"}, inplace=True)
+    df = (df.set_index("Date")
+            .reindex(complete_date_range)
+            .fillna({TRANSACTION_AMOUNT_LABEL: 0})
+            .reset_index()
+            .rename(columns={"index": "Date"}))
     plog.log_info(logger, f"Date range filled. Total rows: {len(df)}")
 
     plog.log_info(logger, "Engineering features: day of week, month, day of month")
@@ -496,8 +499,7 @@ def preprocess_and_append_csv(
         plog.log_info(logger, f"Using columns: '{withdrawal_col}' for withdrawals and '{deposit_col}' for deposits")
         excel_data["expense"] = excel_data[withdrawal_col].fillna(0) * -1 + excel_data[deposit_col].fillna(0)
         daily_expenses = excel_data.groupby(VALUE_DATE_LABEL)["expense"].sum().reset_index()
-        daily_expenses.columns = ["Date", "expense"]
-        daily_expenses.rename(columns={"expense": TRANSACTION_AMOUNT_LABEL}, inplace=True)
+        daily_expenses.columns = ["Date", TRANSACTION_AMOUNT_LABEL]
         df = pd.concat([df, daily_expenses], ignore_index=True)
 
     df = df.dropna(subset=["Date"])
@@ -507,8 +509,11 @@ def preprocess_and_append_csv(
 
     # Use helper function to get complete date range for training
     complete_date_range = get_training_date_range(df, logger=logger)
-    df = df.set_index("Date").reindex(complete_date_range).fillna({TRANSACTION_AMOUNT_LABEL: 0}).reset_index()
-    df.rename(columns={"index": "Date"}, inplace=True)
+    df = (df.set_index("Date")
+            .reindex(complete_date_range)
+            .fillna({TRANSACTION_AMOUNT_LABEL: 0})
+            .reset_index()
+            .rename(columns={"index": "Date"}))
 
     # Process the dataframe directly without modifying the input file
     return _process_dataframe(df, logger=logger)

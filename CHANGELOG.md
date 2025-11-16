@@ -7,6 +7,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.18.3] - 2025-11-16
+
+### Changed
+
+- **Replace Deprecated pandas inplace=True Parameter** ([#111](https://github.com/manoj-bhaskaran/expense-predictor/issues/111))
+  - Removed all uses of `inplace=True` parameter in pandas operations in helpers.py
+  - Replaced `df.rename(columns=..., inplace=True)` with assignment: `df = df.rename(columns=...)`
+  - Converted to method chaining for better code clarity and performance
+  - Three occurrences updated:
+    - Line 354-358: Chained `.rename()` in `_process_dataframe()` function
+    - Line 502: Combined column assignment in `preprocess_and_append_csv()` function
+    - Line 512-516: Chained `.rename()` in `preprocess_and_append_csv()` function
+  - Future-proofs code for pandas 3.0+ where `inplace=True` may be removed
+  - Follows pandas best practices and modern functional programming patterns
+
+### Impact
+
+- **Severity**: High
+- **Type**: Refactoring / Future Compatibility
+- **User Impact**: No functional changes - purely internal refactoring
+- **Breaking Changes**: None - backward compatible code improvement
+- **Benefits**:
+  - Future-proof for pandas 3.0+
+  - More explicit and easier to understand code
+  - Follows pandas best practices
+  - Removes potential deprecation warnings
+  - Better for code review and maintenance
+  - Improved code clarity with method chaining
+
+### Technical Details
+
+- **Files Modified**:
+  - `helpers.py` (lines 354-358, 502, 512-516)
+  - `setup.py` (version bumped to 1.18.3)
+  - `tests/__init__.py` (version bumped to 1.18.3)
+  - `CHANGELOG.md` (this file)
+
+- **Testing**:
+  - All existing tests expected to pass
+  - No test modifications required
+  - Functionality remains identical
+
+### Notes
+
+**Breaking Changes**: None. This is a backward-compatible release.
+
+**Version Justification**:
+- Patch version bump (1.18.2 → 1.18.3) per Semantic Versioning
+- Internal refactoring: improves code quality without changing functionality
+- No API changes or new features
+- Backward compatible: existing code works unchanged
+
+**Migration Guide**:
+- No migration needed - purely internal refactoring
+- All functionality remains identical
+- Existing code continues to work without modification
+
+**Related Issues and PRs**:
+- Issue #111: Replace Deprecated pandas inplace=True Parameter
+- Related to pandas deprecation plans: https://github.com/pandas-dev/pandas/issues/16529
+
 ## [1.18.2] - 2025-11-16
 
 ### Changed
