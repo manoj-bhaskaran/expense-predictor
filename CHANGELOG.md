@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.17.1] - 2025-11-16
+
+### Fixed
+
+- **Missing Production Dependency** ([#106](https://github.com/manoj-bhaskaran/expense-predictor/issues/106))
+  - Added `openpyxl==3.1.2` to production dependencies in `requirements.txt`
+  - Added `openpyxl==3.1.2` to `setup.py` install_requires
+  - Resolves critical issue where .xlsx file processing failed in production installations
+  - openpyxl was previously only listed in development dependencies (requirements-dev.txt)
+  - Users can now process both .xls and .xlsx files after standard installation
+  - Runtime error `ModuleNotFoundError: No module named 'openpyxl'` resolved
+
+### Impact
+
+- **Severity**: Critical
+- **Affected Functionality**: Excel .xlsx file processing (helpers.py:105-106)
+- **User Impact**: Production installations can now process .xlsx files without manual dependency installation
+- **Breaking Changes**: None - backward compatible enhancement
+
+### Technical Details
+
+- **Files Modified**:
+  - `requirements.txt` (added openpyxl==3.1.2 with comment)
+  - `setup.py` (added openpyxl==3.1.2 to install_requires at line 48)
+  - `tests/__init__.py` (version bumped to 1.17.1)
+  - `CHANGELOG.md` (this file)
+
+- **Code Reference**:
+  - `helpers.py:105-106` uses openpyxl engine for .xlsx files
+  - Engine selection: `engine = "xlrd" if file_path.endswith(".xls") else "openpyxl"`
+  - pandas.ExcelFile() requires openpyxl for .xlsx format support
+
+### Notes
+
+**Version Justification**:
+- Patch version bump (1.17.0 → 1.17.1) per Semantic Versioning
+- Bug fix: missing dependency that broke core functionality
+- No API changes or new features
+- Backward compatible: existing code works unchanged
+
+**Migration Guide**:
+- For existing installations: `pip install -r requirements.txt` or `pip install openpyxl==3.1.2`
+- For new installations: dependencies now correctly installed automatically
+- No code changes required
+
 ## [1.17.0] - 2025-11-15
 
 ### Added
