@@ -10,7 +10,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="expense-predictor",
-    version="1.18.0",
+    version="1.18.1",
     author="Manoj Bhaskaran",
     author_email="",
     description="A machine learning-based expense prediction system",
@@ -71,7 +71,7 @@ setup(
             "pre-commit==3.4.0",
             "ipdb==0.13.13",
             "memory-profiler==0.61.0",
-            "line-profiler==4.1.0",
+            "line-profiler==4.1.3",
             "matplotlib==3.8.0",
             "seaborn==0.13.0",
         ],
