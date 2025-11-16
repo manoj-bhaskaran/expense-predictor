@@ -212,3 +212,262 @@ class TestDefaultConfig:
         assert DEFAULT_CONFIG["decision_tree"]["max_depth"] > 0
         assert DEFAULT_CONFIG["random_forest"]["n_estimators"] > 0
         assert DEFAULT_CONFIG["gradient_boosting"]["learning_rate"] > 0
+
+
+@pytest.mark.unit
+class TestConfigValidation:
+    """Tests for configuration validation using Pydantic."""
+
+    def test_valid_config_passes_validation(self, monkeypatch):
+        """Test that a valid config passes validation."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            valid_config = {
+                "logging": {"level": "DEBUG"},
+                "data_processing": {"skiprows": 10},
+                "model_evaluation": {"test_size": 0.3, "random_state": 99},
+                "decision_tree": {"max_depth": 10, "min_samples_split": 5, "min_samples_leaf": 2, "ccp_alpha": 0.0, "random_state": 42},
+            }
+            yaml.dump(valid_config, f)
+            temp_file = f.name
+
+        try:
+            monkeypatch.setattr("config.CONFIG_FILE", temp_file)
+            result = load_config()
+
+            # Should load successfully without errors
+            assert result["logging"]["level"] == "DEBUG"
+            assert result["data_processing"]["skiprows"] == 10
+            assert abs(result["model_evaluation"]["test_size"] - 0.3) < 0.001
+        finally:
+            os.remove(temp_file)
+
+    def test_invalid_logging_level(self, monkeypatch):
+        """Test that invalid logging level raises ConfigurationError."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            invalid_config = {"logging": {"level": "TRACE"}}  # Invalid level
+            yaml.dump(invalid_config, f)
+            temp_file = f.name
+
+        try:
+            monkeypatch.setattr("config.CONFIG_FILE", temp_file)
+            with pytest.raises(ConfigurationError) as exc_info:
+                load_config()
+
+            # Check error message is informative
+            error_msg = str(exc_info.value)
+            assert "logging.level" in error_msg
+            assert "validation failed" in error_msg.lower()
+        finally:
+            os.remove(temp_file)
+
+    def test_invalid_test_size_type(self, monkeypatch):
+        """Test that non-numeric test_size raises ConfigurationError."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            invalid_config = {"model_evaluation": {"test_size": "0.2"}}  # String instead of float
+            yaml.dump(invalid_config, f)
+            temp_file = f.name
+
+        try:
+            monkeypatch.setattr("config.CONFIG_FILE", temp_file)
+            with pytest.raises(ConfigurationError) as exc_info:
+                load_config()
+
+            # Check error message mentions type issue
+            error_msg = str(exc_info.value)
+            assert "model_evaluation.test_size" in error_msg
+            assert "validation failed" in error_msg.lower()
+        finally:
+            os.remove(temp_file)
+
+    def test_test_size_out_of_range_high(self, monkeypatch):
+        """Test that test_size > 1.0 raises ConfigurationError."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            invalid_config = {"model_evaluation": {"test_size": 2.0}}  # Out of range
+            yaml.dump(invalid_config, f)
+            temp_file = f.name
+
+        try:
+            monkeypatch.setattr("config.CONFIG_FILE", temp_file)
+            with pytest.raises(ConfigurationError) as exc_info:
+                load_config()
+
+            # Check error message mentions range issue
+            error_msg = str(exc_info.value)
+            assert "model_evaluation.test_size" in error_msg
+            assert "validation failed" in error_msg.lower()
+        finally:
+            os.remove(temp_file)
+
+    def test_test_size_out_of_range_low(self, monkeypatch):
+        """Test that test_size <= 0.0 raises ConfigurationError."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            invalid_config = {"model_evaluation": {"test_size": 0.0}}  # Out of range
+            yaml.dump(invalid_config, f)
+            temp_file = f.name
+
+        try:
+            monkeypatch.setattr("config.CONFIG_FILE", temp_file)
+            with pytest.raises(ConfigurationError) as exc_info:
+                load_config()
+
+            # Check error message mentions range issue
+            error_msg = str(exc_info.value)
+            assert "model_evaluation.test_size" in error_msg
+            assert "validation failed" in error_msg.lower()
+        finally:
+            os.remove(temp_file)
+
+    def test_invalid_max_depth_type(self, monkeypatch):
+        """Test that non-int max_depth raises ConfigurationError."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            invalid_config = {"decision_tree": {"max_depth": "five"}}  # String instead of int
+            yaml.dump(invalid_config, f)
+            temp_file = f.name
+
+        try:
+            monkeypatch.setattr("config.CONFIG_FILE", temp_file)
+            with pytest.raises(ConfigurationError) as exc_info:
+                load_config()
+
+            # Check error message mentions type issue
+            error_msg = str(exc_info.value)
+            assert "decision_tree.max_depth" in error_msg
+            assert "validation failed" in error_msg.lower()
+        finally:
+            os.remove(temp_file)
+
+    def test_invalid_max_depth_value(self, monkeypatch):
+        """Test that max_depth < 1 raises ConfigurationError."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            invalid_config = {"decision_tree": {"max_depth": 0}}  # Must be >= 1
+            yaml.dump(invalid_config, f)
+            temp_file = f.name
+
+        try:
+            monkeypatch.setattr("config.CONFIG_FILE", temp_file)
+            with pytest.raises(ConfigurationError) as exc_info:
+                load_config()
+
+            # Check error message mentions validation issue
+            error_msg = str(exc_info.value)
+            assert "decision_tree.max_depth" in error_msg
+            assert "validation failed" in error_msg.lower()
+        finally:
+            os.remove(temp_file)
+
+    def test_invalid_min_samples_split(self, monkeypatch):
+        """Test that min_samples_split < 2 raises ConfigurationError."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            invalid_config = {"decision_tree": {"min_samples_split": 1}}  # Must be >= 2
+            yaml.dump(invalid_config, f)
+            temp_file = f.name
+
+        try:
+            monkeypatch.setattr("config.CONFIG_FILE", temp_file)
+            with pytest.raises(ConfigurationError) as exc_info:
+                load_config()
+
+            # Check error message
+            error_msg = str(exc_info.value)
+            assert "decision_tree.min_samples_split" in error_msg
+            assert "validation failed" in error_msg.lower()
+        finally:
+            os.remove(temp_file)
+
+    def test_invalid_learning_rate_out_of_range(self, monkeypatch):
+        """Test that learning_rate > 1.0 raises ConfigurationError."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            invalid_config = {"gradient_boosting": {"learning_rate": 1.5}}  # Must be <= 1.0
+            yaml.dump(invalid_config, f)
+            temp_file = f.name
+
+        try:
+            monkeypatch.setattr("config.CONFIG_FILE", temp_file)
+            with pytest.raises(ConfigurationError) as exc_info:
+                load_config()
+
+            # Check error message
+            error_msg = str(exc_info.value)
+            assert "gradient_boosting.learning_rate" in error_msg
+            assert "validation failed" in error_msg.lower()
+        finally:
+            os.remove(temp_file)
+
+    def test_invalid_negative_skiprows(self, monkeypatch):
+        """Test that negative skiprows raises ConfigurationError."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            invalid_config = {"data_processing": {"skiprows": -5}}  # Must be >= 0
+            yaml.dump(invalid_config, f)
+            temp_file = f.name
+
+        try:
+            monkeypatch.setattr("config.CONFIG_FILE", temp_file)
+            with pytest.raises(ConfigurationError) as exc_info:
+                load_config()
+
+            # Check error message
+            error_msg = str(exc_info.value)
+            assert "data_processing.skiprows" in error_msg
+            assert "validation failed" in error_msg.lower()
+        finally:
+            os.remove(temp_file)
+
+    def test_invalid_random_state_negative(self, monkeypatch):
+        """Test that negative random_state raises ConfigurationError."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            invalid_config = {"model_evaluation": {"random_state": -1}}  # Must be >= 0
+            yaml.dump(invalid_config, f)
+            temp_file = f.name
+
+        try:
+            monkeypatch.setattr("config.CONFIG_FILE", temp_file)
+            with pytest.raises(ConfigurationError) as exc_info:
+                load_config()
+
+            # Check error message
+            error_msg = str(exc_info.value)
+            assert "model_evaluation.random_state" in error_msg
+            assert "validation failed" in error_msg.lower()
+        finally:
+            os.remove(temp_file)
+
+    def test_multiple_validation_errors(self, monkeypatch):
+        """Test that multiple validation errors are all reported."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+            invalid_config = {
+                "logging": {"level": "TRACE"},  # Invalid
+                "model_evaluation": {"test_size": 2.0},  # Out of range
+                "decision_tree": {"max_depth": "five"},  # Wrong type
+            }
+            yaml.dump(invalid_config, f)
+            temp_file = f.name
+
+        try:
+            monkeypatch.setattr("config.CONFIG_FILE", temp_file)
+            with pytest.raises(ConfigurationError) as exc_info:
+                load_config()
+
+            # Check that multiple errors are reported
+            error_msg = str(exc_info.value)
+            assert "validation failed" in error_msg.lower()
+            # At least one error should be mentioned
+            assert "logging.level" in error_msg or "model_evaluation.test_size" in error_msg or "decision_tree.max_depth" in error_msg
+        finally:
+            os.remove(temp_file)
+
+    def test_valid_max_features_values(self, monkeypatch):
+        """Test that valid max_features values pass validation."""
+        valid_values = ["sqrt", "log2", "auto"]
+
+        for value in valid_values:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+                valid_config = {"random_forest": {"max_features": value}}
+                yaml.dump(valid_config, f)
+                temp_file = f.name
+
+            try:
+                monkeypatch.setattr("config.CONFIG_FILE", temp_file)
+                result = load_config()
+                assert result["random_forest"]["max_features"] == value
+            finally:
+                os.remove(temp_file)
