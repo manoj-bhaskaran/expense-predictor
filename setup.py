@@ -43,7 +43,7 @@ setup(
     python_requires=">=3.9",
     install_requires=[
         "numpy==1.26.4",
-        "pandas==2.2.0",
+        "pandas==2.3.3",
         "scikit-learn==1.5.0",
         "xlrd==2.0.1",
         "openpyxl==3.1.2",
