@@ -45,7 +45,7 @@ setup(
         "numpy==1.26.4",
         "pandas==2.2.0",
         "scikit-learn==1.5.0",
-        "xlrd==2.0.1",
+        "xlrd==2.0.2",
         "openpyxl==3.1.2",
         "pyyaml==6.0.1",
         "python-dotenv==1.0.0",

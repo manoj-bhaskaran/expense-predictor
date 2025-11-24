@@ -7,7 +7,7 @@ pandas==2.2.0
 scikit-learn==1.5.0
 
 # Excel file support
-xlrd==2.0.1  # For .xls files
+xlrd==2.0.2  # For .xls files
 openpyxl==3.1.2  # For .xlsx files
 
 # Configuration file support
