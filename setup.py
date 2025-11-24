@@ -62,7 +62,7 @@ setup(
             "black==24.3.0",
             "isort==5.12.0",
             "bandit==1.7.5",
-            "mypy==1.5.0",
+            "mypy==1.18.2",
             "types-python-dateutil==2.8.19",
             "sphinx==7.1.0",
             "sphinx-rtd-theme==1.3.0",
