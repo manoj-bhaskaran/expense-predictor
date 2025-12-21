@@ -55,12 +55,15 @@ class TestHelpersEdgeCases:
             df.to_excel(writer, index=False, startrow=12)
 
         # Test preprocessing with Excel
-        X, y, processed_df = preprocess_and_append_csv(sample_csv_path, excel_path=excel_path, logger=mock_logger)
+        X, y, processed_df, raw_merged_df = preprocess_and_append_csv(sample_csv_path, excel_path=excel_path, logger=mock_logger)
 
         # Should have data from both CSV and Excel
         assert X is not None
         assert y is not None
         assert len(processed_df) > 0
+        # Should have raw merged data when Excel is provided
+        assert raw_merged_df is not None
+        assert len(raw_merged_df) > 0
 
 
 @pytest.mark.unit

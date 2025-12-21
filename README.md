@@ -259,6 +259,65 @@ python model_runner.py \
 | `--output_dir` | Directory for prediction output files | `.` (current directory) |
 | `--skip_confirmation` | Skip confirmation prompts when overwriting files (for automation) | False |
 
+## Automatic Transaction Data Updates
+
+The Expense Predictor **automatically updates** your `trandata.csv` file when you provide an Excel file containing new transaction data. This eliminates the need for manual data consolidation and keeps your transaction history up to date.
+
+### How It Works
+
+When you run the predictor with an Excel file:
+
+1. **Reads existing data**: Loads the current `trandata.csv` file
+2. **Processes Excel file**: Extracts transaction data from the Excel file
+3. **Merges and deduplicates**: Combines both datasets, removing duplicates (keeps newer data)
+4. **Updates trandata.csv**: Automatically saves the merged data back to `trandata.csv`
+5. **Continues with predictions**: Uses the merged data to train models and generate predictions
+
+This happens automatically as part of the normal prediction workflow—no separate steps required!
+
+### Example Usage
+
+**Windows Example:**
+```bash
+python model_runner.py --future_date 21/12/2026 --excel_dir "C:\users\manoj\Downloads" --excel_file "OpTransactionHistory21-12-2025 (4).xls" --data_file trandata.csv
+```
+
+**Linux/Mac Example:**
+```bash
+python model_runner.py --future_date 31/12/2026 --excel_dir ./data --excel_file transactions.xlsx --data_file trandata.csv
+```
+
+After running this command:
+- Your `trandata.csv` will be updated with the new Excel data
+- A backup will be created (e.g., `trandata.csv.backup`) - only one previous version is kept
+- The predictor will use the merged data to generate predictions
+
+### Safety Features
+
+- **Automatic backups**: Creates a backup before updating (e.g., `trandata.csv.backup`), keeping only one previous version
+- **User confirmation**: Asks for confirmation before overwriting (unless using `--skip_confirmation`)
+- **Duplicate handling**: Automatically removes duplicate dates, keeping the most recent data
+- **CSV injection prevention**: Sanitizes data to prevent CSV injection attacks
+- **Data validation**: Validates file formats, required columns, and date ranges before processing
+
+### Workflow Example
+
+```bash
+# Run once with Excel file - updates trandata.csv and generates predictions
+python model_runner.py --future_date 21/12/2026 --excel_dir "C:\users\manoj\Downloads" --excel_file "OpTransactionHistory.xls"
+
+# Future runs can use just the CSV file (already updated)
+python model_runner.py --future_date 31/03/2027
+```
+
+### Automated Mode
+
+Use `--skip_confirmation` to bypass prompts (useful for automation):
+
+```bash
+python model_runner.py --future_date 21/12/2026 --excel_file transactions.xls --skip_confirmation
+```
+
 ## Logging
 
 The Expense Predictor provides configurable logging to help with debugging, monitoring, and operational visibility.
