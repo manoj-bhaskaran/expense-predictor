@@ -538,12 +538,6 @@ def preprocess_and_append_csv(
     df = df.drop_duplicates(subset=["Date"], keep="last")
     df = df.sort_values(by="Date").reset_index(drop=True)
 
-    # If Excel data was provided, save the raw merged data for potential CSV update
-    raw_merged_df = None
-    if excel_path:
-        raw_merged_df = df.copy()
-        plog.log_info(logger, f"Raw merged data contains {len(raw_merged_df)} records from {raw_merged_df['Date'].min().strftime('%Y-%m-%d')} to {raw_merged_df['Date'].max().strftime('%Y-%m-%d')}")
-
     # Use helper function to get complete date range for training
     complete_date_range = get_training_date_range(df, logger=logger)
     df = (df.set_index("Date")
@@ -551,6 +545,13 @@ def preprocess_and_append_csv(
             .fillna({TRANSACTION_AMOUNT_LABEL: 0})
             .reset_index()
             .rename(columns={"index": "Date"}))
+
+    # If Excel data was provided, save the merged data with complete date range for CSV update
+    raw_merged_df = None
+    if excel_path:
+        # Use the df with complete date range (all dates filled with 0 for missing)
+        raw_merged_df = df[["Date", TRANSACTION_AMOUNT_LABEL]].copy()
+        plog.log_info(logger, f"Raw merged data contains {len(raw_merged_df)} records from {raw_merged_df['Date'].min().strftime('%Y-%m-%d')} to {raw_merged_df['Date'].max().strftime('%Y-%m-%d')}")
 
     # Process the dataframe and return with raw merged data
     x_train, y_train, processed_df = _process_dataframe(df, logger=logger)
