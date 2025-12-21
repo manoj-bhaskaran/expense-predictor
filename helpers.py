@@ -533,6 +533,8 @@ def preprocess_and_append_csv(
 
     df = df.dropna(subset=["Date"])
     df["Date"] = pd.to_datetime(df["Date"], dayfirst=True, errors="coerce")
+    # Drop any NaT values created by failed datetime conversion
+    df = df.dropna(subset=["Date"])
     df = df.drop_duplicates(subset=["Date"], keep="last")
     df = df.sort_values(by="Date").reset_index(drop=True)
 
