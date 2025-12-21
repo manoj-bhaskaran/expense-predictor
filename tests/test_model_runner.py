@@ -330,7 +330,7 @@ class TestFuturePredictionPipeline:
 
     def test_feature_alignment(self, sample_csv_path, mock_logger):
         """Test that future features are correctly aligned with training features."""
-        X, _, _ = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
+        X, _, _, _ = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
 
         # Prepare future dates
         future_df, _ = prepare_future_dates()
