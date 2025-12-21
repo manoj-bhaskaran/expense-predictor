@@ -60,7 +60,7 @@ setup(
             "flake8==6.1.0",
             "pylint==2.17.0",
             "black==24.3.0",
-            "isort==5.12.0",
+            "isort==6.1.0",
             "bandit==1.7.5",
             "mypy==1.18.2",
             "types-python-dateutil==2.8.19",
