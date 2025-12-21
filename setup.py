@@ -42,7 +42,7 @@ setup(
     ],
     python_requires=">=3.9",
     install_requires=[
-        "numpy==2.0.2",
+        "numpy<2,>=1.22.4",
         "pandas==2.3.3",
         "scikit-learn==1.5.0",
         "xlrd==2.0.2",
