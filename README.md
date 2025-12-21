@@ -289,12 +289,12 @@ python model_runner.py --future_date 31/12/2026 --excel_dir ./data --excel_file 
 
 After running this command:
 - Your `trandata.csv` will be updated with the new Excel data
-- A backup will be created (e.g., `trandata.csv.backup.20251221_123456`)
+- A backup will be created (e.g., `trandata.csv.backup`) - only one previous version is kept
 - The predictor will use the merged data to generate predictions
 
 ### Safety Features
 
-- **Automatic backups**: Creates timestamped backups before updating (e.g., `trandata.csv.backup.20251221_123456`)
+- **Automatic backups**: Creates a backup before updating (e.g., `trandata.csv.backup`), keeping only one previous version
 - **User confirmation**: Asks for confirmation before overwriting (unless using `--skip_confirmation`)
 - **Duplicate handling**: Automatically removes duplicate dates, keeping the most recent data
 - **CSV injection prevention**: Sanitizes data to prevent CSV injection attacks

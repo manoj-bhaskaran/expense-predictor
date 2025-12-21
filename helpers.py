@@ -1,6 +1,8 @@
 import logging
 import os
+import shutil
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Optional, Tuple
 
 import pandas as pd
@@ -620,15 +622,24 @@ def update_data_file(
             plog.log_info(logger, f"Skipped updating {file_path}")
             return
 
-    # Create backup before overwriting (always create backup for data files)
+    # Create backup before overwriting (keep only one previous version)
     if os.path.exists(file_path):
         try:
-            backup_path = create_backup(file_path, logger)
-            if backup_path:
-                plog.log_info(logger, f"Created backup: {backup_path}")
-        except IOError as e:
+            # Define backup path (simple name without timestamp - keeps only one backup)
+            file_path_obj = Path(file_path)
+            backup_path = file_path_obj.with_suffix(f"{file_path_obj.suffix}.backup")
+
+            # Remove old backup if it exists
+            if backup_path.exists():
+                backup_path.unlink()
+                plog.log_info(logger, f"Removed old backup: {backup_path}")
+
+            # Create new backup
+            shutil.copy2(file_path, backup_path)
+            plog.log_info(logger, f"Created backup: {backup_path}")
+        except (IOError, OSError) as e:
             plog.log_error(logger, f"Failed to create backup, aborting update: {e}")
-            raise
+            raise IOError(f"Failed to create backup: {e}")
 
     # Sanitize data to prevent CSV injection
     plog.log_info(logger, "Sanitizing merged data to prevent CSV injection")
