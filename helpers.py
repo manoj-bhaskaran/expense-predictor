@@ -422,6 +422,84 @@ def prepare_future_dates(future_date: Optional[str] = None) -> Tuple[pd.DataFram
     return future_df, future_dates
 
 
+def _read_and_process_excel_data(excel_path: str, logger: Optional[logging.Logger] = None) -> pd.DataFrame:
+    """
+    Read and process Excel file to extract daily transaction data.
+
+    Parameters:
+    excel_path (str): Path to the Excel file.
+    logger (logging.Logger, optional): Logger instance to record log messages.
+
+    Returns:
+    pd.DataFrame: DataFrame with Date and transaction amount columns.
+
+    Raises:
+    DataValidationError: If required columns are missing or dependencies are not installed.
+    """
+    # Validate Excel file before reading
+    validate_excel_file(excel_path, logger=logger)
+
+    try:
+        engine = "xlrd" if excel_path.endswith(".xls") else "openpyxl"
+        sheet_names = pd.ExcelFile(excel_path, engine=engine).sheet_names
+        plog.log_info(logger, f"Available sheets: {sheet_names}")
+
+        skiprows = config["data_processing"]["skiprows"]
+        excel_data = pd.read_excel(excel_path, sheet_name=sheet_names[0], engine=engine, skiprows=skiprows)
+    except ImportError as e:
+        # Missing openpyxl dependency for .xlsx files
+        if "openpyxl" in str(e):
+            plog.log_error(logger, f"Missing openpyxl dependency for .xlsx file processing: {e}")
+            raise DataValidationError(
+                f"Processing .xlsx files requires openpyxl. Install it with: pip install openpyxl"
+            ) from e
+        # Other import errors
+        plog.log_error(logger, f"Missing dependency for Excel file processing: {e}")
+        raise DataValidationError(f"Missing required dependency for Excel processing: {e}") from e
+
+    excel_data.columns = excel_data.columns.str.strip()
+    plog.log_info(logger, f"Columns in the sheet: {excel_data.columns.tolist()}")
+
+    # Find and validate required columns
+    value_date_col = find_column_name(excel_data.columns, VALUE_DATE_LABEL)
+    if value_date_col is None:
+        plog.log_error(logger, f"{VALUE_DATE_LABEL} column not found. Available columns: {excel_data.columns.tolist()}")
+        raise DataValidationError(
+            f"{VALUE_DATE_LABEL} column not found in Excel file. Available columns: {excel_data.columns.tolist()}"
+        )
+
+    plog.log_info(logger, f"Using '{value_date_col}' as {VALUE_DATE_LABEL} column")
+    excel_data[value_date_col] = pd.to_datetime(excel_data[value_date_col], dayfirst=True, errors="coerce")
+    excel_data = excel_data.dropna(subset=[value_date_col])
+
+    # Rename to standard VALUE_DATE_LABEL for consistency
+    if value_date_col != VALUE_DATE_LABEL:
+        excel_data = excel_data.rename(columns={value_date_col: VALUE_DATE_LABEL})
+
+    # Find withdrawal and deposit columns
+    withdrawal_col = find_column_name(excel_data.columns, "Withdrawal Amount (INR )")
+    deposit_col = find_column_name(excel_data.columns, "Deposit Amount (INR )")
+
+    if withdrawal_col is None or deposit_col is None:
+        plog.log_error(
+            logger,
+            f"Required columns not found. Expected: 'Withdrawal Amount (INR )' and 'Deposit Amount (INR )'. "
+            f"Found: {excel_data.columns.tolist()}",
+        )
+        raise DataValidationError(
+            f"Required columns not found in Excel file. Available columns: {excel_data.columns.tolist()}"
+        )
+
+    plog.log_info(logger, f"Using columns: '{withdrawal_col}' for withdrawals and '{deposit_col}' for deposits")
+
+    # Calculate net expense and aggregate by date
+    excel_data["expense"] = excel_data[withdrawal_col].fillna(0) * -1 + excel_data[deposit_col].fillna(0)
+    daily_expenses = excel_data.groupby(VALUE_DATE_LABEL)["expense"].sum().reset_index()
+    daily_expenses.columns = ["Date", TRANSACTION_AMOUNT_LABEL]
+
+    return daily_expenses
+
+
 def preprocess_and_append_csv(
     file_path: str, excel_path: Optional[str] = None, logger: Optional[logging.Logger] = None
 ) -> Tuple[pd.DataFrame, pd.Series, pd.DataFrame, Optional[pd.DataFrame]]:
@@ -448,64 +526,9 @@ def preprocess_and_append_csv(
 
     df = pd.read_csv(file_path)
 
+    # Process and merge Excel data if provided
     if excel_path:
-        # Validate Excel file before reading
-        validate_excel_file(excel_path, logger=logger)
-
-        try:
-            engine = "xlrd" if excel_path.endswith(".xls") else "openpyxl"
-            sheet_names = pd.ExcelFile(excel_path, engine=engine).sheet_names
-            plog.log_info(logger, f"Available sheets: {sheet_names}")
-
-            skiprows = config["data_processing"]["skiprows"]
-            excel_data = pd.read_excel(excel_path, sheet_name=sheet_names[0], engine=engine, skiprows=skiprows)
-        except ImportError as e:
-            # Missing openpyxl dependency for .xlsx files
-            if "openpyxl" in str(e):
-                plog.log_error(logger, f"Missing openpyxl dependency for .xlsx file processing: {e}")
-                raise DataValidationError(
-                    f"Processing .xlsx files requires openpyxl. "
-                    f"Install it with: pip install openpyxl"
-                ) from e
-            # Other import errors
-            plog.log_error(logger, f"Missing dependency for Excel file processing: {e}")
-            raise DataValidationError(f"Missing required dependency for Excel processing: {e}") from e
-        excel_data.columns = excel_data.columns.str.strip()
-        plog.log_info(logger, f"Columns in the sheet: {excel_data.columns.tolist()}")
-
-        value_date_col = find_column_name(excel_data.columns, VALUE_DATE_LABEL)
-        if value_date_col is None:
-            plog.log_error(logger, f"{VALUE_DATE_LABEL} column not found. Available columns: {excel_data.columns.tolist()}")
-            raise DataValidationError(
-                f"{VALUE_DATE_LABEL} column not found in Excel file. Available columns: {excel_data.columns.tolist()}"
-            )
-
-        plog.log_info(logger, f"Using '{value_date_col}' as {VALUE_DATE_LABEL} column")
-        excel_data[value_date_col] = pd.to_datetime(excel_data[value_date_col], dayfirst=True, errors="coerce")
-
-        excel_data = excel_data.dropna(subset=[value_date_col])
-        # Rename to standard VALUE_DATE_LABEL for consistency in downstream processing
-        if value_date_col != VALUE_DATE_LABEL:
-            excel_data = excel_data.rename(columns={value_date_col: VALUE_DATE_LABEL})
-
-        # Find the actual column names with flexible matching
-        withdrawal_col = find_column_name(excel_data.columns, "Withdrawal Amount (INR )")
-        deposit_col = find_column_name(excel_data.columns, "Deposit Amount (INR )")
-
-        if withdrawal_col is None or deposit_col is None:
-            plog.log_error(
-                logger,
-                f"Required columns not found. Expected: 'Withdrawal Amount (INR )' and 'Deposit Amount (INR )'. "
-                f"Found: {excel_data.columns.tolist()}",
-            )
-            raise DataValidationError(
-                f"Required columns not found in Excel file. Available columns: {excel_data.columns.tolist()}"
-            )
-
-        plog.log_info(logger, f"Using columns: '{withdrawal_col}' for withdrawals and '{deposit_col}' for deposits")
-        excel_data["expense"] = excel_data[withdrawal_col].fillna(0) * -1 + excel_data[deposit_col].fillna(0)
-        daily_expenses = excel_data.groupby(VALUE_DATE_LABEL)["expense"].sum().reset_index()
-        daily_expenses.columns = ["Date", TRANSACTION_AMOUNT_LABEL]
+        daily_expenses = _read_and_process_excel_data(excel_path, logger=logger)
         df = pd.concat([df, daily_expenses], ignore_index=True)
 
     df = df.dropna(subset=["Date"])
