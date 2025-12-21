@@ -672,7 +672,7 @@ def update_data_file(
     try:
         sanitized_df.to_csv(file_path, index=False)
         plog.log_info(logger, f"Successfully updated {file_path}")
-        plog.log_info(logger, f"Date range: {output_df['Date'].min()} to {output_df['Date'].max()}")
+        plog.log_info(logger, f"Date range: {merged_df['Date'].min()} to {merged_df['Date'].max()}")
     except (IOError, OSError) as e:
         plog.log_error(logger, f"Failed to update {file_path}: {e}")
         raise IOError(f"Failed to update data file: {e}")
