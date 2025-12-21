@@ -53,6 +53,7 @@ from helpers import (
     get_quarter_end_date,
     prepare_future_dates,
     preprocess_and_append_csv,
+    update_data_file,
     validate_minimum_data,
     write_predictions,
 )
@@ -404,7 +405,12 @@ def main(args: Optional[List[str]] = None) -> int:
     file_path = get_data_file_path(parsed_args.data_file, logger)
 
     # Preprocess data
-    X, y, _ = preprocess_and_append_csv(file_path, excel_path=excel_path, logger=logger)
+    X, y, _, raw_merged_df = preprocess_and_append_csv(file_path, excel_path=excel_path, logger=logger)
+
+    # If Excel data was provided, update the data file with merged data
+    if raw_merged_df is not None:
+        plog.log_info(logger, "Excel data was provided. Updating data file with merged transaction data.")
+        update_data_file(raw_merged_df, file_path, logger=logger, skip_confirmation=parsed_args.skip_confirmation)
 
     # Validate minimum data requirements
     min_total_samples = config["model_evaluation"].get("min_total_samples", 30)

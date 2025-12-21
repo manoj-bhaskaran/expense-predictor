@@ -422,12 +422,12 @@ def prepare_future_dates(future_date: Optional[str] = None) -> Tuple[pd.DataFram
 
 def preprocess_and_append_csv(
     file_path: str, excel_path: Optional[str] = None, logger: Optional[logging.Logger] = None
-) -> Tuple[pd.DataFrame, pd.Series, pd.DataFrame]:
+) -> Tuple[pd.DataFrame, pd.Series, pd.DataFrame, Optional[pd.DataFrame]]:
     """
     Preprocess input data from a CSV file and optionally append data from an Excel file.
 
     This function reads data from the CSV file and optionally merges it with Excel data,
-    then processes it for training. The original CSV file is NOT modified.
+    then processes it for training.
 
     Parameters:
     file_path (str): The file path to the CSV file containing the input data.
@@ -435,7 +435,11 @@ def preprocess_and_append_csv(
     logger (logging.Logger, optional): Logger instance to record log messages. Defaults to None.
 
     Returns:
-    tuple: A tuple containing X_train, y_train, and the processed DataFrame.
+    tuple: A tuple containing:
+        - X_train (pd.DataFrame): Training features
+        - y_train (pd.Series): Training labels
+        - processed_df (pd.DataFrame): The fully processed DataFrame with features
+        - raw_merged_df (pd.DataFrame or None): The raw merged data (only if excel_path provided)
     """
     # Validate CSV file before reading
     validate_csv_file(file_path, logger=logger)
@@ -507,6 +511,12 @@ def preprocess_and_append_csv(
     df = df.drop_duplicates(subset=["Date"], keep="last")
     df = df.sort_values(by="Date").reset_index(drop=True)
 
+    # If Excel data was provided, save the raw merged data for potential CSV update
+    raw_merged_df = None
+    if excel_path:
+        raw_merged_df = df.copy()
+        plog.log_info(logger, f"Raw merged data contains {len(raw_merged_df)} records from {raw_merged_df['Date'].min().strftime('%Y-%m-%d')} to {raw_merged_df['Date'].max().strftime('%Y-%m-%d')}")
+
     # Use helper function to get complete date range for training
     complete_date_range = get_training_date_range(df, logger=logger)
     df = (df.set_index("Date")
@@ -515,8 +525,9 @@ def preprocess_and_append_csv(
             .reset_index()
             .rename(columns={"index": "Date"}))
 
-    # Process the dataframe directly without modifying the input file
-    return _process_dataframe(df, logger=logger)
+    # Process the dataframe and return with raw merged data
+    x_train, y_train, processed_df = _process_dataframe(df, logger=logger)
+    return x_train, y_train, processed_df, raw_merged_df
 
 
 def write_predictions(
@@ -569,3 +580,65 @@ def write_predictions(
     except (IOError, OSError) as e:
         plog.log_error(logger, f"Failed to write predictions to {output_path}: {e}")
         raise IOError(f"Failed to write predictions: {e}")
+
+
+def update_data_file(
+    merged_df: pd.DataFrame, file_path: str, logger: Optional[logging.Logger] = None, skip_confirmation: bool = False
+) -> None:
+    """
+    Update the data file with merged transaction data.
+
+    This function:
+    - Creates a backup of the existing file before overwriting
+    - Formats dates in DD/MM/YYYY format
+    - Sanitizes data to prevent CSV injection attacks
+    - Optionally asks for user confirmation before overwriting
+
+    Parameters:
+    merged_df (pd.DataFrame): The merged DataFrame with Date and transaction amount columns.
+    file_path (str): The file path to update.
+    logger (logging.Logger, optional): Logger instance used for logging.
+    skip_confirmation (bool): If True, skip user confirmation for overwriting. Default: False.
+
+    Returns:
+    None
+
+    Raises:
+    IOError: If backup creation or file writing fails
+    """
+    plog.log_info(logger, f"Updating data file: {file_path}")
+    plog.log_info(logger, f"Merged data contains {len(merged_df)} records")
+
+    # Create a copy for output formatting
+    output_df = merged_df.copy()
+    output_df["Date"] = output_df["Date"].dt.strftime("%d/%m/%Y")
+
+    # Check if file exists and handle accordingly
+    if os.path.exists(file_path) and not skip_confirmation:
+        # Ask for confirmation
+        if not confirm_overwrite(file_path, logger):
+            plog.log_info(logger, f"Skipped updating {file_path}")
+            return
+
+    # Create backup before overwriting (always create backup for data files)
+    if os.path.exists(file_path):
+        try:
+            backup_path = create_backup(file_path, logger)
+            if backup_path:
+                plog.log_info(logger, f"Created backup: {backup_path}")
+        except IOError as e:
+            plog.log_error(logger, f"Failed to create backup, aborting update: {e}")
+            raise
+
+    # Sanitize data to prevent CSV injection
+    plog.log_info(logger, "Sanitizing merged data to prevent CSV injection")
+    sanitized_df = sanitize_dataframe_for_csv(output_df)
+
+    # Write to CSV
+    try:
+        sanitized_df.to_csv(file_path, index=False)
+        plog.log_info(logger, f"Successfully updated {file_path}")
+        plog.log_info(logger, f"Date range: {output_df['Date'].min()} to {output_df['Date'].max()}")
+    except (IOError, OSError) as e:
+        plog.log_error(logger, f"Failed to update {file_path}: {e}")
+        raise IOError(f"Failed to update data file: {e}")

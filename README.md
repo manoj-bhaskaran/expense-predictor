@@ -259,93 +259,64 @@ python model_runner.py \
 | `--output_dir` | Directory for prediction output files | `.` (current directory) |
 | `--skip_confirmation` | Skip confirmation prompts when overwriting files (for automation) | False |
 
-## Updating Transaction Data
+## Automatic Transaction Data Updates
 
-The Expense Predictor includes a helper script (`update_trandata.py`) to permanently update your `trandata.csv` file with new transaction data from Excel files. This is useful when you regularly receive bank statements and want to keep your transaction history up to date.
-
-### When to Use the Update Script
-
-- **Permanent Updates**: When you want to add new Excel data to `trandata.csv` for future runs
-- **Data Consolidation**: When consolidating multiple Excel files into a single CSV file
-- **Regular Updates**: When you receive periodic bank statements and want to maintain a complete transaction history
-
-**Note:** The main `model_runner.py` script already processes Excel files in memory without modifying `trandata.csv`. You only need this update script if you want permanent changes.
-
-### Usage
-
-**Basic Usage:**
-```bash
-python update_trandata.py --excel_dir <EXCEL_DIR> --excel_file <EXCEL_FILE>
-```
-
-**Windows Example:**
-```bash
-python update_trandata.py --excel_dir "C:\users\manoj\Downloads" --excel_file "OpTransactionHistory21-12-2025 (4).xls"
-```
-
-**Linux/Mac Example:**
-```bash
-python update_trandata.py --excel_dir ./data --excel_file transactions.xlsx
-```
-
-**Dry Run (Preview Changes):**
-```bash
-python update_trandata.py --excel_dir ./data --excel_file transactions.xlsx --dry_run
-```
-
-**Custom Data File:**
-```bash
-python update_trandata.py --excel_dir ./data --excel_file transactions.xlsx --data_file ./custom_data.csv
-```
-
-### Command-Line Arguments
-
-| Argument | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `--excel_dir` | Directory containing the Excel file | - | Yes |
-| `--excel_file` | Name of the Excel file with new transaction data | - | Yes |
-| `--data_file` | Path to the CSV file to update | `trandata.csv` | No |
-| `--dry_run` | Preview changes without modifying the file | False | No |
-| `--log_dir` | Directory for log files | `logs` | No |
+The Expense Predictor **automatically updates** your `trandata.csv` file when you provide an Excel file containing new transaction data. This eliminates the need for manual data consolidation and keeps your transaction history up to date.
 
 ### How It Works
+
+When you run the predictor with an Excel file:
 
 1. **Reads existing data**: Loads the current `trandata.csv` file
 2. **Processes Excel file**: Extracts transaction data from the Excel file
 3. **Merges and deduplicates**: Combines both datasets, removing duplicates (keeps newer data)
-4. **Creates backup**: Automatically backs up the existing file before overwriting
-5. **Writes updated data**: Saves the merged data back to `trandata.csv`
+4. **Updates trandata.csv**: Automatically saves the merged data back to `trandata.csv`
+5. **Continues with predictions**: Uses the merged data to train models and generate predictions
+
+This happens automatically as part of the normal prediction workflow—no separate steps required!
+
+### Example Usage
+
+**Windows Example:**
+```bash
+python model_runner.py --future_date 21/12/2026 --excel_dir "C:\users\manoj\Downloads" --excel_file "OpTransactionHistory21-12-2025 (4).xls" --data_file trandata.csv
+```
+
+**Linux/Mac Example:**
+```bash
+python model_runner.py --future_date 31/12/2026 --excel_dir ./data --excel_file transactions.xlsx --data_file trandata.csv
+```
+
+After running this command:
+- Your `trandata.csv` will be updated with the new Excel data
+- A backup will be created (e.g., `trandata.csv.backup.20251221_123456`)
+- The predictor will use the merged data to generate predictions
 
 ### Safety Features
 
-- **Automatic backups**: Creates timestamped backups before overwriting (e.g., `trandata.csv.backup.20251221_123456`)
-- **User confirmation**: Asks for confirmation before overwriting (unless using dry run)
+- **Automatic backups**: Creates timestamped backups before updating (e.g., `trandata.csv.backup.20251221_123456`)
+- **User confirmation**: Asks for confirmation before overwriting (unless using `--skip_confirmation`)
 - **Duplicate handling**: Automatically removes duplicate dates, keeping the most recent data
 - **CSV injection prevention**: Sanitizes data to prevent CSV injection attacks
-- **Validation**: Validates file formats and required columns before processing
+- **Data validation**: Validates file formats, required columns, and date ranges before processing
 
-### Example Workflow
-
-```bash
-# Step 1: Preview what will be updated (dry run)
-python update_trandata.py --excel_dir "C:\users\manoj\Downloads" --excel_file "OpTransactionHistory.xls" --dry_run
-
-# Step 2: If preview looks good, update the file
-python update_trandata.py --excel_dir "C:\users\manoj\Downloads" --excel_file "OpTransactionHistory.xls"
-
-# Step 3: Run the predictor with updated data
-python model_runner.py --future_date 21/12/2026
-```
-
-### Alternative: Direct Excel Processing
-
-If you don't want to permanently update `trandata.csv`, you can process Excel files directly during prediction:
+### Workflow Example
 
 ```bash
-python model_runner.py --future_date 21/12/2026 --excel_dir "C:\users\manoj\Downloads" --excel_file "OpTransactionHistory.xls" --data_file trandata.csv
+# Run once with Excel file - updates trandata.csv and generates predictions
+python model_runner.py --future_date 21/12/2026 --excel_dir "C:\users\manoj\Downloads" --excel_file "OpTransactionHistory.xls"
+
+# Future runs can use just the CSV file (already updated)
+python model_runner.py --future_date 31/03/2027
 ```
 
-This approach combines the data in memory without modifying the original CSV file.
+### Automated Mode
+
+Use `--skip_confirmation` to bypass prompts (useful for automation):
+
+```bash
+python model_runner.py --future_date 21/12/2026 --excel_file transactions.xls --skip_confirmation
+```
 
 ## Logging
 
