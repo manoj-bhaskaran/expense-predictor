@@ -37,6 +37,7 @@ setup(
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "Topic :: Office/Business :: Financial",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
     ],
@@ -44,7 +45,7 @@ setup(
     install_requires=[
         "numpy<2,>=1.22.4",
         "pandas==2.3.3",
-        "scikit-learn==1.5.0",
+        "scikit-learn==1.6.0",
         "xlrd==2.0.2",
         "openpyxl==3.1.2",
         "pyyaml==6.0.1",
