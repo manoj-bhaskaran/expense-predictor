@@ -2,7 +2,7 @@
 # Install with: pip install -r requirements.txt
 
 # Core ML and Data Processing
-numpy==1.26.4
+numpy==2.0.2
 pandas==2.3.3
 scikit-learn==1.5.0
 
