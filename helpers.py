@@ -13,7 +13,7 @@ import python_logging_framework as plog
 from config import config
 from constants import DAY_OF_WEEK, TRANSACTION_AMOUNT_LABEL, VALUE_DATE_LABEL
 from exceptions import DataValidationError
-from security import confirm_overwrite, create_backup, sanitize_dataframe_for_csv
+from security import confirm_overwrite, sanitize_dataframe_for_csv
 
 
 def validate_csv_file(file_path: str, logger: Optional[logging.Logger] = None) -> None:
@@ -563,7 +563,6 @@ def write_predictions(
 
     This function:
     - Sanitizes data to prevent CSV injection attacks
-    - Creates a backup if the file already exists
     - Optionally asks for user confirmation before overwriting
 
     Parameters:
@@ -576,7 +575,7 @@ def write_predictions(
     None
 
     Raises:
-    IOError: If backup creation or file writing fails
+    IOError: If file writing fails
     """
     # Check if file exists and handle accordingly
     if os.path.exists(output_path) and not skip_confirmation:
@@ -584,15 +583,6 @@ def write_predictions(
         if not confirm_overwrite(output_path, logger):
             plog.log_info(logger, f"Skipped writing to {output_path}")
             return
-
-        # Create backup before overwriting
-        try:
-            backup_path = create_backup(output_path, logger)
-            if backup_path:
-                plog.log_info(logger, f"Created backup: {backup_path}")
-        except IOError as e:
-            plog.log_error(logger, f"Failed to create backup, aborting write: {e}")
-            raise
 
     # Sanitize data to prevent CSV injection
     plog.log_info(logger, "Sanitizing data to prevent CSV injection")
