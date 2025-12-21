@@ -564,6 +564,7 @@ def write_predictions(
     Write predictions to a CSV file with security measures.
 
     This function:
+    - Formats dates in DD/MM/YYYY format
     - Sanitizes data to prevent CSV injection attacks
     - Optionally asks for user confirmation before overwriting
 
@@ -586,9 +587,16 @@ def write_predictions(
             plog.log_info(logger, f"Skipped writing to {output_path}")
             return
 
+    # Create a copy for output formatting
+    output_df = predicted_df.copy()
+
+    # Format Date column if it exists and is datetime type
+    if "Date" in output_df.columns and pd.api.types.is_datetime64_any_dtype(output_df["Date"]):
+        output_df["Date"] = output_df["Date"].dt.strftime("%d/%m/%Y")
+
     # Sanitize data to prevent CSV injection
     plog.log_info(logger, "Sanitizing data to prevent CSV injection")
-    sanitized_df = sanitize_dataframe_for_csv(predicted_df)
+    sanitized_df = sanitize_dataframe_for_csv(output_df)
 
     # Write to CSV
     try:
