@@ -451,7 +451,7 @@ def _read_and_process_excel_data(excel_path: str, logger: Optional[logging.Logge
         if "openpyxl" in str(e):
             plog.log_error(logger, f"Missing openpyxl dependency for .xlsx file processing: {e}")
             raise DataValidationError(
-                f"Processing .xlsx files requires openpyxl. Install it with: pip install openpyxl"
+                "Processing .xlsx files requires openpyxl. Install it with: pip install openpyxl"
             ) from e
         # Other import errors
         plog.log_error(logger, f"Missing dependency for Excel file processing: {e}")
