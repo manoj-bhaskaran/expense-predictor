@@ -13,7 +13,7 @@ import python_logging_framework as plog
 from config import config
 from constants import DAY_OF_WEEK, TRANSACTION_AMOUNT_LABEL, VALUE_DATE_LABEL
 from exceptions import DataValidationError
-from security import confirm_overwrite, create_backup, sanitize_dataframe_for_csv
+from security import confirm_overwrite, sanitize_dataframe_for_csv
 
 
 def validate_csv_file(file_path: str, logger: Optional[logging.Logger] = None) -> None:
@@ -533,14 +533,10 @@ def preprocess_and_append_csv(
 
     df = df.dropna(subset=["Date"])
     df["Date"] = pd.to_datetime(df["Date"], dayfirst=True, errors="coerce")
+    # Drop any NaT values created by failed datetime conversion
+    df = df.dropna(subset=["Date"])
     df = df.drop_duplicates(subset=["Date"], keep="last")
     df = df.sort_values(by="Date").reset_index(drop=True)
-
-    # If Excel data was provided, save the raw merged data for potential CSV update
-    raw_merged_df = None
-    if excel_path:
-        raw_merged_df = df.copy()
-        plog.log_info(logger, f"Raw merged data contains {len(raw_merged_df)} records from {raw_merged_df['Date'].min().strftime('%Y-%m-%d')} to {raw_merged_df['Date'].max().strftime('%Y-%m-%d')}")
 
     # Use helper function to get complete date range for training
     complete_date_range = get_training_date_range(df, logger=logger)
@@ -549,6 +545,13 @@ def preprocess_and_append_csv(
             .fillna({TRANSACTION_AMOUNT_LABEL: 0})
             .reset_index()
             .rename(columns={"index": "Date"}))
+
+    # If Excel data was provided, save the merged data with complete date range for CSV update
+    raw_merged_df = None
+    if excel_path:
+        # Use the df with complete date range (all dates filled with 0 for missing)
+        raw_merged_df = df[["Date", TRANSACTION_AMOUNT_LABEL]].copy()
+        plog.log_info(logger, f"Raw merged data contains {len(raw_merged_df)} records from {raw_merged_df['Date'].min().strftime('%Y-%m-%d')} to {raw_merged_df['Date'].max().strftime('%Y-%m-%d')}")
 
     # Process the dataframe and return with raw merged data
     x_train, y_train, processed_df = _process_dataframe(df, logger=logger)
@@ -562,8 +565,8 @@ def write_predictions(
     Write predictions to a CSV file with security measures.
 
     This function:
+    - Formats dates in DD/MM/YYYY format
     - Sanitizes data to prevent CSV injection attacks
-    - Creates a backup if the file already exists
     - Optionally asks for user confirmation before overwriting
 
     Parameters:
@@ -576,7 +579,7 @@ def write_predictions(
     None
 
     Raises:
-    IOError: If backup creation or file writing fails
+    IOError: If file writing fails
     """
     # Check if file exists and handle accordingly
     if os.path.exists(output_path) and not skip_confirmation:
@@ -585,18 +588,16 @@ def write_predictions(
             plog.log_info(logger, f"Skipped writing to {output_path}")
             return
 
-        # Create backup before overwriting
-        try:
-            backup_path = create_backup(output_path, logger)
-            if backup_path:
-                plog.log_info(logger, f"Created backup: {backup_path}")
-        except IOError as e:
-            plog.log_error(logger, f"Failed to create backup, aborting write: {e}")
-            raise
+    # Create a copy for output formatting
+    output_df = predicted_df.copy()
+
+    # Format Date column if it exists and is datetime type
+    if "Date" in output_df.columns and pd.api.types.is_datetime64_any_dtype(output_df["Date"]):
+        output_df["Date"] = output_df["Date"].dt.strftime("%d/%m/%Y")
 
     # Sanitize data to prevent CSV injection
     plog.log_info(logger, "Sanitizing data to prevent CSV injection")
-    sanitized_df = sanitize_dataframe_for_csv(predicted_df)
+    sanitized_df = sanitize_dataframe_for_csv(output_df)
 
     # Write to CSV
     try:
@@ -672,7 +673,7 @@ def update_data_file(
     try:
         sanitized_df.to_csv(file_path, index=False)
         plog.log_info(logger, f"Successfully updated {file_path}")
-        plog.log_info(logger, f"Date range: {output_df['Date'].min()} to {output_df['Date'].max()}")
+        plog.log_info(logger, f"Date range: {merged_df['Date'].min()} to {merged_df['Date'].max()}")
     except (IOError, OSError) as e:
         plog.log_error(logger, f"Failed to update {file_path}: {e}")
         raise IOError(f"Failed to update data file: {e}")

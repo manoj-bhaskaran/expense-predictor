@@ -9,6 +9,7 @@ This module provides functions for:
 """
 
 import logging
+import numbers
 import os
 import shutil
 from pathlib import Path
@@ -177,16 +178,25 @@ def sanitize_csv_value(value: Any) -> str:
     CSV injection occurs when a formula (starting with =, +, -, @, tab, or carriage return)
     is injected into a CSV field and executed by spreadsheet applications.
 
+    Numeric values (including negative numbers) are not sanitized as they are not
+    a security risk.
+
     Parameters:
     value: The value to sanitize (can be any type)
 
     Returns:
     str: The sanitized value safe for CSV output
     """
-    if value is None:
+    if value is None or pd.isna(value):
         return ""
 
-    # Convert to string
+    # Check if value is numeric (int, float, or pandas/numpy numeric types)
+    # Numeric values are safe and should not be prefixed with a quote
+    # Using numbers.Real catches int, float, numpy.int64, numpy.float64, etc.
+    if isinstance(value, numbers.Real) and not isinstance(value, bool):
+        return str(value)
+
+    # Convert to string for non-numeric values
     value_str = str(value)
 
     # Check for potentially dangerous formula characters at the start
