@@ -676,11 +676,13 @@ class TestArgumentCombinations:
 
     def test_various_future_dates(self, temp_data):
         """Test with different future date formats and values."""
+        # Generate dynamic future dates to avoid tests failing when hardcoded dates become outdated
+        base_date = datetime.now()
         test_dates = [
-            "01/01/2026",
-            "31/12/2025",
-            "15/06/2026",
-            "28/02/2027",
+            (base_date + timedelta(days=30)).strftime("%d/%m/%Y"),
+            (base_date + timedelta(days=60)).strftime("%d/%m/%Y"),
+            (base_date + timedelta(days=180)).strftime("%d/%m/%Y"),
+            (base_date + timedelta(days=365)).strftime("%d/%m/%Y"),
         ]
 
         for test_date in test_dates:
