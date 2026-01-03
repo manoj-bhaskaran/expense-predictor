@@ -1,8 +1,5 @@
 name: Security Scanning
 
-permissions:
-  contents: read
-
 on:
   pull_request:
     branches: [ main, master ]
@@ -16,6 +13,8 @@ jobs:
   bandit:
     name: Bandit Security Scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
     - name: Checkout code
@@ -48,6 +47,8 @@ jobs:
   dependency-check:
     name: Dependency Security Check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
     - name: Checkout code
