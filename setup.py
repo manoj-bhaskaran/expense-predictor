@@ -62,7 +62,7 @@ setup(
             "pylint==2.17.0",
             "black==24.3.0",
             "isort<6,>=4.2.5",  # Keep in <6 range for pylint 2.17.0 compatibility
-            "bandit==1.7.5",
+            "bandit==1.8.6",
             "mypy==1.18.2",
             "types-python-dateutil==2.8.19",
             "sphinx==7.1.0",
