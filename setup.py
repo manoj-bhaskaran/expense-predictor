@@ -69,7 +69,7 @@ setup(
             "sphinx-rtd-theme==1.3.0",
             "ipython==8.14.0",
             "jupyter==1.0.0",
-            "notebook==7.2.2",
+            "notebook==7.5.1",
             "coverage==7.10.7",
             "pre-commit==3.4.0",
             "ipdb==0.13.13",
