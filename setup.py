@@ -66,7 +66,7 @@ setup(
             "mypy==1.18.2",
             "types-python-dateutil==2.8.19",
             "sphinx==7.1.0",
-            "sphinx-rtd-theme==1.3.0",
+            "sphinx-rtd-theme==3.0.2",
             "ipython==8.14.0",
             "jupyter==1.0.0",
             "notebook==7.2.2",
