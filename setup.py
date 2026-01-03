@@ -37,6 +37,7 @@ setup(
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "Topic :: Office/Business :: Financial",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
     ],
@@ -60,7 +61,7 @@ setup(
             "flake8==6.1.0",
             "pylint==2.17.0",
             "black==24.3.0",
-            "isort==6.1.0",
+            "isort<6,>=4.2.5",  # Keep in <6 range for pylint 2.17.0 compatibility
             "bandit==1.7.5",
             "mypy==1.18.2",
             "types-python-dateutil==2.8.19",
@@ -74,8 +75,8 @@ setup(
             "ipdb==0.13.13",
             "memory-profiler==0.61.0",
             "line-profiler==4.1.3",
-            "matplotlib==3.8.0",
-            "seaborn==0.13.0",
+            "matplotlib>=3.9.0",  # Supports Python 3.13
+            "seaborn>=0.13.0",
         ],
     },
     entry_points={
