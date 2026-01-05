@@ -55,7 +55,7 @@ setup(
     extras_require={
         "dev": [
             "pytest==7.4.0",
-            "pytest-cov==4.1.0",
+            "pytest-cov==7.0.0",
             "pytest-mock==3.11.1",
             "openpyxl==3.1.2",
             "flake8==6.1.0",
