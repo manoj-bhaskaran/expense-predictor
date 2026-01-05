@@ -49,7 +49,7 @@ setup(
         "xlrd==2.0.2",
         "openpyxl==3.1.2",
         "pyyaml==6.0.1",
-        "python-dotenv==1.0.0",
+        "python-dotenv==1.2.1",
         "pydantic==2.10.3",
     ],
     extras_require={
