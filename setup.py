@@ -67,7 +67,7 @@ setup(
             "types-python-dateutil==2.8.19",
             "sphinx==7.1.0",
             "sphinx-rtd-theme==3.0.2",
-            "ipython==8.14.0",
+            "ipython==8.18.1",
             "jupyter==1.0.0",
             "notebook==7.5.1",
             "coverage==7.10.7",
