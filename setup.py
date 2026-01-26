@@ -58,7 +58,7 @@ setup(
             "pytest-cov==7.0.0",
             "pytest-mock==3.11.1",
             "openpyxl==3.1.2",
-            "flake8==6.1.0",
+            "flake8==7.3.0",
             "pylint==2.17.0",
             "black==24.3.0",
             "isort<6,>=4.2.5",  # Keep in <6 range for pylint 2.17.0 compatibility
