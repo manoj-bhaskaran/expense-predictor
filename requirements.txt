@@ -19,7 +19,7 @@ pyyaml==6.0.1
 pydantic==2.10.3
 
 # Environment variable loading
-python-dotenv==1.0.0
+python-dotenv==1.2.1
 
 # Note: python_logging_framework is included locally in the project root
 # No external installation required
