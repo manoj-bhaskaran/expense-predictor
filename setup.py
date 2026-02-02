@@ -50,7 +50,7 @@ setup(
         "openpyxl==3.1.2",
         "pyyaml==6.0.1",
         "python-dotenv==1.2.1",
-        "pydantic==2.10.3",
+        "pydantic==2.12.5",
     ],
     extras_require={
         "dev": [
