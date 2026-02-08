@@ -17,13 +17,12 @@ import pytest
 from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeRegressor
 
 from config import config
 
 # Import main components
-from helpers import prepare_future_dates, preprocess_and_append_csv
+from helpers import chronological_train_test_split, prepare_future_dates, preprocess_and_append_csv
 
 
 @pytest.mark.integration
@@ -177,16 +176,17 @@ class TestModelTrainingPipeline:
 
 @pytest.mark.integration
 class TestTrainTestSplit:
-    """Test train/test split functionality."""
+    """Test chronological train/test split functionality."""
 
     def test_train_test_split_ratio(self, sample_csv_path, mock_logger):
         """Test that train/test split uses correct ratio from config."""
-        X, y, _, _ = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
+        X, y, processed_df, _ = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
 
         test_size = config["model_evaluation"]["test_size"]
-        random_state = config["model_evaluation"]["random_state"]
 
-        X_train, X_test, _, _ = train_test_split(X, y, test_size=test_size, shuffle=False, random_state=random_state)
+        X_train, X_test, _, _ = chronological_train_test_split(
+            X, y, processed_df, test_size=test_size, logger=mock_logger
+        )
 
         # Check split sizes (allow for rounding differences)
         total_size = len(X)
@@ -197,16 +197,32 @@ class TestTrainTestSplit:
         assert len(X_train) + len(X_test) == total_size
 
     def test_train_test_split_temporal_order(self, sample_csv_path, mock_logger):
-        """Test that split preserves temporal order (shuffle=False)."""
-        X, y, _, _ = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
+        """Test that split preserves temporal order."""
+        X, y, processed_df, _ = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
 
         test_size = config["model_evaluation"]["test_size"]
-        random_state = config["model_evaluation"]["random_state"]
 
-        X_train, X_test, _, _ = train_test_split(X, y, test_size=test_size, shuffle=False, random_state=random_state)
+        X_train, X_test, _, _ = chronological_train_test_split(
+            X, y, processed_df, test_size=test_size, logger=mock_logger
+        )
 
         # Verify indices are sequential (train comes before test)
         assert X_train.index[-1] < X_test.index[0]
+
+    def test_train_dates_before_test_dates(self, sample_csv_path, mock_logger):
+        """Test that all training dates are strictly before all test dates."""
+        X, y, processed_df, _ = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
+
+        test_size = config["model_evaluation"]["test_size"]
+        X_train, X_test, _, _ = chronological_train_test_split(
+            X, y, processed_df, test_size=test_size, logger=mock_logger
+        )
+
+        # Get date boundaries from processed_df
+        train_dates = processed_df["Date"].iloc[:len(X_train)]
+        test_dates = processed_df["Date"].iloc[len(X_train):]
+
+        assert train_dates.max() < test_dates.min()
 
 
 @pytest.mark.integration
@@ -237,13 +253,12 @@ class TestModelEvaluation:
 
     def test_metrics_on_train_and_test_sets(self, sample_csv_path, mock_logger):
         """Test metrics calculation on both train and test sets."""
-        X, y, _, _ = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
+        X, y, processed_df, _ = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
 
         test_size = config["model_evaluation"]["test_size"]
-        random_state = config["model_evaluation"]["random_state"]
 
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=test_size, shuffle=False, random_state=random_state
+        X_train, X_test, y_train, y_test = chronological_train_test_split(
+            X, y, processed_df, test_size=test_size, logger=mock_logger
         )
 
         # Train model
@@ -353,13 +368,12 @@ class TestFullEndToEndPipeline:
     def test_complete_pipeline(self, sample_csv_path, temp_dir, mock_logger):
         """Test complete pipeline from CSV to prediction output."""
         # 1. Load and preprocess data
-        X, y, _, _ = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
+        X, y, processed_df, _ = preprocess_and_append_csv(sample_csv_path, logger=mock_logger)
 
-        # 2. Split data
+        # 2. Split data chronologically
         test_size = config["model_evaluation"]["test_size"]
-        random_state = config["model_evaluation"]["random_state"]
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=test_size, shuffle=False, random_state=random_state
+        X_train, X_test, y_train, y_test = chronological_train_test_split(
+            X, y, processed_df, test_size=test_size, logger=mock_logger
         )
 
         # 3. Train model

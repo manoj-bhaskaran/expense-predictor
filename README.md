@@ -544,7 +544,9 @@ The system performs the following preprocessing steps:
 
 ## Model Performance
 
-The script uses an 80/20 train/test split to evaluate each model's generalization performance. Each model is evaluated using:
+The script uses a **chronological 80/20 train/test split** to evaluate each model's generalization performance. The split is time-aware: the first 80% of data (by date) is used for training and the last 20% for testing. This prevents data leakage by ensuring models are never evaluated on data from time periods they were trained on.
+
+Each model is evaluated using:
 
 - **RMSE (Root Mean Squared Error)**: Measures prediction accuracy
 - **MAE (Mean Absolute Error)**: Average absolute prediction error
@@ -553,7 +555,9 @@ The script uses an 80/20 train/test split to evaluate each model's generalizatio
 Performance metrics are reported separately for:
 
 - **Training Set**: Shows how well the model fits the training data
-- **Test Set**: Shows true generalization performance on unseen data
+- **Test Set**: Shows true generalization performance on unseen future data
+
+Train/test date boundaries are logged explicitly for transparency (e.g., "train [2024-01-01 to 2024-10-15], test [2024-10-16 to 2024-12-31]").
 
 Check the log files in the `logs/` directory for detailed performance metrics.
 
