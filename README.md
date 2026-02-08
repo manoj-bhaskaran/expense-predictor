@@ -27,7 +27,7 @@ A machine learning-based expense prediction system that analyzes historical tran
 
 ## Requirements
 
-- Python 3.9 or higher (tested on Python 3.9, 3.10, 3.11, and 3.12)
+- Python 3.9 or higher (tested on Python 3.9, 3.10, 3.11, 3.12, and 3.13)
 - See `requirements.txt` for pinned package dependencies
 
 ## Excel File Support
@@ -160,7 +160,7 @@ tuning:
 
 **Type Validation:**
 
-As of version 1.19.0, all configuration values are validated using Pydantic for type safety and early error detection. If you provide invalid types or out-of-range values, you'll receive clear error messages at startup:
+All configuration values are validated using Pydantic for type safety and early error detection. If you provide invalid types or out-of-range values, you'll receive clear error messages at startup:
 
 ```
 ConfigurationError: Configuration validation failed:
@@ -922,18 +922,8 @@ pytest --cov=. --cov-report=term-missing --cov-report=html --cov-report=xml
 
 **Coverage Requirement: 80% minimum** (enforced on pull requests)
 
-Current test coverage: **88%** ✅ (exceeds CI/CD requirements)
-
-Coverage breakdown by file:
-- `model_runner.py`: **87%** - Main execution logic
-- `helpers.py`: **88%** - Data processing utilities
-- `config.py`: **100%** - Configuration management
-- `security.py`: **85%** - Security validation
-
-- Unit tests: 44 tests covering helpers.py functions
-- Integration tests: 66 tests covering the ML pipeline and CLI
-- CLI tests: 21 tests for argument parsing and main execution
-- Total: 131 tests
+Coverage reports are generated in CI and uploaded to Codecov. Use those reports
+for the latest per-file coverage breakdown and overall totals.
 
 **Tested Components:**
 
@@ -966,7 +956,7 @@ The project includes a comprehensive CI/CD pipeline with multiple automated work
 
 1. **Testing (`test.yml`)** - Runs on all pull requests and pushes
 
-   - Multi-version Python testing (3.9, 3.10, 3.11, 3.12)
+   - Multi-version Python testing (3.9, 3.10, 3.11, 3.12, 3.13)
    - Automated test execution with pytest
    - Code coverage enforcement (minimum 80%)
    - Coverage reports uploaded to Codecov

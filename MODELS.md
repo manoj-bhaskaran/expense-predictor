@@ -194,6 +194,45 @@ R² = 0.75
 - High R² on training data + low R² on test data = overfitting
 - Always prioritize test set R² over training set R²
 
+### MedAE (Median Absolute Error)
+
+**What it measures**: Median absolute prediction error (robust to outliers).
+
+**Interpretation**:
+- Lower is better (0 = perfect)
+- Units: Same as your transaction amounts
+- Represents a "typical" error without being skewed by outliers
+
+**When to use**:
+- When outliers dominate MAE/RMSE
+- When you want a more stable, typical error measure
+
+### SMAPE (Symmetric Mean Absolute Percentage Error)
+
+**What it measures**: Percentage error that is symmetric and less sensitive to zeros.
+
+**Interpretation**:
+- Lower is better (0% = perfect)
+- Units: Percentage
+- Useful for comparing accuracy across different scales
+
+**When to use**:
+- When you want a scale-free metric
+- When data includes small or zero values
+
+### Error Percentiles (P50/P75/P90)
+
+**What they measure**: Distribution of absolute errors.
+
+**Interpretation**:
+- P50: Typical error (median)
+- P75: Error level for 75% of predictions
+- P90: Worst-case error for most predictions
+
+**When to use**:
+- When you want to understand tail risk in forecasts
+- When setting practical error bounds for budgeting
+
 ## Model Comparison
 
 ### Reading the Log Output
@@ -270,6 +309,12 @@ Compare **test set R²** scores to rank models:
 ```
 
 Use the predictions from the best-performing model (highest test R²).
+
+### Comparing Against Baselines
+
+Baseline forecasts (naive last value, rolling means, seasonal naive) are logged and
+ranked alongside ML models. If a baseline consistently outperforms a complex model,
+it is a signal to review data quality, feature engineering, or model settings.
 
 ## Choosing the Right Model
 
@@ -357,6 +402,8 @@ Do you need to explain predictions?
 ## Hyperparameter Tuning
 
 If your models aren't performing well, try tuning hyperparameters in `config.yaml`.
+Tree-based models can also use constrained, time-series-aware tuning that persists
+best parameters to a JSON report for reuse on subsequent runs.
 
 ### When to Tune
 
