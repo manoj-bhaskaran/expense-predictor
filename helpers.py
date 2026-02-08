@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Tuple
 
+import numpy as np
 import pandas as pd
 import xlrd
 from pandas.tseries.offsets import DateOffset
@@ -108,8 +109,8 @@ def validate_excel_file(file_path: str, logger: Optional[logging.Logger] = None)
         if "openpyxl" in str(e):
             plog.log_error(logger, f"Missing openpyxl dependency for .xlsx file processing: {e}")
             raise DataValidationError(
-                f"Processing .xlsx files requires openpyxl. "
-                f"Install it with: pip install openpyxl"
+                "Processing .xlsx files requires openpyxl. "
+                "Install it with: pip install openpyxl"
             ) from e
         # Other import errors
         plog.log_error(logger, f"Missing dependency for Excel file processing: {e}")
@@ -756,3 +757,138 @@ def update_data_file(
     except (IOError, OSError) as e:
         plog.log_error(logger, f"Failed to update {file_path}: {e}")
         raise IOError(f"Failed to update data file: {e}")
+
+
+def apply_target_transform(y: pd.Series, method: str = "log1p", logger: Optional[logging.Logger] = None) -> pd.Series:
+    """
+    Apply transformation to target variable.
+
+    This function applies a logarithmic transformation to the target variable to
+    handle skewed distributions common in expense data. The transformation helps
+    improve model learning stability and prediction quality.
+
+    Parameters:
+    y (pd.Series): Target variable to transform.
+    method (str): Transformation method. Options: 'log1p' (log(1 + x), default) or 'log' (natural log).
+    logger (logging.Logger, optional): Logger instance for logging messages.
+
+    Returns:
+    pd.Series: Transformed target variable.
+
+    Raises:
+    ValueError: If method is not supported or if 'log' is used with non-positive values.
+    """
+    if method not in ["log1p", "log"]:
+        raise ValueError(f"Unsupported transformation method: {method}. Supported methods: 'log1p', 'log'")
+
+    if method == "log1p":
+        # log1p is robust to zeros and small values
+        y_transformed = np.log1p(y)
+        plog.log_info(logger, f"Applied log1p transformation to target variable. Range: [{y_transformed.min():.2f}, {y_transformed.max():.2f}]")
+    elif method == "log":
+        # Natural log requires strictly positive values
+        if (y <= 0).any():
+            raise ValueError("Cannot apply log transformation: target variable contains non-positive values. Use 'log1p' instead.")
+        y_transformed = np.log(y)
+        plog.log_info(logger, f"Applied log transformation to target variable. Range: [{y_transformed.min():.2f}, {y_transformed.max():.2f}]")
+
+    return y_transformed
+
+
+def inverse_target_transform(y_pred: np.ndarray, method: str = "log1p", logger: Optional[logging.Logger] = None) -> np.ndarray:
+    """
+    Apply inverse transformation to predictions.
+
+    This function reverses the logarithmic transformation applied to the target variable,
+    returning predictions to the original scale.
+
+    Parameters:
+    y_pred (np.ndarray): Transformed predictions to inverse transform.
+    method (str): Transformation method used. Options: 'log1p' (default) or 'log'.
+    logger (logging.Logger, optional): Logger instance for logging messages.
+
+    Returns:
+    np.ndarray: Predictions in original scale.
+
+    Raises:
+    ValueError: If method is not supported.
+    """
+    if method not in ["log1p", "log"]:
+        raise ValueError(f"Unsupported transformation method: {method}. Supported methods: 'log1p', 'log'")
+
+    if method == "log1p":
+        y_original = np.expm1(y_pred)
+        plog.log_info(logger, f"Applied inverse log1p transformation to predictions. Range: [{y_original.min():.2f}, {y_original.max():.2f}]")
+    elif method == "log":
+        y_original = np.exp(y_pred)
+        plog.log_info(logger, f"Applied inverse log transformation to predictions. Range: [{y_original.min():.2f}, {y_original.max():.2f}]")
+
+    return y_original
+
+
+def calculate_median_absolute_error(y_true: np.ndarray, y_pred: np.ndarray) -> float:
+    """
+    Calculate Median Absolute Error (MedAE).
+
+    MedAE is a robust metric that is less sensitive to outliers compared to MAE.
+    It represents the median of absolute differences between predictions and actuals.
+
+    Parameters:
+    y_true (np.ndarray): True target values.
+    y_pred (np.ndarray): Predicted target values.
+
+    Returns:
+    float: Median Absolute Error.
+    """
+    return float(np.median(np.abs(y_true - y_pred)))
+
+
+def calculate_smape(y_true: np.ndarray, y_pred: np.ndarray) -> float:
+    """
+    Calculate Symmetric Mean Absolute Percentage Error (SMAPE).
+
+    SMAPE is a percentage-based metric that is symmetric and bounded between 0% and 200%.
+    It handles cases where actual values are near zero better than standard MAPE.
+
+    Parameters:
+    y_true (np.ndarray): True target values.
+    y_pred (np.ndarray): Predicted target values.
+
+    Returns:
+    float: SMAPE as a percentage (0-200).
+    """
+    numerator = np.abs(y_true - y_pred)
+    denominator = (np.abs(y_true) + np.abs(y_pred)) / 2.0
+
+    # Avoid division by zero: if both true and pred are near zero, error is zero
+    # Use tolerance-based comparison instead of exact equality check
+    epsilon = np.finfo(float).eps * 10  # Small tolerance for floating point comparison
+    mask = np.abs(denominator) > epsilon
+    smape_values = np.zeros_like(numerator, dtype=float)
+    smape_values[mask] = numerator[mask] / denominator[mask]
+
+    return float(np.mean(smape_values) * 100)
+
+
+def calculate_percentile_errors(y_true: np.ndarray, y_pred: np.ndarray, percentiles: list = [50, 75, 90]) -> dict:
+    """
+    Calculate percentile-based error summary.
+
+    This function computes absolute errors at different percentiles to understand
+    the error distribution. Useful for identifying worst-case scenarios.
+
+    Parameters:
+    y_true (np.ndarray): True target values.
+    y_pred (np.ndarray): Predicted target values.
+    percentiles (list): List of percentiles to calculate. Default: [50, 75, 90].
+
+    Returns:
+    dict: Dictionary mapping percentile to error value (e.g., {'P50': 10.5, 'P75': 25.3, 'P90': 45.2}).
+    """
+    absolute_errors = np.abs(y_true - y_pred)
+    percentile_dict = {}
+
+    for p in percentiles:
+        percentile_dict[f"P{p}"] = float(np.percentile(absolute_errors, p))
+
+    return percentile_dict

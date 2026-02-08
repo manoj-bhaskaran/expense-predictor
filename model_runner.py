@@ -51,8 +51,13 @@ from baselines import run_baselines, write_comparison_report
 from config import config
 from constants import TRANSACTION_AMOUNT_LABEL
 from helpers import (
+    apply_target_transform,
+    calculate_median_absolute_error,
+    calculate_percentile_errors,
+    calculate_smape,
     chronological_train_test_split,
     get_quarter_end_date,
+    inverse_target_transform,
     prepare_future_dates,
     preprocess_and_append_csv,
     update_data_file,
@@ -66,6 +71,7 @@ load_dotenv()
 
 # Get the directory where this script is located
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
 
 def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
     """
@@ -295,6 +301,23 @@ def train_and_evaluate_models(
         skip_confirmation: Whether to skip file overwrite confirmations.
         logger: Logger instance.
     """
+    # Check if target transformation is enabled
+    transform_enabled = config.get("target_transform", {}).get("enabled", False)
+    transform_method = config.get("target_transform", {}).get("method", "log1p")
+
+    # Store original target values for untransformed metrics
+    y_train_original = y_train.copy()
+    y_test_original = y_test.copy()
+
+    # Apply transformation if enabled
+    if transform_enabled:
+        plog.log_info(logger, f"Target transformation enabled: {transform_method}")
+        y_train = apply_target_transform(y_train, method=transform_method, logger=logger)
+        y_test = apply_target_transform(y_test, method=transform_method, logger=logger)
+        y = apply_target_transform(y, method=transform_method, logger=logger)
+    else:
+        plog.log_info(logger, "Target transformation disabled (using original scale)")
+
     # Dictionary of models to train and evaluate.
     models = {
         "Linear Regression": LinearRegression(),
@@ -338,24 +361,42 @@ def train_and_evaluate_models(
         y_train_pred = model.predict(X_train)
         y_test_pred = model.predict(X_test)
 
-        # Calculate and log metrics
-        train_rmse = np.sqrt(mean_squared_error(y_train, y_train_pred))
-        train_mae = mean_absolute_error(y_train, y_train_pred)
-        train_r2 = r2_score(y_train, y_train_pred)
+        # Apply inverse transformation if needed
+        if transform_enabled:
+            y_train_pred_original = inverse_target_transform(y_train_pred, method=transform_method, logger=logger)
+            y_test_pred_original = inverse_target_transform(y_test_pred, method=transform_method, logger=logger)
+        else:
+            y_train_pred_original = y_train_pred
+            y_test_pred_original = y_test_pred
 
-        test_rmse = np.sqrt(mean_squared_error(y_test, y_test_pred))
-        test_mae = mean_absolute_error(y_test, y_test_pred)
-        test_r2 = r2_score(y_test, y_test_pred)
+        # Calculate metrics on original scale
+        train_rmse = np.sqrt(mean_squared_error(y_train_original, y_train_pred_original))
+        train_mae = mean_absolute_error(y_train_original, y_train_pred_original)
+        train_r2 = r2_score(y_train_original, y_train_pred_original)
+
+        test_rmse = np.sqrt(mean_squared_error(y_test_original, y_test_pred_original))
+        test_mae = mean_absolute_error(y_test_original, y_test_pred_original)
+        test_r2 = r2_score(y_test_original, y_test_pred_original)
+
+        # Calculate robust metrics on original scale
+        test_medae = calculate_median_absolute_error(y_test_original.values, y_test_pred_original)
+        test_smape = calculate_smape(y_test_original.values, y_test_pred_original)
+        test_percentiles = calculate_percentile_errors(y_test_original.values, y_test_pred_original)
 
         plog.log_info(logger, "Training Set Performance:")
         plog.log_info(logger, f"  RMSE: {train_rmse:.2f}")
         plog.log_info(logger, f"  MAE: {train_mae:.2f}")
         plog.log_info(logger, f"  R-squared: {train_r2:.4f}")
 
-        plog.log_info(logger, "Test Set Performance:")
+        plog.log_info(logger, "Test Set Performance (Standard Metrics):")
         plog.log_info(logger, f"  RMSE: {test_rmse:.2f}")
         plog.log_info(logger, f"  MAE: {test_mae:.2f}")
         plog.log_info(logger, f"  R-squared: {test_r2:.4f}")
+
+        plog.log_info(logger, "Test Set Performance (Robust Metrics):")
+        plog.log_info(logger, f"  Median Absolute Error: {test_medae:.2f}")
+        plog.log_info(logger, f"  SMAPE: {test_smape:.2f}%")
+        plog.log_info(logger, f"  Error Distribution - P50: {test_percentiles['P50']:.2f}, P75: {test_percentiles['P75']:.2f}, P90: {test_percentiles['P90']:.2f}")
 
         metrics_records.append(
             {
@@ -367,6 +408,11 @@ def train_and_evaluate_models(
                 "test_rmse": float(test_rmse),
                 "test_mae": float(test_mae),
                 "test_r2": float(test_r2),
+                "test_medae": float(test_medae),
+                "test_smape": float(test_smape),
+                "test_p50": float(test_percentiles["P50"]),
+                "test_p75": float(test_percentiles["P75"]),
+                "test_p90": float(test_percentiles["P90"]),
             }
         )
 
@@ -377,6 +423,11 @@ def train_and_evaluate_models(
         future_df, future_dates = prepare_future_dates(future_date_for_function)
         future_df = future_df.reindex(columns=X_train.columns, fill_value=0)
         y_predict = model.predict(future_df)
+
+        # Apply inverse transformation to predictions if needed
+        if transform_enabled:
+            y_predict = inverse_target_transform(y_predict, method=transform_method, logger=logger)
+
         y_predict = np.round(y_predict, 2)
 
         # Save predictions
@@ -414,9 +465,9 @@ def main(args: Optional[List[str]] = None) -> int:
 
     # Determine log level based on priority order
     log_level = get_log_level(parsed_args.log_level)
-    
+
     logger = plog.initialise_logger(script_name="model_runner.py", log_dir=log_dir_path, log_level=log_level)
-    
+
     # Log the selected log level for transparency
     log_level_name = logging.getLevelName(log_level)
     plog.log_info(logger, f"Log level set to: {log_level_name}")

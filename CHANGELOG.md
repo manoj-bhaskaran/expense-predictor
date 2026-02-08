@@ -8,6 +8,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [1.23.0] - 2026-02-08
+
+### Added
+- **Target Transformation**: Optional log-based transformation for target variable to handle skewed expense distributions. Configurable via `target_transform` section in config.yaml with `enabled` (boolean) and `method` (log1p or log) fields. Predictions are automatically transformed back to original scale.
+- **Robust Evaluation Metrics**: New metrics less sensitive to outliers and better suited for expense prediction evaluation:
+  - Median Absolute Error (MedAE) - robust alternative to MAE
+  - Symmetric Mean Absolute Percentage Error (SMAPE) - percentage-based metric handling near-zero values
+  - Percentile-based error distribution (P50, P75, P90) - highlights worst-case prediction errors
+- Helper functions in helpers.py: `apply_target_transform()`, `inverse_target_transform()`, `calculate_median_absolute_error()`, `calculate_smape()`, `calculate_percentile_errors()`
+- Comprehensive test suite: 15 new tests for transformation and metrics (8 transformation tests, 7 metrics tests)
+- Enhanced logging: All evaluation outputs now include both standard metrics (RMSE, MAE, R²) and robust metrics with clear labeling
+
+### Changed
+- Model evaluation now reports extended metrics in logs, making it easier to understand prediction quality and error distribution
+- Version bump 1.22.0 → 1.23.0 (minor) for new target transformation and robust evaluation capabilities
+
+### Technical Details
+- Transformations use numpy's log1p/expm1 for numerical stability with zeros and small values
+- All metrics computed on original scale even when transformation is enabled
+- Transformation is fully backward compatible (disabled by default)
+- SMAPE handles division by zero when both actual and predicted are zero
+
+
 ## [1.22.0] - 2026-02-08
 
 ### Added

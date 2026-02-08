@@ -33,6 +33,17 @@ model_evaluation:
   # Default: 10 (ensures adequate test set for evaluation)
   min_test_samples: 10
 
+# Target Transformation Configuration
+target_transform:
+  # Enable/disable target variable transformation
+  # Default: false (no transformation applied)
+  enabled: false
+
+  # Transformation method to apply
+  # Options: 'log1p' (log(1 + x), robust to zeros), 'log' (natural log, requires positive values)
+  # Default: 'log1p' (recommended for expense data with zeros)
+  method: log1p
+
 # Baseline Forecast Configuration
 baselines:
   # Enable/disable baseline forecasts and comparison report

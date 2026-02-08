@@ -926,3 +926,214 @@ class TestFutureDataLeakage:
             assert len(X_train) + len(X_test) == len(X)
         finally:
             os.remove(csv_path)
+
+
+@pytest.mark.unit
+@pytest.mark.transformation
+class TestTargetTransformation:
+    """Tests for target transformation functions."""
+
+    def test_apply_log1p_transform(self, mock_logger):
+        """Test log1p transformation."""
+        import numpy as np
+        from helpers import apply_target_transform
+
+        y = pd.Series([0, 10, 100, 1000])
+        y_transformed = apply_target_transform(y, method="log1p", logger=mock_logger)
+
+        # Verify transformation is applied correctly
+        expected = np.log1p(y)
+        pd.testing.assert_series_equal(y_transformed, expected)
+
+    def test_apply_log_transform(self, mock_logger):
+        """Test log transformation with positive values."""
+        import numpy as np
+        from helpers import apply_target_transform
+
+        y = pd.Series([1, 10, 100, 1000])
+        y_transformed = apply_target_transform(y, method="log", logger=mock_logger)
+
+        # Verify transformation is applied correctly
+        expected = np.log(y)
+        pd.testing.assert_series_equal(y_transformed, expected)
+
+    def test_log_transform_with_zeros_raises_error(self, mock_logger):
+        """Test that log transformation raises error with zero values."""
+        from helpers import apply_target_transform
+
+        y = pd.Series([0, 10, 100])
+        with pytest.raises(ValueError, match="Cannot apply log transformation.*non-positive values"):
+            apply_target_transform(y, method="log", logger=mock_logger)
+
+    def test_log_transform_with_negative_raises_error(self, mock_logger):
+        """Test that log transformation raises error with negative values."""
+        from helpers import apply_target_transform
+
+        y = pd.Series([-5, 10, 100])
+        with pytest.raises(ValueError, match="Cannot apply log transformation.*non-positive values"):
+            apply_target_transform(y, method="log", logger=mock_logger)
+
+    def test_invalid_transform_method_raises_error(self, mock_logger):
+        """Test that invalid transformation method raises error."""
+        from helpers import apply_target_transform
+
+        y = pd.Series([10, 100, 1000])
+        with pytest.raises(ValueError, match="Unsupported transformation method"):
+            apply_target_transform(y, method="invalid", logger=mock_logger)
+
+    def test_inverse_log1p_transform(self, mock_logger):
+        """Test inverse log1p transformation."""
+        import numpy as np
+        from helpers import apply_target_transform, inverse_target_transform
+
+        y = pd.Series([0, 10, 100, 1000])
+        y_transformed = apply_target_transform(y, method="log1p", logger=mock_logger)
+        y_inverse = inverse_target_transform(y_transformed.values, method="log1p", logger=mock_logger)
+
+        # Verify inverse returns original values (within floating point precision)
+        np.testing.assert_allclose(y_inverse, y.values, rtol=1e-10)
+
+    def test_inverse_log_transform(self, mock_logger):
+        """Test inverse log transformation."""
+        import numpy as np
+        from helpers import apply_target_transform, inverse_target_transform
+
+        y = pd.Series([1, 10, 100, 1000])
+        y_transformed = apply_target_transform(y, method="log", logger=mock_logger)
+        y_inverse = inverse_target_transform(y_transformed.values, method="log", logger=mock_logger)
+
+        # Verify inverse returns original values (within floating point precision)
+        np.testing.assert_allclose(y_inverse, y.values, rtol=1e-10)
+
+    def test_inverse_invalid_method_raises_error(self, mock_logger):
+        """Test that invalid inverse transformation method raises error."""
+        import numpy as np
+        from helpers import inverse_target_transform
+
+        y_pred = np.array([1.0, 2.0, 3.0])
+        with pytest.raises(ValueError, match="Unsupported transformation method"):
+            inverse_target_transform(y_pred, method="invalid", logger=mock_logger)
+
+
+@pytest.mark.unit
+@pytest.mark.metrics
+class TestRobustMetrics:
+    """Tests for robust evaluation metrics functions."""
+
+    def test_median_absolute_error(self):
+        """Test Median Absolute Error calculation."""
+        import numpy as np
+        from helpers import calculate_median_absolute_error
+
+        y_true = np.array([100, 200, 300, 400, 500])
+        y_pred = np.array([110, 190, 310, 390, 510])
+        
+        medae = calculate_median_absolute_error(y_true, y_pred)
+        
+        # Absolute errors: [10, 10, 10, 10, 10]
+        # Median: 10
+        assert abs(medae - 10.0) < 1e-9
+
+    def test_median_absolute_error_with_outlier(self):
+        """Test MedAE is robust to outliers."""
+        import numpy as np
+        from helpers import calculate_median_absolute_error
+
+        y_true = np.array([100, 200, 300, 400, 500])
+        y_pred = np.array([110, 190, 310, 390, 1000])  # Large outlier
+        
+        medae = calculate_median_absolute_error(y_true, y_pred)
+        
+        # Absolute errors: [10, 10, 10, 10, 500]
+        # Median: 10 (robust to the outlier)
+        assert abs(medae - 10.0) < 1e-9
+
+    def test_smape_perfect_prediction(self):
+        """Test SMAPE with perfect predictions."""
+        import numpy as np
+        from helpers import calculate_smape
+
+        y_true = np.array([100, 200, 300])
+        y_pred = np.array([100, 200, 300])
+        
+        smape = calculate_smape(y_true, y_pred)
+        
+        # Perfect prediction should give 0%
+        assert abs(smape) < 1e-9
+
+    def test_smape_calculation(self):
+        """Test SMAPE calculation."""
+        import numpy as np
+        from helpers import calculate_smape
+
+        y_true = np.array([100, 200, 300])
+        y_pred = np.array([110, 190, 330])
+        
+        smape = calculate_smape(y_true, y_pred)
+        
+        # SMAPE = mean(|y_true - y_pred| / ((|y_true| + |y_pred|) / 2)) * 100
+        # For [100, 200, 300] vs [110, 190, 330]:
+        # Errors: [10, 10, 30]
+        # Denominators: [105, 195, 315]
+        # Ratios: [10/105, 10/195, 30/315]
+        # Mean * 100
+        expected = np.mean([10/105, 10/195, 30/315]) * 100
+        assert abs(smape - expected) < 0.01
+        # Verify smape is approximately 8.06%
+        assert abs(smape - 8.06) < 0.1
+
+    def test_smape_handles_zeros(self):
+        """Test SMAPE handles zeros correctly."""
+        import numpy as np
+        from helpers import calculate_smape
+
+        y_true = np.array([0, 100, 200])
+        y_pred = np.array([0, 110, 190])
+        
+        smape = calculate_smape(y_true, y_pred)
+        
+        # When both are zero, should contribute 0 to SMAPE
+        # For [0, 100, 200] vs [0, 110, 190]:
+        # Errors: [0, 10, 10]
+        # Denominators: [0, 105, 195]
+        # Ratios: [0, 10/105, 10/195]
+        expected = np.mean([0, 10/105, 10/195]) * 100
+        assert abs(smape - expected) < 0.01
+
+    def test_percentile_errors_default(self):
+        """Test percentile errors calculation with default percentiles."""
+        import numpy as np
+        from helpers import calculate_percentile_errors
+
+        y_true = np.array([100] * 100)
+        y_pred = np.arange(100)  # Errors from 0 to 99
+        
+        percentiles = calculate_percentile_errors(y_true, y_pred)
+        
+        # Check that default percentiles are calculated
+        assert "P50" in percentiles
+        assert "P75" in percentiles
+        assert "P90" in percentiles
+        
+        # P50 should be around 50
+        assert abs(percentiles["P50"] - 50) < 5
+        # P75 should be around 75
+        assert abs(percentiles["P75"] - 75) < 5
+        # P90 should be around 90
+        assert abs(percentiles["P90"] - 90) < 5
+
+    def test_percentile_errors_custom(self):
+        """Test percentile errors with custom percentiles."""
+        import numpy as np
+        from helpers import calculate_percentile_errors
+
+        y_true = np.array([100] * 100)
+        y_pred = np.arange(100)
+        
+        percentiles = calculate_percentile_errors(y_true, y_pred, percentiles=[25, 50, 95])
+        
+        assert "P25" in percentiles
+        assert "P50" in percentiles
+        assert "P95" in percentiles
+        assert "P75" not in percentiles  # Not requested
+        assert "P90" not in percentiles  # Not requested
