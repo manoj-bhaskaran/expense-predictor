@@ -35,7 +35,8 @@ The Expense Predictor is a machine learning-based forecasting system that analyz
 │  ├── Data Cleaning (duplicates, missing values)             │
 │  ├── Date Normalization                                     │
 │  ├── Date Range Completion (fill missing dates)             │
-│  └── Feature Engineering                                    │
+│  ├── Feature Engineering                                    │
+│  └── Target Transformation (optional log/log1p)             │
 ├─────────────────────────────────────────────────────────────┤
 │  Model Layer                                                 │
 │  ├── Linear Regression                                      │
@@ -44,10 +45,18 @@ The Expense Predictor is a machine learning-based forecasting system that analyz
 │  └── Gradient Boosting Regressor                            │
 ├─────────────────────────────────────────────────────────────┤
 │  Evaluation Layer                                            │
-│  ├── Train/Test Split (80/20)                               │
+│  ├── Chronological Train/Test Split (80/20)                 │
 │  ├── RMSE Calculation                                       │
 │  ├── MAE Calculation                                        │
-│  └── R² Score Calculation                                   │
+│  ├── R² Score Calculation                                   │
+│  ├── MedAE + SMAPE Metrics                                  │
+│  └── Percentile Error Distribution (P50/P75/P90)            │
+├─────────────────────────────────────────────────────────────┤
+│  Baseline Layer                                              │
+│  ├── Naive Last Value                                       │
+│  ├── Rolling Mean Baselines                                 │
+│  ├── Seasonal Naive (when enough history)                   │
+│  └── Model Comparison Report                                │
 ├─────────────────────────────────────────────────────────────┤
 │  Output Layer                                                │
 │  ├── Prediction Generation                                  │
@@ -79,10 +88,14 @@ The system follows a modular architecture with clear separation of concerns:
    - CSV injection prevention
    - Backup creation
 
-4. **config.py** - Configuration management
+4. **baselines.py** - Baseline forecasting utilities
+   - Naive, rolling mean, and seasonal benchmarks
+   - Model comparison report generation
+
+5. **config.py** - Configuration management
    - YAML configuration loading
    - Default values fallback
-   - Configuration validation
+   - Pydantic-based configuration validation
 
 ### Design Patterns
 
@@ -302,7 +315,7 @@ Final Feature Matrix (8 features)
 ```
 Preprocessed Data
     ↓
-Train/Test Split (80/20, shuffle=False)
+Chronological Train/Test Split (80/20)
     ↓
     ├── Training Set (80%)
     │       ↓
@@ -319,7 +332,9 @@ Train/Test Split (80/20, shuffle=False)
         Evaluate on Test Set
         ├── Calculate RMSE
         ├── Calculate MAE
-        └── Calculate R²
+        ├── Calculate R²
+        ├── Calculate MedAE + SMAPE
+        └── Calculate Error Percentiles (P50/P75/P90)
 ```
 
 ### 4. Prediction Stage
@@ -371,6 +386,22 @@ Write Prediction CSVs
   - <0.0 = Model worse than predicting the mean
 - **Higher is better**
 
+#### MedAE (Median Absolute Error)
+- **What**: Median absolute prediction error
+- **Interpretation**: Typical error in same units as target
+- **Lower is better**: 0 = perfect predictions
+- **Robustness**: Less sensitive to outliers than MAE
+
+#### SMAPE (Symmetric Mean Absolute Percentage Error)
+- **What**: Symmetric percentage error metric
+- **Interpretation**: Percent deviation between predicted and actual values
+- **Lower is better**: 0 = perfect predictions
+- **Robustness**: Handles near-zero values more safely than MAPE
+
+#### Error Percentiles (P50/P75/P90)
+- **What**: Distribution of absolute errors
+- **Interpretation**: Typical (P50) and worst-case (P90) error bounds
+
 ### Expected Performance Ranges
 
 Performance varies based on data characteristics. Here are typical ranges:
@@ -394,8 +425,8 @@ Performance varies based on data characteristics. Here are typical ranges:
 
 ### Benchmarking Process
 
-1. **Baseline**: Linear Regression establishes minimum acceptable performance
-2. **Comparison**: Compare complex models against baseline
+1. **Baselines**: Naive and rolling mean benchmarks establish minimum performance
+2. **Model Comparison**: Compare ML models against baselines
 3. **Overfitting Check**: Compare training vs test metrics
 4. **Selection**: Choose model based on:
    - Test set performance (not training)
@@ -410,18 +441,22 @@ Performance varies based on data characteristics. Here are typical ranges:
 - Standard practice in machine learning
 - 80% data for training provides sufficient samples
 - 20% for testing provides reliable performance estimates
-- No shuffle (`shuffle=False`) preserves temporal order
+- Chronological split preserves temporal order
 - Temporal split more realistic for time series
 
 ### Why No Cross-Validation?
 
-**Current Design**: Simple 80/20 split
+**Current Design**: Chronological 80/20 split, with optional time-series cross-validation for tuning
 
 **Rationale**:
 - Simpler implementation for initial version
 - Faster training (no multiple folds)
 - Time series data makes cross-validation complex
 - Future enhancement opportunity
+
+**Current Enhancement**:
+- Constrained hyperparameter tuning uses time-series splits to avoid leakage
+- Best parameters are persisted and reused for reproducibility
 
 ### Why Multiple Models?
 
@@ -430,6 +465,13 @@ Performance varies based on data characteristics. Here are typical ranges:
 - Users can compare and choose best performer
 - Ensemble predictions possible (future enhancement)
 - Educational value - understand model differences
+
+### Why Include Baseline Forecasts?
+
+**Rationale**:
+- Establish a minimum performance bar for ML models
+- Quick sanity check for data quality and model value
+- Provides simple alternatives for lightweight deployments
 
 ### Why No Neural Networks / Deep Learning?
 

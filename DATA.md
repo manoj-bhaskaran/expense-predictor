@@ -182,6 +182,10 @@ These features are then one-hot encoded for model training.
 - **Time Period**: Longer historical periods improve prediction accuracy
 - **Data Quality**: Clean, consistent transaction records
 
+The system enforces minimum sample thresholds from `config.yaml`:
+- `min_total_samples` (default: 30) for overall training data
+- `min_test_samples` (default: 10) to ensure a meaningful test set
+
 ### Best Practices
 
 1. **Historical Depth**: 3-6 months of data provides better predictions

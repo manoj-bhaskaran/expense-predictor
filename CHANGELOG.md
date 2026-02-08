@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+- Updated ARCHITECTURE.md and MODELS.md to reflect baseline forecasting, robust metrics, and tuning workflow details.
+- Clarified DATA.md minimum sample thresholds and refreshed README testing/compatibility notes.
 
 ## [1.24.0] - 2026-02-08
 
