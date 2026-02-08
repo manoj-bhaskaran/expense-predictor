@@ -860,8 +860,10 @@ def calculate_smape(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     numerator = np.abs(y_true - y_pred)
     denominator = (np.abs(y_true) + np.abs(y_pred)) / 2.0
 
-    # Avoid division by zero: if both true and pred are zero, error is zero
-    mask = denominator != 0
+    # Avoid division by zero: if both true and pred are near zero, error is zero
+    # Use tolerance-based comparison instead of exact equality check
+    epsilon = np.finfo(float).eps * 10  # Small tolerance for floating point comparison
+    mask = np.abs(denominator) > epsilon
     smape_values = np.zeros_like(numerator, dtype=float)
     smape_values[mask] = numerator[mask] / denominator[mask]
 
