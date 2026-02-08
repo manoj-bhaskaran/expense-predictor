@@ -1032,7 +1032,7 @@ class TestRobustMetrics:
         
         # Absolute errors: [10, 10, 10, 10, 10]
         # Median: 10
-        assert medae == 10.0
+        assert abs(medae - 10.0) < 1e-9
 
     def test_median_absolute_error_with_outlier(self):
         """Test MedAE is robust to outliers."""
@@ -1046,7 +1046,7 @@ class TestRobustMetrics:
         
         # Absolute errors: [10, 10, 10, 10, 500]
         # Median: 10 (robust to the outlier)
-        assert medae == 10.0
+        assert abs(medae - 10.0) < 1e-9
 
     def test_smape_perfect_prediction(self):
         """Test SMAPE with perfect predictions."""
@@ -1059,7 +1059,7 @@ class TestRobustMetrics:
         smape = calculate_smape(y_true, y_pred)
         
         # Perfect prediction should give 0%
-        assert smape == 0.0
+        assert abs(smape) < 1e-9
 
     def test_smape_calculation(self):
         """Test SMAPE calculation."""
