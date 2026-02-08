@@ -52,6 +52,17 @@ class ModelEvaluationConfig(BaseModel):
 
     test_size: float = Field(default=0.2, gt=0.0, lt=1.0, description="Fraction of data to use for testing (must be between 0 and 1)")
     random_state: int = Field(default=42, ge=0, description=_DESC_RANDOM_STATE)
+    min_total_samples: int = Field(default=30, ge=1, description="Minimum total samples required for training")
+    min_test_samples: int = Field(default=10, ge=1, description="Minimum test samples required after split")
+
+
+class TargetTransformConfig(BaseModel):
+    """Configuration for target variable transformation."""
+
+    model_config = {"strict": True}
+
+    enabled: bool = Field(default=False, description="Enable/disable target variable transformation")
+    method: Literal["log1p", "log"] = Field(default="log1p", description="Transformation method (log1p or log)")
 
 
 class DecisionTreeConfig(BaseModel):
@@ -135,6 +146,7 @@ class Config(BaseModel):
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     data_processing: DataProcessingConfig = Field(default_factory=DataProcessingConfig)
     model_evaluation: ModelEvaluationConfig = Field(default_factory=ModelEvaluationConfig)
+    target_transform: TargetTransformConfig = Field(default_factory=TargetTransformConfig)
     decision_tree: DecisionTreeConfig = Field(default_factory=DecisionTreeConfig)
     random_forest: RandomForestConfig = Field(default_factory=RandomForestConfig)
     gradient_boosting: GradientBoostingConfig = Field(default_factory=GradientBoostingConfig)
@@ -145,7 +157,8 @@ class Config(BaseModel):
 DEFAULT_CONFIG = {
     "logging": {"level": "INFO"},
     "data_processing": {"skiprows": 12},
-    "model_evaluation": {"test_size": 0.2, "random_state": 42},
+    "model_evaluation": {"test_size": 0.2, "random_state": 42, "min_total_samples": 30, "min_test_samples": 10},
+    "target_transform": {"enabled": False, "method": "log1p"},
     "decision_tree": {"max_depth": 5, "min_samples_split": 10, "min_samples_leaf": 5, "ccp_alpha": 0.01, "random_state": 42},
     "random_forest": {
         "n_estimators": 100,
