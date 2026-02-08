@@ -123,6 +123,69 @@ class GradientBoostingConfig(BaseModel):
         return v
 
 
+class DecisionTreeTuningGrid(BaseModel):
+    """Constrained tuning grid for Decision Tree."""
+
+    model_config = {"strict": True}
+
+    max_depth: list[int] = Field(default_factory=lambda: [3, 4, 5, 6], min_length=1)
+    min_samples_leaf: list[int] = Field(default_factory=lambda: [5, 10, 20], min_length=1)
+
+
+class RandomForestTuningGrid(BaseModel):
+    """Constrained tuning grid for Random Forest."""
+
+    model_config = {"strict": True}
+
+    max_depth: list[int] = Field(default_factory=lambda: [4, 6, 8, 10], min_length=1)
+    min_samples_leaf: list[int] = Field(default_factory=lambda: [2, 5, 10], min_length=1)
+    subsample: list[float] = Field(default_factory=lambda: [0.6, 0.8, 1.0], min_length=1)
+
+    @field_validator("subsample")
+    @classmethod
+    def validate_subsample(cls, v: list[float]) -> list[float]:
+        """Validate subsample values are in (0, 1]."""
+        if any(value <= 0 or value > 1 for value in v):
+            raise ValueError("subsample values must be in the (0, 1] range")
+        return v
+
+
+class GradientBoostingTuningGrid(BaseModel):
+    """Constrained tuning grid for Gradient Boosting."""
+
+    model_config = {"strict": True}
+
+    max_depth: list[int] = Field(default_factory=lambda: [2, 3, 4, 5], min_length=1)
+    min_samples_leaf: list[int] = Field(default_factory=lambda: [5, 10, 20], min_length=1)
+    subsample: list[float] = Field(default_factory=lambda: [0.6, 0.8, 1.0], min_length=1)
+
+    @field_validator("subsample")
+    @classmethod
+    def validate_subsample(cls, v: list[float]) -> list[float]:
+        """Validate subsample values are in (0, 1]."""
+        if any(value <= 0 or value > 1 for value in v):
+            raise ValueError("subsample values must be in the (0, 1] range")
+        return v
+
+
+class TuningConfig(BaseModel):
+    """Configuration for constrained hyperparameter tuning."""
+
+    model_config = {"strict": True}
+
+    enabled: bool = Field(default=True, description="Enable constrained hyperparameter tuning")
+    time_series_splits: int = Field(default=4, ge=2, description="Number of time-series CV splits")
+    top_k_log: int = Field(default=5, ge=1, description="Number of top configurations to log")
+    reuse_saved_params: bool = Field(default=True, description="Reuse saved hyperparameters if available")
+    persist_path: str = Field(
+        default="reports/best_hyperparameters.json",
+        description="Relative path under output_dir to persist best hyperparameters",
+    )
+    decision_tree: DecisionTreeTuningGrid = Field(default_factory=DecisionTreeTuningGrid)
+    random_forest: RandomForestTuningGrid = Field(default_factory=RandomForestTuningGrid)
+    gradient_boosting: GradientBoostingTuningGrid = Field(default_factory=GradientBoostingTuningGrid)
+
+
 class BaselinesConfig(BaseModel):
     """Configuration for baseline forecasts."""
 
@@ -150,6 +213,7 @@ class Config(BaseModel):
     decision_tree: DecisionTreeConfig = Field(default_factory=DecisionTreeConfig)
     random_forest: RandomForestConfig = Field(default_factory=RandomForestConfig)
     gradient_boosting: GradientBoostingConfig = Field(default_factory=GradientBoostingConfig)
+    tuning: TuningConfig = Field(default_factory=TuningConfig)
     baselines: BaselinesConfig = Field(default_factory=BaselinesConfig)
 
 
@@ -177,6 +241,24 @@ DEFAULT_CONFIG = {
         "min_samples_leaf": 5,
         "max_features": "sqrt",
         "random_state": 42,
+    },
+    "tuning": {
+        "enabled": True,
+        "time_series_splits": 4,
+        "top_k_log": 5,
+        "reuse_saved_params": True,
+        "persist_path": "reports/best_hyperparameters.json",
+        "decision_tree": {"max_depth": [3, 4, 5, 6], "min_samples_leaf": [5, 10, 20]},
+        "random_forest": {
+            "max_depth": [4, 6, 8, 10],
+            "min_samples_leaf": [2, 5, 10],
+            "subsample": [0.6, 0.8, 1.0],
+        },
+        "gradient_boosting": {
+            "max_depth": [2, 3, 4, 5],
+            "min_samples_leaf": [5, 10, 20],
+            "subsample": [0.6, 0.8, 1.0],
+        },
     },
     "baselines": {"enabled": True, "rolling_windows_months": [3, 6]},
 }

@@ -33,10 +33,12 @@ If no future date is provided, the script will use the last day of the current q
 """
 
 import argparse
+import itertools
+import json
 import logging
 import os
-from datetime import datetime
-from typing import List, Optional
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -44,6 +46,7 @@ from dotenv import load_dotenv
 from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.model_selection import TimeSeriesSplit
 from sklearn.tree import DecisionTreeRegressor
 
 import python_logging_framework as plog
@@ -71,6 +74,10 @@ load_dotenv()
 
 # Get the directory where this script is located
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+MODEL_DECISION_TREE = "Decision Tree"
+MODEL_RANDOM_FOREST = "Random Forest"
+MODEL_GRADIENT_BOOSTING = "Gradient Boosting"
 
 
 def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
@@ -263,6 +270,8 @@ def get_log_level(args_log_level: Optional[str]) -> int:
 
     # Convert string to logging constant with validation
     try:
+        if not isinstance(log_level_str, str):
+            raise AttributeError
         log_level = getattr(logging, log_level_str.upper())
         if not isinstance(log_level, int):
             raise AttributeError
@@ -272,6 +281,368 @@ def get_log_level(args_log_level: Optional[str]) -> int:
         log_level_str = "INFO"
 
     return log_level
+
+
+def _load_saved_hyperparameters(path: str, logger: logging.Logger) -> Dict[str, dict]:
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path, "r") as handle:
+            payload = json.load(handle)
+        return payload.get("models", {})
+    except (OSError, json.JSONDecodeError) as exc:
+        plog.log_warning(logger, f"Failed to load saved hyperparameters from {path}: {exc}")
+        return {}
+
+
+def _persist_hyperparameters(path: str, payload: Dict[str, dict], logger: logging.Logger) -> None:
+    try:
+        dir_path = os.path.dirname(path)
+        if dir_path:
+            os.makedirs(dir_path, exist_ok=True)
+        with open(path, "w") as handle:
+            json.dump(payload, handle, indent=2, sort_keys=True)
+        plog.log_info(logger, f"Saved best hyperparameters to {path}")
+    except OSError as exc:
+        plog.log_warning(logger, f"Failed to persist hyperparameters to {path}: {exc}")
+
+
+def _evaluate_cv_mae(
+    model,
+    X_train: pd.DataFrame,
+    y_train_fit: pd.Series,
+    y_train_original: pd.Series,
+    splits: int,
+    transform_enabled: bool,
+    transform_method: str,
+) -> float:
+    tscv = TimeSeriesSplit(n_splits=splits)
+    scores = []
+
+    for train_idx, val_idx in tscv.split(X_train):
+        X_tr = X_train.iloc[train_idx]
+        X_val = X_train.iloc[val_idx]
+        y_tr = y_train_fit.iloc[train_idx]
+        y_val_original = y_train_original.iloc[val_idx]
+
+        model.fit(X_tr, y_tr)
+        y_val_pred = model.predict(X_val)
+        if transform_enabled:
+            y_val_pred = inverse_target_transform(y_val_pred, method=transform_method, logger=None)
+
+        scores.append(mean_absolute_error(y_val_original, y_val_pred))
+
+    return float(np.mean(scores)) if scores else float("nan")
+
+
+def _tune_model_hyperparameters(
+    model_name: str,
+    model_builder,
+    param_grid: Dict[str, List],
+    X_train: pd.DataFrame,
+    y_train_fit: pd.Series,
+    y_train_original: pd.Series,
+    transform_enabled: bool,
+    transform_method: str,
+    splits: int,
+    top_k: int,
+    logger: logging.Logger,
+) -> Tuple[Dict[str, float], List[dict]]:
+    if not param_grid:
+        plog.log_warning(logger, f"No tuning grid configured for {model_name}. Skipping tuning.")
+        return {}, []
+
+    results: List[dict] = []
+    grid_keys = list(param_grid.keys())
+    grid_values = [param_grid[key] for key in grid_keys]
+
+    for values in itertools.product(*grid_values):
+        params = dict(zip(grid_keys, values))
+        model = model_builder(**params)
+
+        cv_mae = _evaluate_cv_mae(
+            model,
+            X_train,
+            y_train_fit,
+            y_train_original,
+            splits,
+            transform_enabled,
+            transform_method,
+        )
+
+        results.append({"params": params, "cv_mae": cv_mae})
+
+    results.sort(key=lambda item: item["cv_mae"])
+    top_results = results[:top_k]
+
+    if top_results:
+        plog.log_info(logger, f"Top {len(top_results)} {model_name} configurations by CV MAE:")
+        for rank, item in enumerate(top_results, start=1):
+            plog.log_info(
+                logger,
+                f"  {rank}. cv_mae={item['cv_mae']:.4f}, params={item['params']}",
+            )
+
+    best_params = top_results[0]["params"] if top_results else {}
+    return best_params, results
+
+
+def _prepare_tuning_context(
+    X_train: pd.DataFrame,
+    output_dir: str,
+    logger: logging.Logger,
+) -> Tuple[dict, bool, int, int, str, Dict[str, dict], Dict[str, Any]]:
+    tuning_config = config.get("tuning", {})
+    tuning_enabled = bool(tuning_config.get("enabled", False))
+    tuning_splits = int(tuning_config.get("time_series_splits", 4))
+    top_k = int(tuning_config.get("top_k_log", 5))
+    persist_relative_path = tuning_config.get("persist_path", "reports/best_hyperparameters.json")
+    persist_path = os.path.join(output_dir, persist_relative_path)
+    saved_params: Dict[str, dict] = {}
+
+    if tuning_enabled and tuning_config.get("reuse_saved_params", False):
+        saved_params = _load_saved_hyperparameters(persist_path, logger)
+        if saved_params:
+            plog.log_info(logger, "Loaded saved hyperparameters for reuse.")
+
+    max_splits = min(tuning_splits, max(len(X_train) - 1, 0))
+    if tuning_enabled and max_splits < 2:
+        plog.log_warning(logger, "Not enough training samples for time-series tuning. Skipping tuning.")
+        tuning_enabled = False
+
+    tuning_payload: Dict[str, Any] = {
+        "schema_version": 1,
+        "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "selection_metric": "cv_mae",
+        "cv_metric": "mae",
+        "models": {},
+    }
+
+    return tuning_config, tuning_enabled, max_splits, top_k, persist_path, saved_params, tuning_payload
+
+
+def _apply_transform_if_needed(
+    y_train: pd.Series,
+    y_test: pd.Series,
+    y_full: pd.Series,
+    transform_enabled: bool,
+    transform_method: str,
+    logger: logging.Logger,
+) -> Tuple[pd.Series, pd.Series, pd.Series]:
+    if transform_enabled:
+        plog.log_info(logger, f"Target transformation enabled: {transform_method}")
+        y_train = apply_target_transform(y_train, method=transform_method, logger=logger)
+        y_test = apply_target_transform(y_test, method=transform_method, logger=logger)
+        y_full = apply_target_transform(y_full, method=transform_method, logger=logger)
+    else:
+        plog.log_info(logger, "Target transformation disabled (using original scale)")
+
+    return y_train, y_test, y_full
+
+
+def _build_model_specs(tuning_config: dict) -> Dict[str, dict]:
+    def build_decision_tree(**params: float) -> DecisionTreeRegressor:
+        return DecisionTreeRegressor(
+            max_depth=int(params["max_depth"]),
+            min_samples_split=config["decision_tree"]["min_samples_split"],
+            min_samples_leaf=int(params["min_samples_leaf"]),
+            ccp_alpha=config["decision_tree"]["ccp_alpha"],
+            random_state=config["decision_tree"]["random_state"],
+        )
+
+    def build_random_forest(**params: float) -> RandomForestRegressor:
+        subsample = float(params["subsample"])
+        return RandomForestRegressor(
+            n_estimators=config["random_forest"]["n_estimators"],
+            max_depth=int(params["max_depth"]),
+            min_samples_split=config["random_forest"]["min_samples_split"],
+            min_samples_leaf=int(params["min_samples_leaf"]),
+            max_features=config["random_forest"]["max_features"],
+            ccp_alpha=config["random_forest"]["ccp_alpha"],
+            random_state=config["random_forest"]["random_state"],
+            max_samples=subsample,
+        )
+
+    def build_gradient_boosting(**params: float) -> GradientBoostingRegressor:
+        return GradientBoostingRegressor(
+            n_estimators=config["gradient_boosting"]["n_estimators"],
+            learning_rate=config["gradient_boosting"]["learning_rate"],
+            max_depth=int(params["max_depth"]),
+            min_samples_split=config["gradient_boosting"]["min_samples_split"],
+            min_samples_leaf=int(params["min_samples_leaf"]),
+            max_features=config["gradient_boosting"]["max_features"],
+            random_state=config["gradient_boosting"]["random_state"],
+            subsample=float(params["subsample"]),
+        )
+
+    return {
+        "Linear Regression": {"model": LinearRegression()},
+        MODEL_DECISION_TREE: {
+            "builder": build_decision_tree,
+            "grid": tuning_config.get("decision_tree", {}),
+            "defaults": {
+                "max_depth": config["decision_tree"]["max_depth"],
+                "min_samples_leaf": config["decision_tree"]["min_samples_leaf"],
+            },
+        },
+        MODEL_RANDOM_FOREST: {
+            "builder": build_random_forest,
+            "grid": tuning_config.get("random_forest", {}),
+            "defaults": {
+                "max_depth": config["random_forest"]["max_depth"],
+                "min_samples_leaf": config["random_forest"]["min_samples_leaf"],
+                "subsample": 1.0,
+            },
+        },
+        MODEL_GRADIENT_BOOSTING: {
+            "builder": build_gradient_boosting,
+            "grid": tuning_config.get("gradient_boosting", {}),
+            "defaults": {
+                "max_depth": config["gradient_boosting"]["max_depth"],
+                "min_samples_leaf": config["gradient_boosting"]["min_samples_leaf"],
+                "subsample": 1.0,
+            },
+        },
+    }
+
+
+def _select_model_for_training(
+    model_name: str,
+    spec: dict,
+    tuning_enabled: bool,
+    saved_params: Dict[str, dict],
+    X_train: pd.DataFrame,
+    y_train: pd.Series,
+    y_train_original: pd.Series,
+    transform_enabled: bool,
+    transform_method: str,
+    max_splits: int,
+    top_k: int,
+    tuning_payload: Dict[str, dict],
+    logger: logging.Logger,
+):
+    model = spec.get("model")
+    if model is not None:
+        return model
+
+    tuned_params: Dict[str, float] = {}
+    tuning_result: Optional[dict] = None
+
+    if tuning_enabled and model_name in [MODEL_DECISION_TREE, MODEL_RANDOM_FOREST, MODEL_GRADIENT_BOOSTING]:
+        if saved_params.get(model_name):
+            tuning_result = saved_params[model_name]
+            tuned_params = tuning_result.get("params", {})
+            plog.log_info(logger, f"Using saved hyperparameters for {model_name}: {tuned_params}")
+        else:
+            tuned_params, tuning_results = _tune_model_hyperparameters(
+                model_name=model_name,
+                model_builder=spec["builder"],
+                param_grid=spec["grid"],
+                X_train=X_train,
+                y_train_fit=y_train,
+                y_train_original=y_train_original,
+                transform_enabled=transform_enabled,
+                transform_method=transform_method,
+                splits=max_splits,
+                top_k=top_k,
+                logger=logger,
+            )
+            if tuning_results:
+                best = tuning_results[0]
+                tuning_result = {
+                    "params": tuned_params,
+                    "cv_mae": best["cv_mae"],
+                }
+
+    if not tuned_params:
+        if tuning_enabled and model_name in [MODEL_DECISION_TREE, MODEL_RANDOM_FOREST, MODEL_GRADIENT_BOOSTING]:
+            plog.log_warning(logger, f"Falling back to default hyperparameters for {model_name}.")
+        tuned_params = spec["defaults"]
+
+    model = spec["builder"](**tuned_params)
+    if tuning_result:
+        tuning_payload["models"][model_name] = tuning_result
+    return model
+
+
+def _collect_metrics(
+    y_train_original: pd.Series,
+    y_test_original: pd.Series,
+    y_train_pred: np.ndarray,
+    y_test_pred: np.ndarray,
+) -> Dict[str, float]:
+    train_rmse = np.sqrt(mean_squared_error(y_train_original, y_train_pred))
+    train_mae = mean_absolute_error(y_train_original, y_train_pred)
+    train_r2 = r2_score(y_train_original, y_train_pred)
+
+    test_rmse = np.sqrt(mean_squared_error(y_test_original, y_test_pred))
+    test_mae = mean_absolute_error(y_test_original, y_test_pred)
+    test_r2 = r2_score(y_test_original, y_test_pred)
+
+    y_test_array = np.asarray(y_test_original.to_numpy())
+    y_test_pred_array = np.asarray(y_test_pred)
+    test_medae = calculate_median_absolute_error(y_test_array, y_test_pred_array)
+    test_smape = calculate_smape(y_test_array, y_test_pred_array)
+    test_percentiles = calculate_percentile_errors(y_test_array, y_test_pred_array)
+
+    return {
+        "train_rmse": float(train_rmse),
+        "train_mae": float(train_mae),
+        "train_r2": float(train_r2),
+        "test_rmse": float(test_rmse),
+        "test_mae": float(test_mae),
+        "test_r2": float(test_r2),
+        "test_medae": float(test_medae),
+        "test_smape": float(test_smape),
+        "test_p50": float(test_percentiles["P50"]),
+        "test_p75": float(test_percentiles["P75"]),
+        "test_p90": float(test_percentiles["P90"]),
+    }
+
+
+def _log_metrics(logger: logging.Logger, metrics: Dict[str, float]) -> None:
+    plog.log_info(logger, "Training Set Performance:")
+    plog.log_info(logger, f"  RMSE: {metrics['train_rmse']:.2f}")
+    plog.log_info(logger, f"  MAE: {metrics['train_mae']:.2f}")
+    plog.log_info(logger, f"  R-squared: {metrics['train_r2']:.4f}")
+
+    plog.log_info(logger, "Test Set Performance (Standard Metrics):")
+    plog.log_info(logger, f"  RMSE: {metrics['test_rmse']:.2f}")
+    plog.log_info(logger, f"  MAE: {metrics['test_mae']:.2f}")
+    plog.log_info(logger, f"  R-squared: {metrics['test_r2']:.4f}")
+
+    plog.log_info(logger, "Test Set Performance (Robust Metrics):")
+    plog.log_info(logger, f"  Median Absolute Error: {metrics['test_medae']:.2f}")
+    plog.log_info(logger, f"  SMAPE: {metrics['test_smape']:.2f}%")
+    plog.log_info(
+        logger,
+        "  Error Distribution - P50: {:.2f}, P75: {:.2f}, P90: {:.2f}".format(
+            metrics["test_p50"],
+            metrics["test_p75"],
+            metrics["test_p90"],
+        ),
+    )
+
+
+def _make_future_predictions(
+    model,
+    X_full: pd.DataFrame,
+    y_full: pd.Series,
+    X_train_columns: pd.Index,
+    future_date_for_function: str,
+    transform_enabled: bool,
+    transform_method: str,
+    logger: logging.Logger,
+) -> Tuple[pd.DatetimeIndex, np.ndarray]:
+    model.fit(X_full, y_full)
+    future_df, future_dates = prepare_future_dates(future_date_for_function)
+    future_df = future_df.reindex(columns=X_train_columns, fill_value=0)
+    y_predict = model.predict(future_df)
+
+    if transform_enabled:
+        y_predict = inverse_target_transform(y_predict, method=transform_method, logger=logger)
+
+    return future_dates, np.round(y_predict, 2)
 
 
 def train_and_evaluate_models(
@@ -301,58 +672,55 @@ def train_and_evaluate_models(
         skip_confirmation: Whether to skip file overwrite confirmations.
         logger: Logger instance.
     """
-    # Check if target transformation is enabled
     transform_enabled = config.get("target_transform", {}).get("enabled", False)
     transform_method = config.get("target_transform", {}).get("method", "log1p")
+
+    (
+        tuning_config,
+        tuning_enabled,
+        max_splits,
+        top_k,
+        persist_path,
+        saved_params,
+        tuning_payload,
+    ) = _prepare_tuning_context(X_train, output_dir, logger)
 
     # Store original target values for untransformed metrics
     y_train_original = y_train.copy()
     y_test_original = y_test.copy()
 
-    # Apply transformation if enabled
-    if transform_enabled:
-        plog.log_info(logger, f"Target transformation enabled: {transform_method}")
-        y_train = apply_target_transform(y_train, method=transform_method, logger=logger)
-        y_test = apply_target_transform(y_test, method=transform_method, logger=logger)
-        y = apply_target_transform(y, method=transform_method, logger=logger)
-    else:
-        plog.log_info(logger, "Target transformation disabled (using original scale)")
+    y_train, y_test, y = _apply_transform_if_needed(
+        y_train,
+        y_test,
+        y,
+        transform_enabled,
+        transform_method,
+        logger,
+    )
 
-    # Dictionary of models to train and evaluate.
-    models = {
-        "Linear Regression": LinearRegression(),
-        "Decision Tree": DecisionTreeRegressor(
-            max_depth=config["decision_tree"]["max_depth"],
-            min_samples_split=config["decision_tree"]["min_samples_split"],
-            min_samples_leaf=config["decision_tree"]["min_samples_leaf"],
-            ccp_alpha=config["decision_tree"]["ccp_alpha"],
-            random_state=config["decision_tree"]["random_state"],
-        ),
-        "Random Forest": RandomForestRegressor(
-            n_estimators=config["random_forest"]["n_estimators"],
-            max_depth=config["random_forest"]["max_depth"],
-            min_samples_split=config["random_forest"]["min_samples_split"],
-            min_samples_leaf=config["random_forest"]["min_samples_leaf"],
-            max_features=config["random_forest"]["max_features"],
-            ccp_alpha=config["random_forest"]["ccp_alpha"],
-            random_state=config["random_forest"]["random_state"],
-        ),
-        "Gradient Boosting": GradientBoostingRegressor(
-            n_estimators=config["gradient_boosting"]["n_estimators"],
-            learning_rate=config["gradient_boosting"]["learning_rate"],
-            max_depth=config["gradient_boosting"]["max_depth"],
-            min_samples_split=config["gradient_boosting"]["min_samples_split"],
-            min_samples_leaf=config["gradient_boosting"]["min_samples_leaf"],
-            max_features=config["gradient_boosting"]["max_features"],
-            random_state=config["gradient_boosting"]["random_state"],
-        ),
-    }
+    model_specs = _build_model_specs(tuning_config)
 
     metrics_records: List[dict] = []
 
     # Train, evaluate, and predict for each model
-    for model_name, model in models.items():
+    for model_name, spec in model_specs.items():
         plog.log_info(logger, f"--- {model_name} ---")
+
+        model = _select_model_for_training(
+            model_name,
+            spec,
+            tuning_enabled,
+            saved_params,
+            X_train,
+            y_train,
+            y_train_original,
+            transform_enabled,
+            transform_method,
+            max_splits,
+            top_k,
+            tuning_payload,
+            logger,
+        )
 
         # Fit the model on training data
         model.fit(X_train, y_train)
@@ -361,7 +729,6 @@ def train_and_evaluate_models(
         y_train_pred = model.predict(X_train)
         y_test_pred = model.predict(X_test)
 
-        # Apply inverse transformation if needed
         if transform_enabled:
             y_train_pred_original = inverse_target_transform(y_train_pred, method=transform_method, logger=logger)
             y_test_pred_original = inverse_target_transform(y_test_pred, method=transform_method, logger=logger)
@@ -369,72 +736,36 @@ def train_and_evaluate_models(
             y_train_pred_original = y_train_pred
             y_test_pred_original = y_test_pred
 
-        # Calculate metrics on original scale
-        train_rmse = np.sqrt(mean_squared_error(y_train_original, y_train_pred_original))
-        train_mae = mean_absolute_error(y_train_original, y_train_pred_original)
-        train_r2 = r2_score(y_train_original, y_train_pred_original)
-
-        test_rmse = np.sqrt(mean_squared_error(y_test_original, y_test_pred_original))
-        test_mae = mean_absolute_error(y_test_original, y_test_pred_original)
-        test_r2 = r2_score(y_test_original, y_test_pred_original)
-
-        # Calculate robust metrics on original scale
-        test_medae = calculate_median_absolute_error(y_test_original.values, y_test_pred_original)
-        test_smape = calculate_smape(y_test_original.values, y_test_pred_original)
-        test_percentiles = calculate_percentile_errors(y_test_original.values, y_test_pred_original)
-
-        plog.log_info(logger, "Training Set Performance:")
-        plog.log_info(logger, f"  RMSE: {train_rmse:.2f}")
-        plog.log_info(logger, f"  MAE: {train_mae:.2f}")
-        plog.log_info(logger, f"  R-squared: {train_r2:.4f}")
-
-        plog.log_info(logger, "Test Set Performance (Standard Metrics):")
-        plog.log_info(logger, f"  RMSE: {test_rmse:.2f}")
-        plog.log_info(logger, f"  MAE: {test_mae:.2f}")
-        plog.log_info(logger, f"  R-squared: {test_r2:.4f}")
-
-        plog.log_info(logger, "Test Set Performance (Robust Metrics):")
-        plog.log_info(logger, f"  Median Absolute Error: {test_medae:.2f}")
-        plog.log_info(logger, f"  SMAPE: {test_smape:.2f}%")
-        plog.log_info(logger, f"  Error Distribution - P50: {test_percentiles['P50']:.2f}, P75: {test_percentiles['P75']:.2f}, P90: {test_percentiles['P90']:.2f}")
-
-        metrics_records.append(
-            {
-                "model": model_name,
-                "type": "ML",
-                "train_rmse": float(train_rmse),
-                "train_mae": float(train_mae),
-                "train_r2": float(train_r2),
-                "test_rmse": float(test_rmse),
-                "test_mae": float(test_mae),
-                "test_r2": float(test_r2),
-                "test_medae": float(test_medae),
-                "test_smape": float(test_smape),
-                "test_p50": float(test_percentiles["P50"]),
-                "test_p75": float(test_percentiles["P75"]),
-                "test_p90": float(test_percentiles["P90"]),
-            }
+        metrics = _collect_metrics(
+            y_train_original,
+            y_test_original,
+            y_train_pred_original,
+            y_test_pred_original,
         )
+        _log_metrics(logger, metrics)
 
-        # Retrain on full dataset and make predictions
+        metrics_records.append({"model": model_name, "type": "ML", **metrics})
+
         plog.log_info(logger, f"Retraining {model_name} on full dataset for production predictions")
-        model.fit(X, y)
-
-        future_df, future_dates = prepare_future_dates(future_date_for_function)
-        future_df = future_df.reindex(columns=X_train.columns, fill_value=0)
-        y_predict = model.predict(future_df)
-
-        # Apply inverse transformation to predictions if needed
-        if transform_enabled:
-            y_predict = inverse_target_transform(y_predict, method=transform_method, logger=logger)
-
-        y_predict = np.round(y_predict, 2)
+        future_dates, y_predict = _make_future_predictions(
+            model,
+            X,
+            y,
+            X_train.columns,
+            future_date_for_function,
+            transform_enabled,
+            transform_method,
+            logger,
+        )
 
         # Save predictions
         predicted_df = pd.DataFrame({"Date": future_dates, f"Predicted {TRANSACTION_AMOUNT_LABEL}": y_predict})
         output_filename = f'future_predictions_{model_name.replace(" ", "_").lower()}.csv'
         output_path = os.path.join(output_dir, output_filename)
         write_predictions(predicted_df, output_path, logger=logger, skip_confirmation=skip_confirmation)
+
+    if tuning_payload["models"]:
+        _persist_hyperparameters(persist_path, tuning_payload, logger)
 
     return metrics_records
 

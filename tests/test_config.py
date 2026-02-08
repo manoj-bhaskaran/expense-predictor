@@ -184,7 +184,14 @@ class TestGetConfig:
         """Test that config has all required sections."""
         result = get_config()
 
-        required_sections = ["data_processing", "model_evaluation", "decision_tree", "random_forest", "gradient_boosting"]
+        required_sections = [
+            "data_processing",
+            "model_evaluation",
+            "decision_tree",
+            "random_forest",
+            "gradient_boosting",
+            "tuning",
+        ]
 
         for section in required_sections:
             assert section in result
@@ -201,6 +208,7 @@ class TestDefaultConfig:
         assert "decision_tree" in DEFAULT_CONFIG
         assert "random_forest" in DEFAULT_CONFIG
         assert "gradient_boosting" in DEFAULT_CONFIG
+        assert "tuning" in DEFAULT_CONFIG
 
     def test_default_config_values(self):
         """Test DEFAULT_CONFIG has reasonable default values."""
