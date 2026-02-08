@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Dict, Iterable, List, Optional
+from typing import Callable, Dict, Iterable, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -19,6 +19,9 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import python_logging_framework as plog
 from constants import TRANSACTION_AMOUNT_LABEL
 from helpers import prepare_future_dates, write_predictions
+
+TEST_MAE_COLUMN = "Test MAE"
+TEST_RMSE_COLUMN = "Test RMSE"
 
 
 def _ensure_series_with_dates(series: pd.Series, dates: pd.Series) -> pd.Series:
@@ -117,23 +120,12 @@ def seasonal_naive_forecast(
     return np.array(forecasts)
 
 
-def run_baselines(
-    y_full: pd.Series,
-    processed_dates: pd.Series,
-    train_dates: pd.Series,
-    test_dates: pd.Series,
-    future_date_for_function: str,
-    output_dir: str,
-    skip_confirmation: bool,
+def _build_baseline_configs(
     rolling_windows_months: Iterable[int],
+    future_dates: pd.DatetimeIndex,
+    series: pd.Series,
     logger: logging.Logger,
-) -> List[Dict[str, float]]:
-    """Run baseline forecasts, save predictions, and return metrics."""
-    series = _ensure_series_with_dates(y_full, processed_dates)
-
-    _, future_dates = prepare_future_dates(future_date_for_function)
-    metrics_records: List[Dict[str, float]] = []
-
+) -> List[Dict[str, Callable]]:
     baseline_configs = [
         {
             "name": "Naive Last Value",
@@ -154,8 +146,7 @@ def run_baselines(
         )
 
     history_span_days = (series.index.max() - series.index.min()).days
-    seasonal_supported = history_span_days >= 365
-    if seasonal_supported:
+    if history_span_days >= 365:
         baseline_configs.append(
             {
                 "name": "Seasonal Naive (YoY)",
@@ -167,44 +158,88 @@ def run_baselines(
     else:
         plog.log_info(logger, "Seasonal naive baseline skipped: less than 12 months of history available.")
 
-    for baseline in baseline_configs:
-        pred_series = baseline["pred_func"](series)
-        train_index = pd.DatetimeIndex(pd.to_datetime(train_dates))
-        test_index = pd.DatetimeIndex(pd.to_datetime(test_dates))
-        train_pred = pred_series.loc[train_index]
-        test_pred = pred_series.loc[test_index]
+    return baseline_configs
 
-        train_metrics = _filter_valid(series.loc[train_index], train_pred)
-        test_metrics = _filter_valid(series.loc[test_index], test_pred)
 
-        _log_metrics(logger, baseline["name"], train_metrics, test_metrics)
+def _evaluate_baseline(
+    baseline: Dict[str, Callable],
+    series: pd.Series,
+    train_index: pd.DatetimeIndex,
+    test_index: pd.DatetimeIndex,
+    future_dates: pd.DatetimeIndex,
+    output_dir: str,
+    skip_confirmation: bool,
+    logger: logging.Logger,
+) -> Dict[str, float]:
+    pred_series = baseline["pred_func"](series)
+    train_pred = pred_series.loc[train_index]
+    test_pred = pred_series.loc[test_index]
 
-        metrics_records.append(
-            {
-                "model": baseline["name"],
-                "type": "Baseline",
-                "train_rmse": train_metrics["rmse"] if train_metrics else np.nan,
-                "train_mae": train_metrics["mae"] if train_metrics else np.nan,
-                "train_r2": train_metrics["r2"] if train_metrics else np.nan,
-                "test_rmse": test_metrics["rmse"] if test_metrics else np.nan,
-                "test_mae": test_metrics["mae"] if test_metrics else np.nan,
-                "test_r2": test_metrics["r2"] if test_metrics else np.nan,
-            }
+    train_metrics = _filter_valid(series.loc[train_index], train_pred)
+    test_metrics = _filter_valid(series.loc[test_index], test_pred)
+
+    _log_metrics(logger, baseline["name"], train_metrics, test_metrics)
+
+    future_predictions = baseline["forecast_func"](series)
+    predicted_df = pd.DataFrame(
+        {"Date": future_dates, f"Predicted {TRANSACTION_AMOUNT_LABEL}": np.round(future_predictions, 2)}
+    )
+    output_filename = f"future_predictions_{baseline['key']}.csv"
+    output_path = os.path.join(output_dir, output_filename)
+    write_predictions(predicted_df, output_path, logger=logger, skip_confirmation=skip_confirmation)
+
+    return {
+        "model": baseline["name"],
+        "type": "Baseline",
+        "train_rmse": train_metrics["rmse"] if train_metrics else np.nan,
+        "train_mae": train_metrics["mae"] if train_metrics else np.nan,
+        "train_r2": train_metrics["r2"] if train_metrics else np.nan,
+        "test_rmse": test_metrics["rmse"] if test_metrics else np.nan,
+        "test_mae": test_metrics["mae"] if test_metrics else np.nan,
+        "test_r2": test_metrics["r2"] if test_metrics else np.nan,
+    }
+
+
+def run_baselines(
+    y_full: pd.Series,
+    processed_dates: pd.Series,
+    train_dates: pd.Series,
+    test_dates: pd.Series,
+    future_date_for_function: str,
+    output_dir: str,
+    skip_confirmation: bool,
+    rolling_windows_months: Iterable[int],
+    logger: logging.Logger,
+) -> List[Dict[str, float]]:
+    """Run baseline forecasts, save predictions, and return metrics."""
+    series = _ensure_series_with_dates(y_full, processed_dates)
+    _, future_dates = prepare_future_dates(future_date_for_function)
+
+    train_index = pd.DatetimeIndex(pd.to_datetime(train_dates))
+    test_index = pd.DatetimeIndex(pd.to_datetime(test_dates))
+    baseline_configs = _build_baseline_configs(rolling_windows_months, future_dates, series, logger)
+
+    return [
+        _evaluate_baseline(
+            baseline,
+            series,
+            train_index,
+            test_index,
+            future_dates,
+            output_dir,
+            skip_confirmation,
+            logger,
         )
-
-        future_predictions = baseline["forecast_func"](series)
-        predicted_df = pd.DataFrame(
-            {"Date": future_dates, f"Predicted {TRANSACTION_AMOUNT_LABEL}": np.round(future_predictions, 2)}
-        )
-        output_filename = f"future_predictions_{baseline['key']}.csv"
-        output_path = os.path.join(output_dir, output_filename)
-        write_predictions(predicted_df, output_path, logger=logger, skip_confirmation=skip_confirmation)
-
-    return metrics_records
+        for baseline in baseline_configs
+    ]
 
 
 def write_comparison_report(
-    metrics_records: List[Dict[str, float]], output_dir: str, logger: logging.Logger, filename: str = "model_comparison_report.csv"
+    metrics_records: List[Dict[str, float]],
+    output_dir: str,
+    logger: logging.Logger,
+    filename: str = "model_comparison_report.csv",
+    subdir: str = "reports",
 ) -> str:
     """Write a comparison report ranking models by test MAE and RMSE."""
     if not metrics_records:
@@ -225,11 +260,13 @@ def write_comparison_report(
         }
     )
 
-    report_df["Test MAE Rank"] = report_df["Test MAE"].rank(method="min")
-    report_df["Test RMSE Rank"] = report_df["Test RMSE"].rank(method="min")
-    report_df = report_df.sort_values(by=["Test MAE", "Test RMSE", "Model"], na_position="last")
+    report_df["Test MAE Rank"] = report_df[TEST_MAE_COLUMN].rank(method="min")
+    report_df["Test RMSE Rank"] = report_df[TEST_RMSE_COLUMN].rank(method="min")
+    report_df = report_df.sort_values(by=[TEST_MAE_COLUMN, TEST_RMSE_COLUMN, "Model"], na_position="last")
 
-    output_path = os.path.join(output_dir, filename)
+    report_dir = os.path.join(output_dir, subdir)
+    os.makedirs(report_dir, exist_ok=True)
+    output_path = os.path.join(report_dir, filename)
     report_df.to_csv(output_path, index=False)
     plog.log_info(logger, f"Model comparison report saved to {output_path}")
     return output_path

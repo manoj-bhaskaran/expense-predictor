@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.22.1] - 2026-02-09
+
+### Fixed
+- Wrote the model comparison report to `output_dir/reports/` to avoid interfering with prediction CSV validation in CLI tests.
+- Simplified baseline runner structure and centralized report column labels.
+
 ## [1.22.0] - 2026-02-09
 
 ### Added
@@ -158,7 +164,8 @@ Include: version number, OS and Python version, complete error messages, reprodu
 
 ---
 
-[Unreleased]: https://github.com/manoj-bhaskaran/expense-predictor/compare/v1.22.0...HEAD
+[Unreleased]: https://github.com/manoj-bhaskaran/expense-predictor/compare/v1.22.1...HEAD
+[1.22.1]: https://github.com/manoj-bhaskaran/expense-predictor/compare/v1.22.0...v1.22.1
 [1.22.0]: https://github.com/manoj-bhaskaran/expense-predictor/compare/v1.21.0...v1.22.0
 [1.21.0]: https://github.com/manoj-bhaskaran/expense-predictor/compare/v1.20.1...v1.21.0
 [1.20.1]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.20.1

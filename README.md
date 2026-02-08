@@ -270,8 +270,8 @@ The runner also produces simple baseline forecasts alongside ML models:
 - **Rolling mean** (3-month and 6-month windows)
 - **Seasonal naive** (same period last year, when enough history is available)
 
-Baseline predictions are saved in the same output directory as other models, and a
-`model_comparison_report.csv` file ranks all models (ML + baselines) by test MAE and RMSE.
+Baseline predictions are saved in the same output directory as other models. A
+`reports/model_comparison_report.csv` file ranks all models (ML + baselines) by test MAE and RMSE.
 Disable baselines with `--skip_baselines` or set `baselines.enabled: false` in `config.yaml`.
 
 ## Automatic Transaction Data Updates
