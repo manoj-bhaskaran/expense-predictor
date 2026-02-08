@@ -11,11 +11,15 @@ A machine learning-based expense prediction system that analyzes historical tran
 
 - **Multiple ML Models**: Supports Linear Regression, Decision Tree, Random Forest, and Gradient Boosting algorithms
 - **Flexible Data Input**: Works with CSV transaction data and optionally integrates Excel bank statements
+- **Target Transformation**: Optional log-based transformation (log1p or log) for handling skewed expense distributions with automatic inverse transformation of predictions
+- **Robust Metrics**: Comprehensive evaluation including Median Absolute Error (MedAE), Symmetric Mean Absolute Percentage Error (SMAPE), and percentile-based error distribution (P50/P75/P90)
+- **Baseline Forecasters**: Compare ML models against naive forecasts (last value, rolling means, seasonal naive) for benchmarking
+- **Time-Series Splitting**: Chronological train/test split to prevent data leakage in temporal predictions
 - **Robust Input Validation**: Validates file existence, format, required columns, and date ranges before processing
 - **Security Features**: Path injection protection, file extension validation, CSV injection prevention, and automatic backups
 - **Automated Predictions**: Generates predictions for custom future dates or automatically for the current quarter end
 - **Comprehensive Logging**: Built-in logging framework for tracking operations and debugging
-- **Performance Metrics**: Evaluates models using RMSE, MAE, and R-squared metrics
+- **Performance Metrics**: Evaluates models using RMSE, MAE, R-squared, MedAE, SMAPE, and error percentiles
 - **Portable**: Supports both absolute and relative file paths for flexible deployment
 - **Data Protection**: Automatic backups and user confirmation before overwriting files
 - **Complete CI/CD Pipeline**: Automated testing, code quality checks, and security scanning
@@ -100,7 +104,9 @@ The `config.yaml` file allows you to customize model hyperparameters and data pr
 
 - **Data Processing**: Control Excel file parsing (e.g., `skiprows` for bank statements)
 - **Model Evaluation**: Set train/test split ratio and random seed for reproducibility
+- **Target Transformation**: Enable log-based transformation for skewed expense distributions (log1p or log)
 - **Model Hyperparameters**: Fine-tune each machine learning model's parameters
+- **Baselines**: Configure baseline forecasters and rolling window sizes
 
 **Example configuration:**
 
@@ -111,6 +117,10 @@ data_processing:
 model_evaluation:
   test_size: 0.2 # 20% of data for testing
   random_state: 42 # Seed for reproducibility
+
+target_transform:
+  enabled: false # Enable/disable target transformation
+  method: log1p # Transformation method: log1p or log
 
 decision_tree:
   max_depth: 5
@@ -135,6 +145,8 @@ ConfigurationError: Configuration validation failed:
 - `skiprows`: Must be non-negative integer
 - `test_size`: Must be between 0.0 and 1.0 (exclusive)
 - `random_state`: Must be non-negative integer
+- `target_transform.enabled`: Must be boolean (true/false)
+- `target_transform.method`: Must be 'log1p' or 'log'
 - Model hyperparameters: Must be appropriate types with valid ranges (see config.py for details)
 
 **Note:** If `config.yaml` is missing, the system will use sensible defaults and continue running. If the file exists but contains invalid values, the application will fail fast with a clear error message.
