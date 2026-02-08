@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Tuple
 
+import numpy as np
 import pandas as pd
 import xlrd
 from pandas.tseries.offsets import DateOffset
@@ -861,7 +862,7 @@ def calculate_smape(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     
     # Avoid division by zero: if both true and pred are zero, error is zero
     mask = denominator != 0
-    smape_values = np.zeros_like(numerator)
+    smape_values = np.zeros_like(numerator, dtype=float)
     smape_values[mask] = numerator[mask] / denominator[mask]
     
     return float(np.mean(smape_values) * 100)
