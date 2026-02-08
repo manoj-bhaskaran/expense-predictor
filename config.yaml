@@ -33,6 +33,16 @@ model_evaluation:
   # Default: 10 (ensures adequate test set for evaluation)
   min_test_samples: 10
 
+# Baseline Forecast Configuration
+baselines:
+  # Enable/disable baseline forecasts and comparison report
+  enabled: true
+
+  # Rolling mean window sizes in months
+  rolling_windows_months:
+    - 3
+    - 6
+
 # Model Hyperparameters
 # These parameters control the behavior and complexity of each machine learning model
 

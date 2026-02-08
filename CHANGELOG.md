@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.22.0] - 2026-02-09
+
+### Added
+- Baseline forecasters (naive last value, 3-month and 6-month rolling means, and seasonal naive when ≥12 months of history) with prediction outputs in the same schema/location as existing models.
+- Baseline evaluation metrics (RMSE, MAE, R²) logged for train/test splits alongside ML models.
+- Model comparison report (`model_comparison_report.csv`) ranking ML models and baselines by test MAE and RMSE.
+- Config/CLI toggles for baselines (`baselines.enabled` in config.yaml and `--skip_baselines` flag).
+
+### Changed
+- Version bump 1.21.0 → 1.22.0 (minor) for new baseline forecasting and reporting capabilities.
+
 ## [1.21.0] - 2026-02-08
 
 ### Fixed
@@ -147,7 +158,8 @@ Include: version number, OS and Python version, complete error messages, reprodu
 
 ---
 
-[Unreleased]: https://github.com/manoj-bhaskaran/expense-predictor/compare/v1.21.0...HEAD
+[Unreleased]: https://github.com/manoj-bhaskaran/expense-predictor/compare/v1.22.0...HEAD
+[1.22.0]: https://github.com/manoj-bhaskaran/expense-predictor/compare/v1.21.0...v1.22.0
 [1.21.0]: https://github.com/manoj-bhaskaran/expense-predictor/compare/v1.20.1...v1.21.0
 [1.20.1]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.20.1
 [1.20.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.20.0

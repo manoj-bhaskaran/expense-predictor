@@ -169,6 +169,7 @@ nano .env
 | `EXPENSE_PREDICTOR_OUTPUT_DIR` | Directory for prediction output files | `.` (current directory) |
 | `EXPENSE_PREDICTOR_FUTURE_DATE` | Future date for predictions (DD/MM/YYYY) | End of current quarter |
 | `EXPENSE_PREDICTOR_SKIP_CONFIRMATION` | Skip file overwrite confirmations (`true`/`false`) | `false` |
+| `EXPENSE_PREDICTOR_SKIP_BASELINES` | Skip baseline forecasts and comparison report (`true`/`false`) | `false` |
 
 **Example .env file:**
 
@@ -179,6 +180,7 @@ EXPENSE_PREDICTOR_LOG_DIR=./dev_logs
 EXPENSE_PREDICTOR_LOG_LEVEL=DEBUG
 EXPENSE_PREDICTOR_OUTPUT_DIR=./dev_predictions
 EXPENSE_PREDICTOR_SKIP_CONFIRMATION=true
+EXPENSE_PREDICTOR_SKIP_BASELINES=false
 ```
 
 **Configuration Priority (highest to lowest):**
@@ -258,6 +260,19 @@ python model_runner.py \
 | `--log_level` | Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL) | `INFO` |
 | `--output_dir` | Directory for prediction output files | `.` (current directory) |
 | `--skip_confirmation` | Skip confirmation prompts when overwriting files (for automation) | False |
+| `--skip_baselines` | Skip baseline forecasts and comparison report generation | False |
+
+### Baselines and Comparison Report
+
+The runner also produces simple baseline forecasts alongside ML models:
+
+- **Naive last value**
+- **Rolling mean** (3-month and 6-month windows)
+- **Seasonal naive** (same period last year, when enough history is available)
+
+Baseline predictions are saved in the same output directory as other models, and a
+`model_comparison_report.csv` file ranks all models (ML + baselines) by test MAE and RMSE.
+Disable baselines with `--skip_baselines` or set `baselines.enabled: false` in `config.yaml`.
 
 ## Automatic Transaction Data Updates
 
