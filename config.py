@@ -112,6 +112,23 @@ class GradientBoostingConfig(BaseModel):
         return v
 
 
+class BaselinesConfig(BaseModel):
+    """Configuration for baseline forecasts."""
+
+    model_config = {"strict": True}
+
+    enabled: bool = True
+    rolling_windows_months: list[int] = Field(default_factory=lambda: [3, 6], min_length=1)
+
+    @field_validator("rolling_windows_months")
+    @classmethod
+    def validate_rolling_windows_months(cls, v: list[int]) -> list[int]:
+        """Ensure rolling window sizes are positive integers."""
+        if any(window <= 0 for window in v):
+            raise ValueError("rolling_windows_months must contain positive integers")
+        return v
+
+
 class Config(BaseModel):
     """Root configuration model with all sections."""
 
@@ -121,6 +138,7 @@ class Config(BaseModel):
     decision_tree: DecisionTreeConfig = Field(default_factory=DecisionTreeConfig)
     random_forest: RandomForestConfig = Field(default_factory=RandomForestConfig)
     gradient_boosting: GradientBoostingConfig = Field(default_factory=GradientBoostingConfig)
+    baselines: BaselinesConfig = Field(default_factory=BaselinesConfig)
 
 
 # Default configuration (used as fallback if config.yaml is not found or incomplete)
@@ -147,6 +165,7 @@ DEFAULT_CONFIG = {
         "max_features": "sqrt",
         "random_state": 42,
     },
+    "baselines": {"enabled": True, "rolling_windows_months": [3, 6]},
 }
 
 

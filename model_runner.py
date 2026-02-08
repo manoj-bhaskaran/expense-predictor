@@ -4,7 +4,7 @@ Expense Predictor Script - model_runner.py
 This script processes transaction data to train and evaluate multiple machine learning models. It predicts future transaction amounts for a specified future date. The predictions are saved as CSV files.
 
 Usage:
-    python model_runner.py [--future_date DD/MM/YYYY] [--excel_dir EXCEL_DIRECTORY] [--excel_file EXCEL_FILENAME] [--data_file DATA_FILE] [--log_dir LOG_DIRECTORY] [--output_dir OUTPUT_DIRECTORY] [--skip_confirmation]
+    python model_runner.py [--future_date DD/MM/YYYY] [--excel_dir EXCEL_DIRECTORY] [--excel_file EXCEL_FILENAME] [--data_file DATA_FILE] [--log_dir LOG_DIRECTORY] [--output_dir OUTPUT_DIRECTORY] [--skip_confirmation] [--skip_baselines]
 
 Command-Line Arguments:
     --future_date        : (Optional) The future date for which you want to predict transaction amounts. Format: DD/MM/YYYY
@@ -14,6 +14,7 @@ Command-Line Arguments:
     --log_dir            : (Optional) The directory where log files will be saved. Default: logs/
     --output_dir         : (Optional) The directory where prediction files will be saved. Default: current directory
     --skip_confirmation  : (Optional) Skip confirmation prompts for overwriting files. Useful for automated workflows.
+    --skip_baselines     : (Optional) Skip baseline forecasts and reports. Useful for faster runs.
 
 Example:
     python model_runner.py --future_date 31/12/2025 --excel_dir ./data --excel_file transactions.xls --data_file ./trandata.csv
@@ -46,6 +47,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.tree import DecisionTreeRegressor
 
 import python_logging_framework as plog
+from baselines import run_baselines, write_comparison_report
 from config import config
 from constants import TRANSACTION_AMOUNT_LABEL
 from helpers import (
@@ -80,6 +82,7 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         - EXPENSE_PREDICTOR_LOG_DIR: Default log directory
         - EXPENSE_PREDICTOR_OUTPUT_DIR: Default output directory
         - EXPENSE_PREDICTOR_SKIP_CONFIRMATION: Skip confirmation prompts (true/false)
+        - EXPENSE_PREDICTOR_SKIP_BASELINES: Skip baseline forecasts (true/false)
 
     Args:
         args: Optional list of arguments to parse. If None, uses sys.argv.
@@ -129,6 +132,12 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         action="store_true",
         default=os.getenv("EXPENSE_PREDICTOR_SKIP_CONFIRMATION", "false").lower() == "true",
         help="Skip confirmation prompts for overwriting files (useful for automation)",
+    )
+    parser.add_argument(
+        "--skip_baselines",
+        action="store_true",
+        default=os.getenv("EXPENSE_PREDICTOR_SKIP_BASELINES", "false").lower() == "true",
+        help="Skip baseline forecasts and comparison report generation",
     )
     parser.add_argument(
         "--log-level",
@@ -270,7 +279,7 @@ def train_and_evaluate_models(
     output_dir: str,
     skip_confirmation: bool,
     logger: logging.Logger,
-) -> None:
+) -> List[dict]:
     """
     Train and evaluate all ML models, then generate predictions.
 
@@ -316,6 +325,8 @@ def train_and_evaluate_models(
         ),
     }
 
+    metrics_records: List[dict] = []
+
     # Train, evaluate, and predict for each model
     for model_name, model in models.items():
         plog.log_info(logger, f"--- {model_name} ---")
@@ -346,6 +357,19 @@ def train_and_evaluate_models(
         plog.log_info(logger, f"  MAE: {test_mae:.2f}")
         plog.log_info(logger, f"  R-squared: {test_r2:.4f}")
 
+        metrics_records.append(
+            {
+                "model": model_name,
+                "type": "ML",
+                "train_rmse": float(train_rmse),
+                "train_mae": float(train_mae),
+                "train_r2": float(train_r2),
+                "test_rmse": float(test_rmse),
+                "test_mae": float(test_mae),
+                "test_r2": float(test_r2),
+            }
+        )
+
         # Retrain on full dataset and make predictions
         plog.log_info(logger, f"Retraining {model_name} on full dataset for production predictions")
         model.fit(X, y)
@@ -360,6 +384,8 @@ def train_and_evaluate_models(
         output_filename = f'future_predictions_{model_name.replace(" ", "_").lower()}.csv'
         output_path = os.path.join(output_dir, output_filename)
         write_predictions(predicted_df, output_path, logger=logger, skip_confirmation=skip_confirmation)
+
+    return metrics_records
 
 
 def main(args: Optional[List[str]] = None) -> int:
@@ -437,9 +463,32 @@ def main(args: Optional[List[str]] = None) -> int:
         raise
 
     # Train and evaluate all models
-    train_and_evaluate_models(
+    ml_metrics = train_and_evaluate_models(
         X_train, X_test, y_train, y_test, X, y, future_date_for_function, output_dir, parsed_args.skip_confirmation, logger
     )
+
+    baseline_metrics: List[dict] = []
+    baselines_enabled = config.get("baselines", {}).get("enabled", True) and not parsed_args.skip_baselines
+    if baselines_enabled:
+        split_idx = len(y_train)
+        processed_dates = processed_df["Date"]
+        train_dates = processed_dates.iloc[:split_idx]
+        test_dates = processed_dates.iloc[split_idx:]
+        baseline_metrics = run_baselines(
+            y_full=y,
+            processed_dates=processed_dates,
+            train_dates=train_dates,
+            test_dates=test_dates,
+            future_date_for_function=future_date_for_function,
+            output_dir=output_dir,
+            skip_confirmation=parsed_args.skip_confirmation,
+            rolling_windows_months=config["baselines"]["rolling_windows_months"],
+            logger=logger,
+        )
+    else:
+        plog.log_info(logger, "Baseline forecasts disabled via config or CLI flag.")
+
+    write_comparison_report(ml_metrics + baseline_metrics, output_dir, logger)
 
     return 0
 

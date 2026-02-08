@@ -702,8 +702,12 @@ class TestArgumentCombinations:
             assert exit_code == 0, f"Failed for date: {test_date}"
 
             # Clean up output files for next iteration
-            for file in os.listdir(temp_data["output_dir"]):
-                os.remove(os.path.join(temp_data["output_dir"], file))
+            for entry in os.listdir(temp_data["output_dir"]):
+                entry_path = os.path.join(temp_data["output_dir"], entry)
+                if os.path.isdir(entry_path):
+                    shutil.rmtree(entry_path)
+                else:
+                    os.remove(entry_path)
 
 
 @pytest.mark.integration
