@@ -15,6 +15,7 @@ A machine learning-based expense prediction system that analyzes historical tran
 - **Robust Metrics**: Comprehensive evaluation including Median Absolute Error (MedAE), Symmetric Mean Absolute Percentage Error (SMAPE), and percentile-based error distribution (P50/P75/P90)
 - **Baseline Forecasters**: Compare ML models against naive forecasts (last value, rolling means, seasonal naive) for benchmarking
 - **Time-Series Splitting**: Chronological train/test split to prevent data leakage in temporal predictions
+- **Constrained Tuning**: Time-aware cross-validation for tree-based models with reproducible, saved best hyperparameters
 - **Robust Input Validation**: Validates file existence, format, required columns, and date ranges before processing
 - **Security Features**: Path injection protection, file extension validation, CSV injection prevention, and automatic backups
 - **Automated Predictions**: Generates predictions for custom future dates or automatically for the current quarter end
@@ -106,6 +107,7 @@ The `config.yaml` file allows you to customize model hyperparameters and data pr
 - **Model Evaluation**: Set train/test split ratio and random seed for reproducibility
 - **Target Transformation**: Enable log-based transformation for skewed expense distributions (log1p or log)
 - **Model Hyperparameters**: Fine-tune each machine learning model's parameters
+- **Constrained Tuning**: Configure time-series CV splits, constrained grids, and saved parameter reuse
 - **Baselines**: Configure baseline forecasters and rolling window sizes
 
 **Example configuration:**
@@ -129,6 +131,32 @@ decision_tree:
 ```
 
 See `config.yaml` for the complete list of configurable parameters with detailed explanations.
+
+### Constrained Hyperparameter Tuning
+
+Tree-based models can be tuned using a small, constrained grid with time-aware validation.
+The best configuration is selected by test MAE, saved to the output directory, and reused
+on subsequent runs for reproducibility (unless disabled).
+
+```yaml
+tuning:
+  enabled: true
+  time_series_splits: 4
+  top_k_log: 5
+  reuse_saved_params: true
+  persist_path: reports/best_hyperparameters.json
+  decision_tree:
+    max_depth: [3, 4, 5, 6]
+    min_samples_leaf: [5, 10, 20]
+  random_forest:
+    max_depth: [4, 6, 8, 10]
+    min_samples_leaf: [2, 5, 10]
+    subsample: [0.6, 0.8, 1.0]
+  gradient_boosting:
+    max_depth: [2, 3, 4, 5]
+    min_samples_leaf: [5, 10, 20]
+    subsample: [0.6, 0.8, 1.0]
+```
 
 **Type Validation:**
 

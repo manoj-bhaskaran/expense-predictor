@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [1.24.0] - 2026-02-08
+
+### Added
+- Constrained hyperparameter tuning for Decision Tree, Random Forest, and Gradient Boosting models using time-series cross-validation.
+- Reproducible tuning logs that report top-performing configurations ranked by test MAE.
+- Persistent best-hyperparameter artifacts saved under the output directory and reused on subsequent runs.
+
+### Changed
+- Tree-based models now select configurations by test MAE after time-aware validation to reduce overfitting.
+- Version bump 1.23.0 → 1.24.0 (minor) for new tuning and model-selection workflow.
+
 ## [1.23.0] - 2026-02-08
 
 ### Added
