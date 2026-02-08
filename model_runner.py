@@ -284,6 +284,16 @@ def get_log_level(args_log_level: Optional[str]) -> int:
 
 
 def _load_saved_hyperparameters(path: str, logger: logging.Logger) -> Dict[str, dict]:
+    """
+    Load persisted tuning results from disk.
+
+    Args:
+        path: JSON file path containing saved hyperparameters.
+        logger: Logger instance for warnings.
+
+    Returns:
+        Mapping of model names to saved parameter payloads.
+    """
     if not os.path.exists(path):
         return {}
     try:
@@ -296,6 +306,14 @@ def _load_saved_hyperparameters(path: str, logger: logging.Logger) -> Dict[str, 
 
 
 def _persist_hyperparameters(path: str, payload: Dict[str, dict], logger: logging.Logger) -> None:
+    """
+    Persist tuning results to disk as JSON.
+
+    Args:
+        path: Target JSON file path for saved hyperparameters.
+        payload: Tuning payload to serialize.
+        logger: Logger instance for warnings.
+    """
     try:
         dir_path = os.path.dirname(path)
         if dir_path:
@@ -316,6 +334,21 @@ def _evaluate_cv_mae(
     transform_enabled: bool,
     transform_method: str,
 ) -> float:
+    """
+    Compute time-series cross-validated MAE for a model.
+
+    Args:
+        model: Estimator with fit/predict methods.
+        X_train: Training features.
+        y_train_fit: Training targets in model-fit space.
+        y_train_original: Original-scale targets for MAE scoring.
+        splits: Number of time-series splits.
+        transform_enabled: Whether target transformation is enabled.
+        transform_method: Transformation method name.
+
+    Returns:
+        Mean absolute error across splits.
+    """
     tscv = TimeSeriesSplit(n_splits=splits)
     scores = []
 
@@ -348,6 +381,25 @@ def _tune_model_hyperparameters(
     top_k: int,
     logger: logging.Logger,
 ) -> Tuple[Dict[str, float], List[dict]]:
+    """
+    Perform grid search over hyperparameters with time-series CV MAE.
+
+    Args:
+        model_name: Display name for logging.
+        model_builder: Callable that builds a model from params.
+        param_grid: Parameter grid to evaluate.
+        X_train: Training features.
+        y_train_fit: Training targets in model-fit space.
+        y_train_original: Original-scale targets for MAE scoring.
+        transform_enabled: Whether target transformation is enabled.
+        transform_method: Transformation method name.
+        splits: Number of time-series splits.
+        top_k: Number of top configurations to log.
+        logger: Logger instance.
+
+    Returns:
+        Best parameter set and full results list.
+    """
     if not param_grid:
         plog.log_warning(logger, f"No tuning grid configured for {model_name}. Skipping tuning.")
         return {}, []
@@ -392,6 +444,18 @@ def _prepare_tuning_context(
     output_dir: str,
     logger: logging.Logger,
 ) -> Tuple[dict, bool, int, int, str, Dict[str, dict], Dict[str, Any]]:
+    """
+    Assemble tuning configuration, saved parameters, and payload scaffolding.
+
+    Args:
+        X_train: Training features used to derive split limits.
+        output_dir: Output directory for persisted results.
+        logger: Logger instance.
+
+    Returns:
+        Tuning config, enabled flag, max splits, top-k logging count, persist path,
+        saved parameters, and tuning payload dictionary.
+    """
     tuning_config = config.get("tuning", {})
     tuning_enabled = bool(tuning_config.get("enabled", False))
     tuning_splits = int(tuning_config.get("time_series_splits", 4))
@@ -429,6 +493,20 @@ def _apply_transform_if_needed(
     transform_method: str,
     logger: logging.Logger,
 ) -> Tuple[pd.Series, pd.Series, pd.Series]:
+    """
+    Apply optional target transformation to train, test, and full targets.
+
+    Args:
+        y_train: Training targets.
+        y_test: Test targets.
+        y_full: Full dataset targets.
+        transform_enabled: Whether transformation is enabled.
+        transform_method: Transformation method name.
+        logger: Logger instance.
+
+    Returns:
+        Transformed training, test, and full targets.
+    """
     if transform_enabled:
         plog.log_info(logger, f"Target transformation enabled: {transform_method}")
         y_train = apply_target_transform(y_train, method=transform_method, logger=logger)
@@ -441,6 +519,15 @@ def _apply_transform_if_needed(
 
 
 def _build_model_specs(tuning_config: dict) -> Dict[str, dict]:
+    """
+    Build model specifications and tuning defaults.
+
+    Args:
+        tuning_config: Tuning configuration from config.
+
+    Returns:
+        Mapping of model names to spec dictionaries.
+    """
     def build_decision_tree(**params: float) -> DecisionTreeRegressor:
         return DecisionTreeRegressor(
             max_depth=int(params["max_depth"]),
@@ -521,6 +608,27 @@ def _select_model_for_training(
     tuning_payload: Dict[str, dict],
     logger: logging.Logger,
 ):
+    """
+    Select and configure a model, optionally tuning hyperparameters.
+
+    Args:
+        model_name: Display name for logging.
+        spec: Model spec with builder and defaults.
+        tuning_enabled: Whether tuning is enabled.
+        saved_params: Previously saved tuning params keyed by model.
+        X_train: Training features.
+        y_train: Training targets in model-fit space.
+        y_train_original: Original-scale training targets for MAE scoring.
+        transform_enabled: Whether target transformation is enabled.
+        transform_method: Transformation method name.
+        max_splits: Maximum time-series splits.
+        top_k: Number of top configurations to log.
+        tuning_payload: Payload to record best config.
+        logger: Logger instance.
+
+    Returns:
+        Configured model instance.
+    """
     model = spec.get("model")
     if model is not None:
         return model
@@ -571,6 +679,18 @@ def _collect_metrics(
     y_train_pred: np.ndarray,
     y_test_pred: np.ndarray,
 ) -> Dict[str, float]:
+    """
+    Compute training and test metrics on original-scale targets.
+
+    Args:
+        y_train_original: Original-scale training targets.
+        y_test_original: Original-scale test targets.
+        y_train_pred: Predicted values for training data.
+        y_test_pred: Predicted values for test data.
+
+    Returns:
+        Dictionary of metric values.
+    """
     train_rmse = np.sqrt(mean_squared_error(y_train_original, y_train_pred))
     train_mae = mean_absolute_error(y_train_original, y_train_pred)
     train_r2 = r2_score(y_train_original, y_train_pred)
@@ -601,6 +721,13 @@ def _collect_metrics(
 
 
 def _log_metrics(logger: logging.Logger, metrics: Dict[str, float]) -> None:
+    """
+    Log metric summary to the configured logger.
+
+    Args:
+        logger: Logger instance.
+        metrics: Metric values from model evaluation.
+    """
     plog.log_info(logger, "Training Set Performance:")
     plog.log_info(logger, f"  RMSE: {metrics['train_rmse']:.2f}")
     plog.log_info(logger, f"  MAE: {metrics['train_mae']:.2f}")
@@ -634,6 +761,22 @@ def _make_future_predictions(
     transform_method: str,
     logger: logging.Logger,
 ) -> Tuple[pd.DatetimeIndex, np.ndarray]:
+    """
+    Fit on full data and generate future predictions.
+
+    Args:
+        model: Estimator with fit/predict methods.
+        X_full: Full dataset features.
+        y_full: Full dataset targets.
+        X_train_columns: Feature columns used in training.
+        future_date_for_function: End date for future prediction range.
+        transform_enabled: Whether target transformation is enabled.
+        transform_method: Transformation method name.
+        logger: Logger instance.
+
+    Returns:
+        Tuple of future dates and predicted values.
+    """
     model.fit(X_full, y_full)
     future_df, future_dates = prepare_future_dates(future_date_for_function)
     future_df = future_df.reindex(columns=X_train_columns, fill_value=0)
