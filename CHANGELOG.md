@@ -7,13 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.22.1] - 2026-02-09
 
-### Fixed
-- Wrote the model comparison report to `output_dir/reports/` to avoid interfering with prediction CSV validation in CLI tests.
-- Simplified baseline runner structure and centralized report column labels.
-
-## [1.22.0] - 2026-02-09
+## [1.22.0] - 2026-02-08
 
 ### Added
 - Baseline forecasters (naive last value, 3-month and 6-month rolling means, and seasonal naive when ≥12 months of history) with prediction outputs in the same schema/location as existing models.
@@ -23,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Version bump 1.21.0 → 1.22.0 (minor) for new baseline forecasting and reporting capabilities.
+
+### Fixed
+- Wrote the model comparison report to `output_dir/reports/` to avoid interfering with prediction CSV validation in CLI tests.
+- Simplified baseline runner structure and centralised report column labels.
 
 ## [1.21.0] - 2026-02-08
 
