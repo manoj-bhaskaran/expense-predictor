@@ -75,6 +75,10 @@ load_dotenv()
 # Get the directory where this script is located
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
+MODEL_DECISION_TREE = "Decision Tree"
+MODEL_RANDOM_FOREST = "Random Forest"
+MODEL_GRADIENT_BOOSTING = "Gradient Boosting"
+
 
 def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
     """
@@ -473,7 +477,7 @@ def _build_model_specs(tuning_config: dict) -> Dict[str, dict]:
 
     return {
         "Linear Regression": {"model": LinearRegression()},
-        "Decision Tree": {
+        MODEL_DECISION_TREE: {
             "builder": build_decision_tree,
             "grid": tuning_config.get("decision_tree", {}),
             "defaults": {
@@ -481,7 +485,7 @@ def _build_model_specs(tuning_config: dict) -> Dict[str, dict]:
                 "min_samples_leaf": config["decision_tree"]["min_samples_leaf"],
             },
         },
-        "Random Forest": {
+        MODEL_RANDOM_FOREST: {
             "builder": build_random_forest,
             "grid": tuning_config.get("random_forest", {}),
             "defaults": {
@@ -490,7 +494,7 @@ def _build_model_specs(tuning_config: dict) -> Dict[str, dict]:
                 "subsample": 1.0,
             },
         },
-        "Gradient Boosting": {
+        MODEL_GRADIENT_BOOSTING: {
             "builder": build_gradient_boosting,
             "grid": tuning_config.get("gradient_boosting", {}),
             "defaults": {
@@ -524,7 +528,7 @@ def _select_model_for_training(
     tuned_params: Dict[str, float] = {}
     tuning_result: Optional[dict] = None
 
-    if tuning_enabled and model_name in ["Decision Tree", "Random Forest", "Gradient Boosting"]:
+    if tuning_enabled and model_name in [MODEL_DECISION_TREE, MODEL_RANDOM_FOREST, MODEL_GRADIENT_BOOSTING]:
         if saved_params.get(model_name):
             tuning_result = saved_params[model_name]
             tuned_params = tuning_result.get("params", {})
@@ -551,7 +555,7 @@ def _select_model_for_training(
                 }
 
     if not tuned_params:
-        if tuning_enabled and model_name in ["Decision Tree", "Random Forest", "Gradient Boosting"]:
+        if tuning_enabled and model_name in [MODEL_DECISION_TREE, MODEL_RANDOM_FOREST, MODEL_GRADIENT_BOOSTING]:
             plog.log_warning(logger, f"Falling back to default hyperparameters for {model_name}.")
         tuned_params = spec["defaults"]
 
