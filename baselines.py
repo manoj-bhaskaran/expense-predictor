@@ -38,10 +38,11 @@ def _filter_valid(y_true: pd.Series, y_pred: pd.Series) -> Optional[Dict[str, fl
         return None
     y_true_valid = y_true[mask]
     y_pred_valid = y_pred[mask]
+    r2_value = np.nan if mask.sum() < 2 else r2_score(y_true_valid, y_pred_valid)
     return {
         "rmse": float(np.sqrt(mean_squared_error(y_true_valid, y_pred_valid))),
         "mae": float(mean_absolute_error(y_true_valid, y_pred_valid)),
-        "r2": float(r2_score(y_true_valid, y_pred_valid)),
+        "r2": float(r2_value),
     }
 
 
