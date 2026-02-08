@@ -223,6 +223,11 @@ def chronological_train_test_split(
     temporal position: the first (1 - test_size) fraction of data is used for
     training and the remaining fraction for testing.
 
+    The input data must contain exactly one row per date (strictly increasing
+    dates with no duplicates). The upstream pipeline enforces this via
+    drop_duplicates and date-range reindexing, but this function validates
+    the invariant and raises an error if violated.
+
     Parameters:
         X: Feature DataFrame (without Date column).
         y: Target Series.
@@ -235,15 +240,26 @@ def chronological_train_test_split(
         Tuple of (X_train, X_test, y_train, y_test).
 
     Raises:
-        DataValidationError: If data is not in chronological order.
+        DataValidationError: If data is not in chronological order or
+            contains duplicate dates.
     """
-    # Validate chronological order
+    # Validate strictly increasing chronological order (no duplicate dates).
+    # The upstream pipeline (preprocess_and_append_csv / _process_dataframe)
+    # guarantees one row per date via drop_duplicates + date-range reindexing.
+    # We validate both invariants here as a defensive check.
     dates = processed_df["Date"]
     if not dates.is_monotonic_increasing:
         plog.log_error(logger, "Data is not in chronological order. Cannot perform time-aware split.")
         raise DataValidationError(
             "Data is not in chronological order. "
             "Ensure data is sorted by date before splitting."
+        )
+
+    if not dates.is_unique:
+        plog.log_error(logger, "Data contains duplicate dates. Each date must have exactly one record.")
+        raise DataValidationError(
+            "Data contains duplicate dates. The pipeline should aggregate "
+            "all amounts for a given date into a single record."
         )
 
     # Calculate split index
@@ -268,11 +284,6 @@ def chronological_train_test_split(
         f"{len(X_train)} train samples [{train_start} to {train_end}], "
         f"{len(X_test)} test samples [{test_start} to {test_end}]",
     )
-
-    # Verify no temporal overlap
-    if dates.iloc[split_idx - 1] >= dates.iloc[split_idx]:
-        plog.log_error(logger, "Temporal overlap detected between train and test sets")
-        raise DataValidationError("Temporal overlap detected between train and test sets.")
 
     return X_train, X_test, y_train, y_test
 

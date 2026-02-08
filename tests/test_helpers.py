@@ -750,6 +750,24 @@ class TestChronologicalTrainTestSplit:
         with pytest.raises(DataValidationError, match="not in chronological order"):
             chronological_train_test_split(X, y, df, test_size=0.3, logger=mock_logger)
 
+    def test_rejects_duplicate_dates(self, mock_logger):
+        """Test that duplicate dates raise DataValidationError.
+
+        The pipeline should aggregate amounts per date, so duplicates
+        indicate a preprocessing failure.
+        """
+        dates = pd.to_datetime(["2024-01-01", "2024-01-02", "2024-01-02", "2024-01-03"])
+        df = pd.DataFrame({
+            "Date": dates,
+            TRANSACTION_AMOUNT_LABEL: [100, 200, 250, 300],
+            "Month": [1, 1, 1, 1],
+        })
+        X = df.drop(["Date", TRANSACTION_AMOUNT_LABEL], axis=1)
+        y = df[TRANSACTION_AMOUNT_LABEL]
+
+        with pytest.raises(DataValidationError, match="duplicate dates"):
+            chronological_train_test_split(X, y, df, test_size=0.25, logger=mock_logger)
+
     def test_different_test_sizes(self, mock_logger):
         """Test split with various test_size values."""
         X, y, df = self._make_chronological_data(100)

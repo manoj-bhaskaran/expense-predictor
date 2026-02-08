@@ -10,11 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.21.0] - 2026-02-08
 
 ### Fixed
-- **Time-Series Train/Test Leakage**: Replaced sklearn `train_test_split` with explicit chronological splitting to prevent data leakage in time-dependent expense data. New `chronological_train_test_split` function enforces strict temporal ordering: first 80% of data for training, last 20% for testing, with validation that timestamps are monotonically increasing. Train/test date boundaries are now logged explicitly for transparency.
+- **Time-Series Train/Test Leakage**: Replaced sklearn `train_test_split` with explicit chronological splitting to prevent data leakage in time-dependent expense data. New `chronological_train_test_split` function enforces strict temporal ordering: first 80% of data for training, last 20% for testing, with validation that dates are strictly increasing (no duplicates). Train/test date boundaries are now logged explicitly for transparency.
 
 ### Added
-- `chronological_train_test_split()` function in helpers.py for time-aware data splitting with date boundary logging and chronological order validation.
-- Unit tests for chronological splitting (`TestChronologicalTrainTestSplit`: 7 tests) covering split ratio, temporal ordering, unsorted data rejection, and various test sizes.
+- `chronological_train_test_split()` function in helpers.py for time-aware data splitting with date boundary logging, chronological order validation, and duplicate date detection.
+- Unit tests for chronological splitting (`TestChronologicalTrainTestSplit`: 8 tests) covering split ratio, temporal ordering, unsorted data rejection, duplicate date rejection, and various test sizes.
 - Leakage detection tests (`TestFutureDataLeakage`: 5 tests) verifying no future targets in training, features are date-intrinsic, strict date boundaries, no shuffling, and full pipeline integration.
 
 ### Impact
@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Default evaluation split is now strictly chronological. Models never access future target values or features during evaluation. Negative test R² values from inappropriate splitting are resolved.
 
 ### Technical Details
-- Removed `sklearn.model_selection.train_test_split` dependency from model_runner.py. Split index calculated as `n_samples - int(n_samples * test_size)`. Validation rejects non-monotonic date sequences with `DataValidationError`. Version bump 1.20.1 → 1.21.0 (minor) for new function and behavior change.
+- Removed `sklearn.model_selection.train_test_split` dependency from model_runner.py. Split index calculated as `n_samples - int(n_samples * test_size)`. Upfront validation rejects non-monotonic or duplicate date sequences with `DataValidationError`, replacing the previous unreliable post-split overlap check. The upstream pipeline guarantees one row per date via `drop_duplicates` and date-range reindexing; the split function validates this invariant defensively. Version bump 1.20.1 → 1.21.0 (minor) for new function and behavior change.
 
 ## [1.20.1] - 2025-11-16
 
