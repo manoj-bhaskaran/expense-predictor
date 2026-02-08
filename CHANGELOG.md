@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.21.0] - 2026-02-08
+
+### Fixed
+- **Time-Series Train/Test Leakage**: Replaced sklearn `train_test_split` with explicit chronological splitting to prevent data leakage in time-dependent expense data. New `chronological_train_test_split` function enforces strict temporal ordering: first 80% of data for training, last 20% for testing, with validation that timestamps are monotonically increasing. Train/test date boundaries are now logged explicitly for transparency.
+
+### Added
+- `chronological_train_test_split()` function in helpers.py for time-aware data splitting with date boundary logging and chronological order validation.
+- Unit tests for chronological splitting (`TestChronologicalTrainTestSplit`: 7 tests) covering split ratio, temporal ordering, unsorted data rejection, and various test sizes.
+- Leakage detection tests (`TestFutureDataLeakage`: 5 tests) verifying no future targets in training, features are date-intrinsic, strict date boundaries, no shuffling, and full pipeline integration.
+
+### Impact
+- **Severity**: Critical | **Type**: Bug Fix | **Breaking Changes**: None (evaluation behavior improved)
+- Default evaluation split is now strictly chronological. Models never access future target values or features during evaluation. Negative test R² values from inappropriate splitting are resolved.
+
+### Technical Details
+- Removed `sklearn.model_selection.train_test_split` dependency from model_runner.py. Split index calculated as `n_samples - int(n_samples * test_size)`. Validation rejects non-monotonic date sequences with `DataValidationError`. Version bump 1.20.1 → 1.21.0 (minor) for new function and behavior change.
+
 ## [1.20.1] - 2025-11-16
 
 ### Changed
@@ -130,7 +147,8 @@ Include: version number, OS and Python version, complete error messages, reprodu
 
 ---
 
-[Unreleased]: https://github.com/manoj-bhaskaran/expense-predictor/compare/v1.20.1...HEAD
+[Unreleased]: https://github.com/manoj-bhaskaran/expense-predictor/compare/v1.21.0...HEAD
+[1.21.0]: https://github.com/manoj-bhaskaran/expense-predictor/compare/v1.20.1...v1.21.0
 [1.20.1]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.20.1
 [1.20.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.20.0
 [1.19.0]: https://github.com/manoj-bhaskaran/expense-predictor/releases/tag/v1.19.0

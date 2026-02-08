@@ -23,6 +23,7 @@ from helpers import (
     DAY_OF_WEEK,
     TRANSACTION_AMOUNT_LABEL,
     VALUE_DATE_LABEL,
+    chronological_train_test_split,
     find_column_name,
     get_quarter_end_date,
     get_training_date_range,
@@ -669,3 +670,241 @@ class TestConstants:
     def test_value_date_label(self):
         """Test VALUE_DATE_LABEL constant."""
         assert VALUE_DATE_LABEL == "Value Date"
+
+
+@pytest.mark.unit
+class TestChronologicalTrainTestSplit:
+    """Tests for chronological_train_test_split function."""
+
+    def _make_chronological_data(self, n=100):
+        """Helper to create chronologically ordered test data."""
+        dates = pd.date_range(start="2024-01-01", periods=n, freq="D")
+        amounts = [50.0 + i * 2.0 for i in range(n)]
+        df = pd.DataFrame({"Date": dates, TRANSACTION_AMOUNT_LABEL: amounts})
+        # Add features
+        df["Month"] = df["Date"].dt.month
+        df["Day of the Month"] = df["Date"].dt.day
+        X = df.drop(["Date", TRANSACTION_AMOUNT_LABEL], axis=1)
+        y = df[TRANSACTION_AMOUNT_LABEL]
+        return X, y, df
+
+    def test_split_ratio(self, mock_logger):
+        """Test that the split ratio matches the requested test_size."""
+        X, y, df = self._make_chronological_data(100)
+
+        X_train, X_test, y_train, y_test = chronological_train_test_split(
+            X, y, df, test_size=0.2, logger=mock_logger
+        )
+
+        assert len(X_train) == 80
+        assert len(X_test) == 20
+        assert len(y_train) == 80
+        assert len(y_test) == 20
+
+    def test_no_temporal_overlap(self, mock_logger):
+        """Test that training data dates are strictly before test data dates."""
+        X, y, df = self._make_chronological_data(100)
+
+        X_train, X_test, y_train, y_test = chronological_train_test_split(
+            X, y, df, test_size=0.2, logger=mock_logger
+        )
+
+        split_idx = len(X_train)
+        train_last_date = df["Date"].iloc[split_idx - 1]
+        test_first_date = df["Date"].iloc[split_idx]
+
+        assert train_last_date < test_first_date
+
+    def test_train_indices_before_test(self, mock_logger):
+        """Test that all training indices come before test indices."""
+        X, y, df = self._make_chronological_data(100)
+
+        X_train, X_test, _, _ = chronological_train_test_split(
+            X, y, df, test_size=0.2, logger=mock_logger
+        )
+
+        assert X_train.index[-1] < X_test.index[0]
+
+    def test_all_data_preserved(self, mock_logger):
+        """Test that no data is lost in the split."""
+        X, y, df = self._make_chronological_data(100)
+
+        X_train, X_test, y_train, y_test = chronological_train_test_split(
+            X, y, df, test_size=0.2, logger=mock_logger
+        )
+
+        assert len(X_train) + len(X_test) == len(X)
+        assert len(y_train) + len(y_test) == len(y)
+
+    def test_rejects_unsorted_data(self, mock_logger):
+        """Test that non-chronological data raises DataValidationError."""
+        dates = pd.to_datetime(["2024-01-03", "2024-01-01", "2024-01-02"])
+        df = pd.DataFrame({
+            "Date": dates,
+            TRANSACTION_AMOUNT_LABEL: [100, 200, 300],
+            "Month": [1, 1, 1],
+        })
+        X = df.drop(["Date", TRANSACTION_AMOUNT_LABEL], axis=1)
+        y = df[TRANSACTION_AMOUNT_LABEL]
+
+        with pytest.raises(DataValidationError, match="not in chronological order"):
+            chronological_train_test_split(X, y, df, test_size=0.3, logger=mock_logger)
+
+    def test_different_test_sizes(self, mock_logger):
+        """Test split with various test_size values."""
+        X, y, df = self._make_chronological_data(100)
+
+        for test_size in [0.1, 0.2, 0.3, 0.5]:
+            X_train, X_test, _, _ = chronological_train_test_split(
+                X, y, df, test_size=test_size, logger=mock_logger
+            )
+            expected_test = int(100 * test_size)
+            assert len(X_test) == expected_test
+            assert len(X_train) == 100 - expected_test
+
+    def test_without_logger(self):
+        """Test that split works without a logger."""
+        X, y, df = self._make_chronological_data(50)
+
+        X_train, X_test, y_train, y_test = chronological_train_test_split(
+            X, y, df, test_size=0.2
+        )
+
+        assert len(X_train) + len(X_test) == 50
+
+
+@pytest.mark.unit
+class TestFutureDataLeakage:
+    """Tests to detect future-data leakage in the ML pipeline.
+
+    These tests verify that:
+    - Training data never contains information from the test period
+    - Features are derived only from each row's own date (no look-ahead)
+    - The chronological split correctly separates past from future
+    """
+
+    def _make_pipeline_data(self, n=100):
+        """Helper to create data that goes through the feature pipeline."""
+        dates = pd.date_range(start="2024-01-01", periods=n, freq="D")
+        amounts = [50.0 + i * 2.0 for i in range(n)]
+        df = pd.DataFrame({"Date": dates, TRANSACTION_AMOUNT_LABEL: amounts})
+        df[DAY_OF_WEEK] = df["Date"].dt.day_name()
+        df["Month"] = df["Date"].dt.month
+        df["Day of the Month"] = df["Date"].dt.day
+        df = pd.get_dummies(df, columns=[DAY_OF_WEEK], drop_first=True)
+        X = df.drop(["Date", TRANSACTION_AMOUNT_LABEL], axis=1)
+        y = df[TRANSACTION_AMOUNT_LABEL]
+        return X, y, df
+
+    def test_no_future_targets_in_training(self, mock_logger):
+        """Test that training targets do not contain values from the test period."""
+        X, y, df = self._make_pipeline_data(100)
+
+        X_train, X_test, y_train, y_test = chronological_train_test_split(
+            X, y, df, test_size=0.2, logger=mock_logger
+        )
+
+        # Training target values should correspond to earlier time period
+        train_dates = df["Date"].iloc[:len(X_train)]
+        test_dates = df["Date"].iloc[len(X_train):]
+
+        # No date in training should overlap with test dates
+        assert not set(train_dates).intersection(set(test_dates))
+
+        # Training targets should match the training date period
+        assert len(y_train) == len(train_dates)
+        assert len(y_test) == len(test_dates)
+
+    def test_features_are_date_intrinsic(self, mock_logger):
+        """Test that features are derived only from each row's own date.
+
+        This ensures no look-ahead bias: each feature value depends only on
+        the date of that row, not on future dates or target values.
+        """
+        X, y, df = self._make_pipeline_data(100)
+
+        X_train, X_test, y_train, y_test = chronological_train_test_split(
+            X, y, df, test_size=0.2, logger=mock_logger
+        )
+
+        split_idx = len(X_train)
+
+        # Verify Month and Day features match their dates
+        for i in range(split_idx):
+            date = df["Date"].iloc[i]
+            assert X_train["Month"].iloc[i] == date.month
+            assert X_train["Day of the Month"].iloc[i] == date.day
+
+        for i in range(len(X_test)):
+            date = df["Date"].iloc[split_idx + i]
+            assert X_test["Month"].iloc[i] == date.month
+            assert X_test["Day of the Month"].iloc[i] == date.day
+
+    def test_train_test_date_boundary_is_strict(self, mock_logger):
+        """Test that the last training date is strictly before the first test date."""
+        X, y, df = self._make_pipeline_data(100)
+
+        X_train, X_test, _, _ = chronological_train_test_split(
+            X, y, df, test_size=0.2, logger=mock_logger
+        )
+
+        split_idx = len(X_train)
+        last_train_date = df["Date"].iloc[split_idx - 1]
+        first_test_date = df["Date"].iloc[split_idx]
+
+        assert last_train_date < first_test_date
+        # They should be exactly 1 day apart for daily data
+        assert (first_test_date - last_train_date).days == 1
+
+    def test_no_shuffling_occurs(self, mock_logger):
+        """Test that data order is preserved through the split (no shuffling)."""
+        X, y, df = self._make_pipeline_data(100)
+
+        X_train, X_test, y_train, y_test = chronological_train_test_split(
+            X, y, df, test_size=0.2, logger=mock_logger
+        )
+
+        # Concatenating train and test should give back the original data
+        X_reconstructed = pd.concat([X_train, X_test])
+        y_reconstructed = pd.concat([y_train, y_test])
+
+        pd.testing.assert_frame_equal(X_reconstructed, X)
+        pd.testing.assert_series_equal(y_reconstructed, y)
+
+    def test_leakage_detection_with_full_pipeline(self, mock_logger):
+        """Integration test: verify no leakage when using preprocess_and_append_csv."""
+        import os
+        import tempfile
+
+        # Create a temp CSV with known dates
+        dates = pd.date_range(start="2024-01-01", periods=60, freq="D")
+        amounts = [100.0 + i for i in range(60)]
+        csv_df = pd.DataFrame({
+            "Date": dates.strftime("%d/%m/%Y"),
+            TRANSACTION_AMOUNT_LABEL: amounts,
+        })
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+            csv_df.to_csv(f, index=False)
+            csv_path = f.name
+
+        try:
+            from helpers import preprocess_and_append_csv
+
+            X, y, processed_df, _ = preprocess_and_append_csv(csv_path, logger=mock_logger)
+
+            X_train, X_test, y_train, y_test = chronological_train_test_split(
+                X, y, processed_df, test_size=0.2, logger=mock_logger
+            )
+
+            split_idx = len(X_train)
+
+            # Verify strict temporal ordering
+            train_end = processed_df["Date"].iloc[split_idx - 1]
+            test_start = processed_df["Date"].iloc[split_idx]
+            assert train_end < test_start
+
+            # Verify train/test sizes sum to total
+            assert len(X_train) + len(X_test) == len(X)
+        finally:
+            os.remove(csv_path)

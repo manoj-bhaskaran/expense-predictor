@@ -43,13 +43,13 @@ from dotenv import load_dotenv
 from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeRegressor
 
 import python_logging_framework as plog
 from config import config
 from constants import TRANSACTION_AMOUNT_LABEL
 from helpers import (
+    chronological_train_test_split,
     get_quarter_end_date,
     prepare_future_dates,
     preprocess_and_append_csv,
@@ -405,7 +405,7 @@ def main(args: Optional[List[str]] = None) -> int:
     file_path = get_data_file_path(parsed_args.data_file, logger)
 
     # Preprocess data
-    X, y, _, raw_merged_df = preprocess_and_append_csv(file_path, excel_path=excel_path, logger=logger)
+    X, y, processed_df, raw_merged_df = preprocess_and_append_csv(file_path, excel_path=excel_path, logger=logger)
 
     # If Excel data was provided, update the data file with merged data
     if raw_merged_df is not None:
@@ -417,12 +417,11 @@ def main(args: Optional[List[str]] = None) -> int:
     min_test_samples = config["model_evaluation"].get("min_test_samples", 10)
     validate_minimum_data(X, min_total=min_total_samples, min_test=min_test_samples, logger=logger)
 
-    # Split data into training and test sets
+    # Split data into training and test sets using chronological ordering
     test_size = config["model_evaluation"]["test_size"]
-    random_state = config["model_evaluation"]["random_state"]
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, shuffle=False, random_state=random_state)
-
-    plog.log_info(logger, f"Data split: {len(X_train)} training samples, {len(X_test)} test samples")
+    X_train, X_test, y_train, y_test = chronological_train_test_split(
+        X, y, processed_df, test_size=test_size, logger=logger
+    )
 
     # Validate and create output directory
     try:

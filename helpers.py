@@ -209,6 +209,74 @@ def find_column_name(df_columns: pd.Index, expected_name: str) -> Optional[str]:
     return None
 
 
+def chronological_train_test_split(
+    X: pd.DataFrame,
+    y: pd.Series,
+    processed_df: pd.DataFrame,
+    test_size: float = 0.2,
+    logger: Optional[logging.Logger] = None,
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
+    """
+    Split data into training and test sets using strict chronological ordering.
+
+    Ensures no future data leaks into the training set by splitting based on
+    temporal position: the first (1 - test_size) fraction of data is used for
+    training and the remaining fraction for testing.
+
+    Parameters:
+        X: Feature DataFrame (without Date column).
+        y: Target Series.
+        processed_df: The processed DataFrame containing the 'Date' column,
+            aligned with X and y by index.
+        test_size: Fraction of data to use for testing (0.0 to 1.0).
+        logger: Logger instance for logging messages.
+
+    Returns:
+        Tuple of (X_train, X_test, y_train, y_test).
+
+    Raises:
+        DataValidationError: If data is not in chronological order.
+    """
+    # Validate chronological order
+    dates = processed_df["Date"]
+    if not dates.is_monotonic_increasing:
+        plog.log_error(logger, "Data is not in chronological order. Cannot perform time-aware split.")
+        raise DataValidationError(
+            "Data is not in chronological order. "
+            "Ensure data is sorted by date before splitting."
+        )
+
+    # Calculate split index
+    n_samples = len(X)
+    split_idx = n_samples - int(n_samples * test_size)
+
+    # Perform chronological split
+    X_train = X.iloc[:split_idx]
+    X_test = X.iloc[split_idx:]
+    y_train = y.iloc[:split_idx]
+    y_test = y.iloc[split_idx:]
+
+    # Log date boundaries
+    train_start = dates.iloc[0].strftime("%Y-%m-%d")
+    train_end = dates.iloc[split_idx - 1].strftime("%Y-%m-%d")
+    test_start = dates.iloc[split_idx].strftime("%Y-%m-%d")
+    test_end = dates.iloc[-1].strftime("%Y-%m-%d")
+
+    plog.log_info(
+        logger,
+        f"Chronological train/test split: "
+        f"{len(X_train)} train samples [{train_start} to {train_end}], "
+        f"{len(X_test)} test samples [{test_start} to {test_end}]",
+    )
+
+    # Verify no temporal overlap
+    if dates.iloc[split_idx - 1] >= dates.iloc[split_idx]:
+        plog.log_error(logger, "Temporal overlap detected between train and test sets")
+        raise DataValidationError("Temporal overlap detected between train and test sets.")
+
+    return X_train, X_test, y_train, y_test
+
+
 def validate_minimum_data(
     X: pd.DataFrame, min_total: int = 30, min_test: int = 10, logger: Optional[logging.Logger] = None
 ) -> None:
