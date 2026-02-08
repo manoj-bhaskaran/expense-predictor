@@ -72,6 +72,7 @@ load_dotenv()
 # Get the directory where this script is located
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
+
 def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
     """
     Parse command-line arguments for the expense predictor.
@@ -307,7 +308,6 @@ def train_and_evaluate_models(
     # Store original target values for untransformed metrics
     y_train_original = y_train.copy()
     y_test_original = y_test.copy()
-    y_original = y.copy()
 
     # Apply transformation if enabled
     if transform_enabled:
@@ -465,9 +465,9 @@ def main(args: Optional[List[str]] = None) -> int:
 
     # Determine log level based on priority order
     log_level = get_log_level(parsed_args.log_level)
-    
+
     logger = plog.initialise_logger(script_name="model_runner.py", log_dir=log_dir_path, log_level=log_level)
-    
+
     # Log the selected log level for transparency
     log_level_name = logging.getLevelName(log_level)
     plog.log_info(logger, f"Log level set to: {log_level_name}")

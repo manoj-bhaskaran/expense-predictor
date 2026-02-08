@@ -109,8 +109,8 @@ def validate_excel_file(file_path: str, logger: Optional[logging.Logger] = None)
         if "openpyxl" in str(e):
             plog.log_error(logger, f"Missing openpyxl dependency for .xlsx file processing: {e}")
             raise DataValidationError(
-                f"Processing .xlsx files requires openpyxl. "
-                f"Install it with: pip install openpyxl"
+                "Processing .xlsx files requires openpyxl. "
+                "Install it with: pip install openpyxl"
             ) from e
         # Other import errors
         plog.log_error(logger, f"Missing dependency for Excel file processing: {e}")
@@ -859,12 +859,12 @@ def calculate_smape(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     """
     numerator = np.abs(y_true - y_pred)
     denominator = (np.abs(y_true) + np.abs(y_pred)) / 2.0
-    
+
     # Avoid division by zero: if both true and pred are zero, error is zero
     mask = denominator != 0
     smape_values = np.zeros_like(numerator, dtype=float)
     smape_values[mask] = numerator[mask] / denominator[mask]
-    
+
     return float(np.mean(smape_values) * 100)
 
 
@@ -885,8 +885,8 @@ def calculate_percentile_errors(y_true: np.ndarray, y_pred: np.ndarray, percenti
     """
     absolute_errors = np.abs(y_true - y_pred)
     percentile_dict = {}
-    
+
     for p in percentiles:
         percentile_dict[f"P{p}"] = float(np.percentile(absolute_errors, p))
-    
+
     return percentile_dict
