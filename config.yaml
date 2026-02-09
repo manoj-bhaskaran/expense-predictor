@@ -54,6 +54,40 @@ baselines:
     - 3
     - 6
 
+# Constrained Hyperparameter Tuning Configuration
+tuning:
+  # Enable/disable constrained hyperparameter tuning for tree-based models
+  enabled: true
+
+  # Number of time-series splits for time-aware cross-validation
+  time_series_splits: 4
+
+  # Number of top-performing configurations to log
+  top_k_log: 5
+
+  # Reuse saved hyperparameters if available
+  reuse_saved_params: true
+
+  # Relative path (under output_dir) to persist best hyperparameters
+  persist_path: reports/best_hyperparameters.json
+
+  # Decision Tree tuning grid (constrained)
+  decision_tree:
+    max_depth: [3, 4, 5, 6]
+    min_samples_leaf: [5, 10, 20]
+
+  # Random Forest tuning grid (constrained)
+  random_forest:
+    max_depth: [4, 6, 8, 10]
+    min_samples_leaf: [2, 5, 10]
+    subsample: [0.6, 0.8, 1.0]
+
+  # Gradient Boosting tuning grid (constrained)
+  gradient_boosting:
+    max_depth: [2, 3, 4, 5]
+    min_samples_leaf: [5, 10, 20]
+    subsample: [0.6, 0.8, 1.0]
+
 # Model Hyperparameters
 # These parameters control the behavior and complexity of each machine learning model
 

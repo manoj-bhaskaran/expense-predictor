@@ -47,6 +47,15 @@ def _filter_valid(y_true: pd.Series, y_pred: pd.Series) -> Optional[Dict[str, fl
 
 
 def _log_metrics(logger: logging.Logger, label: str, train_metrics: Optional[Dict[str, float]], test_metrics: Optional[Dict[str, float]]) -> None:
+    """
+    Log baseline training and test metrics.
+
+    Args:
+        logger: Logger instance.
+        label: Baseline label for log headings.
+        train_metrics: Training metrics or None when unavailable.
+        test_metrics: Test metrics or None when unavailable.
+    """
     plog.log_info(logger, f"--- {label} ---")
     if train_metrics:
         plog.log_info(logger, "Training Set Performance:")
@@ -127,6 +136,18 @@ def _build_baseline_configs(
     series: pd.Series,
     logger: logging.Logger,
 ) -> List[Dict[str, Callable]]:
+    """
+    Build baseline configuration objects for evaluation and forecasting.
+
+    Args:
+        rolling_windows_months: Rolling window sizes to include.
+        future_dates: Future dates used by forecast functions.
+        series: Full historical series for availability checks.
+        logger: Logger instance.
+
+    Returns:
+        List of baseline configuration dictionaries.
+    """
     baseline_configs = [
         {
             "name": "Naive Last Value",
@@ -172,6 +193,22 @@ def _evaluate_baseline(
     skip_confirmation: bool,
     logger: logging.Logger,
 ) -> Dict[str, float]:
+    """
+    Evaluate a single baseline, save predictions, and return metrics.
+
+    Args:
+        baseline: Baseline config with prediction and forecast callables.
+        series: Full historical series indexed by date.
+        train_index: Datetime index for training range.
+        test_index: Datetime index for test range.
+        future_dates: Future dates for forecasting output.
+        output_dir: Directory to write prediction files.
+        skip_confirmation: Whether to skip file overwrite confirmations.
+        logger: Logger instance.
+
+    Returns:
+        Metrics dictionary for the baseline.
+    """
     pred_series = baseline["pred_func"](series)
     train_pred = pred_series.loc[train_index]
     test_pred = pred_series.loc[test_index]
