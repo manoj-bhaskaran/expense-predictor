@@ -4,7 +4,7 @@
 # Core ML and Data Processing
 # Allow numpy in the <2 range to stay compatible with matplotlib 3.8.x
 # pandas requires numpy>=1.22.4 for Python <3.11, so keep that lower bound.
-numpy<2,>=1.22.4
+numpy>=1.22.4,<3
 pandas==2.3.3
 scikit-learn>=1.5.2  # Support for Python 3.13
 
