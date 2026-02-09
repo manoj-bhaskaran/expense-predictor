@@ -216,6 +216,66 @@ python model_runner.py --data_file ./other_data.csv
 
 Command-line arguments provide the highest priority configuration and can override both environment variables and config file settings.
 
+## Production Model Configuration
+
+The Expense Predictor automatically identifies the best-performing model and documents it in the model comparison report. You can easily switch between models by updating the configuration file.
+
+### Viewing Model Performance
+
+After each run, the system generates comprehensive comparison reports in the `reports/` directory:
+
+1. **CSV Report** (`reports/model_comparison_report.csv`):
+   - Consolidated metrics for all models
+   - Ranked by Test MAE and Test RMSE
+   - Includes warning flags for problematic models
+
+2. **Markdown Summary** (`reports/model_comparison_summary.md`):
+   - Recommended production model with rationale
+   - Top 3 models comparison
+   - Complete rankings with train/test metrics
+   - Instructions for switching models
+
+### Setting the Production Default Model
+
+The production default model is configured in `config.yaml`:
+```yaml
+production:
+  default_model: "Gradient Boosting"  # Options: Linear Regression, Decision Tree, Random Forest, Gradient Boosting
+```
+
+**To change the production model:**
+
+1. Check the model comparison report (`reports/model_comparison_summary.md`) for recommendations
+2. Open `config.yaml`
+3. Update the `production.default_model` field with your chosen model
+4. Save the file
+
+**Valid model options:**
+- `Linear Regression`
+- `Decision Tree`
+- `Random Forest`
+- `Gradient Boosting`
+
+**Example:**
+```yaml
+production:
+  default_model: "Random Forest"
+```
+
+No code changes are required - simply update the configuration and run the system again.
+
+### Model Comparison Report Features
+
+The comparison reports provide:
+
+- **Performance Rankings**: Models sorted by prediction accuracy (Test MAE)
+- **Negative R² Warnings**: Flags models that perform worse than a simple mean baseline
+- **Decision Support**: Clear recommendation with rationale based on test set performance
+- **Detailed Metrics**: Both training and test set metrics for transparency
+- **Easy Switching**: Step-by-step instructions for changing the production model
+
+Check the `reports/` directory after each run to review model performance and make informed decisions about your production configuration.
+
 ## Usage
 
 The Expense Predictor can be run in two ways:

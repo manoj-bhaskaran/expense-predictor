@@ -130,3 +130,10 @@ gradient_boosting:
 
   # Random seed for reproducibility
   random_state: 42
+
+# Production Model Configuration
+production:
+  # Default model to use for production predictions
+  # Options: "Linear Regression", "Decision Tree", "Random Forest", "Gradient Boosting"
+  # This will be automatically updated based on best performing model
+  default_model: "Gradient Boosting"

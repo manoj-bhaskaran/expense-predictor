@@ -138,6 +138,26 @@ class BaselinesConfig(BaseModel):
         if any(window <= 0 for window in v):
             raise ValueError("rolling_windows_months must contain positive integers")
         return v
+    
+
+class ProductionConfig(BaseModel):
+    """Configuration for production model selection."""
+
+    model_config = {"strict": True}
+
+    default_model: str = Field(
+        default="Gradient Boosting",
+        description="Default model for production predictions"
+    )
+
+    @field_validator("default_model")
+    @classmethod
+    def validate_model_name(cls, v: str) -> str:
+        """Validate that the model name is one of the supported models."""
+        valid_models = ["Linear Regression", "Decision Tree", "Random Forest", "Gradient Boosting"]
+        if v not in valid_models:
+            raise ValueError(f"Invalid model name. Must be one of: {valid_models}")
+        return v
 
 
 class Config(BaseModel):
@@ -151,6 +171,7 @@ class Config(BaseModel):
     random_forest: RandomForestConfig = Field(default_factory=RandomForestConfig)
     gradient_boosting: GradientBoostingConfig = Field(default_factory=GradientBoostingConfig)
     baselines: BaselinesConfig = Field(default_factory=BaselinesConfig)
+    production: ProductionConfig = Field(default_factory=ProductionConfig)
 
 
 # Default configuration (used as fallback if config.yaml is not found or incomplete)
@@ -179,6 +200,7 @@ DEFAULT_CONFIG = {
         "random_state": 42,
     },
     "baselines": {"enabled": True, "rolling_windows_months": [3, 6]},
+    "production": {"default_model": "Gradient Boosting"},
 }
 
 
