@@ -49,7 +49,7 @@ setup(
         "scikit-learn==1.6.1",
         "xlrd==2.0.2",
         "openpyxl==3.1.2",
-        "pyyaml==6.0.1",
+        "pyyaml==6.0.3",
         "python-dotenv==1.2.1",
         "pydantic==2.12.5",
     ],
