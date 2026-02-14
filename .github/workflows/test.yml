@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12']
+        python-version: ['3.10', '3.11', '3.12', '3.13']
 
     steps:
     - name: Checkout code
@@ -65,7 +65,7 @@ jobs:
       # Using version tags instead of commit SHA for maintainability
       # Version tags are pinned and updated through Dependabot
       uses: codecov/codecov-action@v4  # nosemgrep: use-trusted-publishing
-      if: matrix.python-version == '3.12'
+      if: matrix.python-version == '3.13'
       continue-on-error: true  # Optional: Don't fail if Codecov token not set
       with:
         file: ./coverage.xml
@@ -77,7 +77,7 @@ jobs:
 
     - name: Upload coverage artifacts
       uses: actions/upload-artifact@v4
-      if: matrix.python-version == '3.12'
+      if: matrix.python-version == '3.13'
       with:
         name: coverage-report
         path: |
@@ -85,7 +85,7 @@ jobs:
           htmlcov/
 
     - name: Comment PR with coverage
-      if: github.event_name == 'pull_request' && matrix.python-version == '3.12'
+      if: github.event_name == 'pull_request' && matrix.python-version == '3.13'
       continue-on-error: true  # Optional: Don't fail if PR comment fails
       # Using version tags instead of commit SHA for maintainability
       uses: py-cov-action/python-coverage-comment-action@v3  # nosemgrep: use-trusted-publishing

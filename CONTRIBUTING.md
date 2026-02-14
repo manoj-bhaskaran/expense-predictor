@@ -36,7 +36,7 @@ Thank you for your interest in contributing to the Expense Predictor! This docum
 
 ### Prerequisites
 
-- Python 3.9 or higher
+- Python 3.10 or higher
 - Git
 - Basic understanding of machine learning concepts
 - Familiarity with pandas and scikit-learn
@@ -312,7 +312,7 @@ def validate_csv_file(file_path, logger=None):
 
 #### Type Hints
 
-Use type hints for function signatures (Python 3.9+):
+Use type hints for function signatures (Python 3.10+):
 
 ```python
 from typing import Optional, Tuple
@@ -688,7 +688,7 @@ Fixes #(issue number)
 ### Review Process
 
 1. **Automated Checks**: CI/CD runs automatically
-   - Tests must pass (Python 3.9, 3.10, 3.11)
+    - Tests must pass (Python 3.10, 3.11, 3.12, 3.13)
    - Code coverage ≥ 80%
    - Linting (flake8) must pass
    - Type checking (mypy) must pass

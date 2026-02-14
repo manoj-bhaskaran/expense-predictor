@@ -29,9 +29,10 @@ main
 - ✅ Require branches to be up to date before merging
 
 **Status checks that are required:**
-- ✅ `test (3.9)` - Tests on Python 3.9
 - ✅ `test (3.10)` - Tests on Python 3.10
 - ✅ `test (3.11)` - Tests on Python 3.11
+- ✅ `test (3.12)` - Tests on Python 3.12
+- ✅ `test (3.13)` - Tests on Python 3.13
 - ✅ `pre-commit` - Code quality checks
 
 **Additional protections:**
@@ -101,7 +102,7 @@ Coverage failure: total of XX is less than fail-under=80
 2. Push to GitHub
 3. Create a pull request
 4. Watch the status checks run:
-   - Tests on Python 3.9, 3.10, 3.11
+  - Tests on Python 3.10, 3.11, 3.12, 3.13
    - Coverage enforcement
    - Code quality checks
 
