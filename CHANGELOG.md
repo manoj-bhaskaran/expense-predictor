@@ -7,10 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-- Excluded constant-valued exogenous columns before registering Prophet regressors, preventing fit-time failures on zero-variance features.
-- Updated dedicated SARIMAX and Prophet future exogenous feature generation to use recursive prediction feedback so lag/rolling regressors remain realistic across multi-day horizons.
-
 ## [1.26.0] - 2026-02-14
 
 ### Added
@@ -23,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Model comparison pipeline now includes dedicated time-series metrics in the same schema as existing ML/baseline reports.
 - Extended supported production model names to include `SARIMAX` and `Prophet`.
 - Version bump 1.25.0 → 1.26.0 (minor) for new forecasting model capabilities.
+
+### Fixed
+- Excluded constant-valued exogenous columns before registering Prophet regressors, preventing fit-time failures on zero-variance features.
+- Updated dedicated SARIMAX and Prophet future exogenous feature generation to use recursive prediction feedback so lag/rolling regressors remain realistic across multi-day horizons.
 
 ### Documentation
 - Updated README with dedicated time-series model capabilities and configuration examples.
