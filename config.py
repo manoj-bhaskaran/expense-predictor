@@ -319,7 +319,6 @@ class QuantileForecastingConfig(BaseModel):
             raise ValueError("quantiles must be in the range (0, 1)")
         # Sort quantiles for consistency
         return sorted(v)
-    
 
 
 class Config(BaseModel):
