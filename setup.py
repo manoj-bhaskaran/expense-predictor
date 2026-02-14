@@ -27,6 +27,7 @@ setup(
         "constants",
         "exceptions",
         "python_logging_framework",
+        "quantile_forecasting",
     ],
     classifiers=[
         "Development Status :: 5 - Production/Stable",

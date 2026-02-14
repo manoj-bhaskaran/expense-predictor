@@ -294,6 +294,34 @@ class TimeSeriesModelsConfig(BaseModel):
     prophet: ProphetConfig = Field(default_factory=ProphetConfig)
 
 
+class QuantileForecastingConfig(BaseModel):
+    """Configuration for quantile regression forecasting."""
+
+    model_config = {"strict": True}
+
+    enabled: bool = Field(default=False, description="Enable quantile regression forecasting")
+    quantiles: list[float] = Field(
+        default_factory=lambda: [0.50, 0.75, 0.90],
+        description="Quantiles to predict (e.g., 0.50 for median, 0.75 for 75th percentile)"
+    )
+    model_type: Literal["gradient_boosting", "linear"] = Field(
+        default="gradient_boosting",
+        description="Type of quantile regression model"
+    )
+
+    @field_validator("quantiles")
+    @classmethod
+    def validate_quantiles(cls, v: list[float]) -> list[float]:
+        """Validate quantiles are in (0, 1) range and sorted."""
+        if not v:
+            raise ValueError("quantiles must contain at least one value")
+        if any(q <= 0 or q >= 1 for q in v):
+            raise ValueError("quantiles must be in the range (0, 1)")
+        # Sort quantiles for consistency
+        return sorted(v)
+    
+
+
 class Config(BaseModel):
     """Root configuration model with all sections."""
 
@@ -309,6 +337,7 @@ class Config(BaseModel):
     feature_engineering: FeatureEngineeringConfig = Field(default_factory=FeatureEngineeringConfig)
     time_series_models: TimeSeriesModelsConfig = Field(default_factory=TimeSeriesModelsConfig)
     production: ProductionConfig = Field(default_factory=ProductionConfig)
+    quantile_forecasting: QuantileForecastingConfig = Field(default_factory=QuantileForecastingConfig)
 
 
 # Default configuration (used as fallback if config.yaml is not found or incomplete)
@@ -377,6 +406,11 @@ DEFAULT_CONFIG = {
         },
     },
     "production": {"default_model": "Gradient Boosting"},
+    "quantile_forecasting": {
+        "enabled": False,
+        "quantiles": [0.50, 0.75, 0.90],
+        "model_type": "gradient_boosting",
+    },
 }
 
 

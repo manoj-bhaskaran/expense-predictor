@@ -1304,6 +1304,80 @@ def train_and_evaluate_models(
             except ImportError as exc:
                 plog.log_warning(logger, f"Skipping {MODEL_PROPHET}: dependency missing ({exc}).")
 
+    # Quantile regression forecasting
+    qf_config = config.get("quantile_forecasting", {})
+    if qf_config.get("enabled", False):
+        plog.log_info(logger, "--- Quantile Regression Forecasting ---")
+        try:
+            from quantile_forecasting import (
+                generate_quantile_predictions,
+                save_quantile_predictions,
+            )
+
+            quantiles = qf_config.get("quantiles", [0.50, 0.75, 0.90])
+            model_type = qf_config.get("model_type", "gradient_boosting")
+
+            # Prepare future features
+            future_df, future_dates = prepare_future_dates(
+                future_date_for_function,
+                historical_df=processed_df,
+                logger=logger,
+            )
+            future_df = future_df.reindex(columns=X_train.columns, fill_value=0)
+
+            # Generate quantile predictions
+            predictions_df, qf_metrics = generate_quantile_predictions(
+                X_train=X_train,
+                y_train=y_train_original,
+                X_test=X_test,
+                y_test=y_test_original,
+                X_full=X,
+                y_full=y_original,
+                future_df=future_df,
+                quantiles=quantiles,
+                model_type=model_type,
+                logger=logger,
+            )
+
+            # Save quantile predictions
+            output_filename = "future_predictions_quantile_forecasting.csv"
+            output_path = os.path.join(output_dir, output_filename)
+            save_quantile_predictions(predictions_df, future_dates, output_path, logger)
+
+            # Add metrics to records for reporting
+            for qf_metric in qf_metrics:
+                quantile = qf_metric["quantile"]
+                metrics_records.append({
+                    "model": f"Quantile q={quantile:.2f}",
+                    "type": "Quantile",
+                    "test_rmse": None,
+                    "test_mae": None,
+                    "test_r2": None,
+                    "test_medae": None,
+                    "test_smape": None,
+                    "test_p50_error": None,
+                    "test_p75_error": None,
+                    "test_p90_error": None,
+                    "train_rmse": None,
+                    "train_mae": None,
+                    "train_r2": None,
+                    "train_medae": None,
+                    "train_smape": None,
+                    "train_p50_error": None,
+                    "train_p75_error": None,
+                    "train_p90_error": None,
+                    "pinball_loss": qf_metric["pinball_loss"],
+                    "coverage": qf_metric["coverage"],
+                    "coverage_error": qf_metric["coverage_error"],
+                })
+
+            plog.log_info(logger, "Quantile regression forecasting completed successfully")
+
+        except ImportError as exc:
+            plog.log_warning(logger, f"Skipping quantile forecasting: dependency missing ({exc}).")
+        except Exception as exc:
+            plog.log_error(logger, f"Error in quantile forecasting: {exc}")
+
     if tuning_payload["models"]:
         _persist_hyperparameters(persist_path, tuning_payload, logger)
 
