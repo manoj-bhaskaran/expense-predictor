@@ -244,10 +244,54 @@ class ProductionConfig(BaseModel):
     @classmethod
     def validate_model_name(cls, v: str) -> str:
         """Validate that the model name is one of the supported models."""
-        valid_models = ["Linear Regression", "Decision Tree", "Random Forest", "Gradient Boosting"]
+        valid_models = [
+            "Linear Regression",
+            "Decision Tree",
+            "Random Forest",
+            "Gradient Boosting",
+            "SARIMAX",
+            "Prophet",
+        ]
         if v not in valid_models:
             raise ValueError(f"Invalid model name. Must be one of: {valid_models}")
         return v
+
+
+class SARIMAXConfig(BaseModel):
+    """Configuration for SARIMAX forecasting."""
+
+    model_config = {"strict": True}
+
+    enabled: bool = Field(default=True, description="Enable SARIMAX forecasting model")
+    order: list[int] = Field(default_factory=lambda: [1, 1, 1], min_length=3, max_length=3)
+    seasonal_order: list[int] = Field(default_factory=lambda: [1, 1, 1, 7], min_length=4, max_length=4)
+    trend: Literal["n", "c", "t", "ct"] = Field(default="c")
+    use_exogenous: bool = Field(default=True)
+
+
+class ProphetConfig(BaseModel):
+    """Configuration for Prophet forecasting."""
+
+    model_config = {"strict": True}
+
+    enabled: bool = Field(default=True, description="Enable Prophet forecasting model")
+    yearly_seasonality: bool = Field(default=True)
+    weekly_seasonality: bool = Field(default=True)
+    daily_seasonality: bool = Field(default=False)
+    seasonality_mode: Literal["additive", "multiplicative"] = Field(default="additive")
+    changepoint_prior_scale: float = Field(default=0.05, gt=0.0)
+    use_exogenous: bool = Field(default=True)
+
+
+class TimeSeriesModelsConfig(BaseModel):
+    """Configuration for dedicated time-series forecasting models."""
+
+    model_config = {"strict": True}
+
+    enabled: bool = Field(default=False, description="Enable dedicated time-series models")
+    save_artifacts: bool = Field(default=True, description="Persist fitted model artifacts")
+    sarimax: SARIMAXConfig = Field(default_factory=SARIMAXConfig)
+    prophet: ProphetConfig = Field(default_factory=ProphetConfig)
 
 
 class Config(BaseModel):
@@ -263,6 +307,7 @@ class Config(BaseModel):
     tuning: TuningConfig = Field(default_factory=TuningConfig)
     baselines: BaselinesConfig = Field(default_factory=BaselinesConfig)
     feature_engineering: FeatureEngineeringConfig = Field(default_factory=FeatureEngineeringConfig)
+    time_series_models: TimeSeriesModelsConfig = Field(default_factory=TimeSeriesModelsConfig)
     production: ProductionConfig = Field(default_factory=ProductionConfig)
 
 
@@ -311,6 +356,26 @@ DEFAULT_CONFIG = {
     },
     "baselines": {"enabled": True, "rolling_windows_months": [3, 6]},
     "feature_engineering": {"enabled": True, "lags": [1, 3, 6, 12], "rolling_windows": [7, 14, 30], "calendar": True},
+    "time_series_models": {
+        "enabled": False,
+        "save_artifacts": True,
+        "sarimax": {
+            "enabled": True,
+            "order": [1, 1, 1],
+            "seasonal_order": [1, 1, 1, 7],
+            "trend": "c",
+            "use_exogenous": True,
+        },
+        "prophet": {
+            "enabled": True,
+            "yearly_seasonality": True,
+            "weekly_seasonality": True,
+            "daily_seasonality": False,
+            "seasonality_mode": "additive",
+            "changepoint_prior_scale": 0.05,
+            "use_exogenous": True,
+        },
+    },
     "production": {"default_model": "Gradient Boosting"},
 }
 

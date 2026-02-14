@@ -7,6 +7,8 @@
 numpy>=1.22.4,<3
 pandas==2.3.3
 scikit-learn>=1.5.2  # Support for Python 3.13
+statsmodels==0.14.5
+prophet==1.1.7
 
 # Excel file support
 xlrd==2.0.2  # For .xls files

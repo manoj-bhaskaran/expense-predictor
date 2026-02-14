@@ -10,7 +10,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="expense-predictor",
-    version="1.25.0",
+    version="1.26.0",
     author="Manoj Bhaskaran",
     author_email="",
     description="A machine learning-based expense prediction system",
@@ -48,6 +48,8 @@ setup(
         "numpy>=1.22.4,<3",
         "pandas==2.3.3",
         "scikit-learn==1.6.1",
+        "statsmodels==0.14.5",
+        "prophet==1.1.7",
         "xlrd==2.0.2",
         "openpyxl==3.1.5",
         "pyyaml==6.0.3",

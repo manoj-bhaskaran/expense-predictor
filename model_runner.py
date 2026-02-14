@@ -37,6 +37,7 @@ import itertools
 import json
 import logging
 import os
+import pickle
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -79,6 +80,8 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_DECISION_TREE = "Decision Tree"
 MODEL_RANDOM_FOREST = "Random Forest"
 MODEL_GRADIENT_BOOSTING = "Gradient Boosting"
+MODEL_SARIMAX = "SARIMAX"
+MODEL_PROPHET = "Prophet"
 
 
 def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
@@ -752,6 +755,169 @@ def _log_metrics(logger: logging.Logger, metrics: Dict[str, float]) -> None:
     )
 
 
+def _save_model_artifact(model_name: str, fitted_model: Any, output_dir: str, logger: logging.Logger) -> None:
+    """Persist fitted model artifact for reproducibility."""
+    artifacts_dir = os.path.join(output_dir, "artifacts")
+    os.makedirs(artifacts_dir, exist_ok=True)
+    artifact_path = os.path.join(artifacts_dir, f"{model_name.replace(' ', '_').lower()}.pkl")
+    with open(artifact_path, "wb") as handle:
+        pickle.dump(fitted_model, handle)
+    plog.log_info(logger, f"Saved model artifact for {model_name}: {artifact_path}")
+
+
+def _run_sarimax_pipeline(
+    X_train: pd.DataFrame,
+    X_test: pd.DataFrame,
+    y_train: pd.Series,
+    y_test: pd.Series,
+    X_full: pd.DataFrame,
+    y_full: pd.Series,
+    processed_df: pd.DataFrame,
+    future_date_for_function: str,
+    output_dir: str,
+    skip_confirmation: bool,
+    logger: logging.Logger,
+) -> Dict[str, Any]:
+    """Train/evaluate SARIMAX, generate forecasts, and persist outputs."""
+    from statsmodels.tsa.statespace.sarimax import SARIMAX
+
+    ts_config = config.get("time_series_models", {})
+    sarimax_cfg = ts_config.get("sarimax", {})
+    use_exogenous = sarimax_cfg.get("use_exogenous", True)
+
+    train_exog = X_train if use_exogenous else None
+    test_exog = X_test if use_exogenous else None
+
+    model = SARIMAX(
+        endog=y_train,
+        exog=train_exog,
+        order=tuple(sarimax_cfg.get("order", [1, 1, 1])),
+        seasonal_order=tuple(sarimax_cfg.get("seasonal_order", [1, 1, 1, 7])),
+        trend=sarimax_cfg.get("trend", "c"),
+        enforce_stationarity=False,
+        enforce_invertibility=False,
+    )
+    fitted = model.fit(disp=False)
+
+    y_train_pred = np.asarray(fitted.fittedvalues)
+    y_test_pred = np.asarray(fitted.get_forecast(steps=len(y_test), exog=test_exog).predicted_mean)
+
+    metrics = _collect_metrics(y_train, y_test, y_train_pred, y_test_pred)
+    _log_metrics(logger, metrics)
+
+    future_df, future_dates = prepare_future_dates(
+        future_date_for_function,
+        historical_df=processed_df,
+        logger=logger,
+    )
+    future_exog = future_df.reindex(columns=X_train.columns, fill_value=0) if use_exogenous else None
+
+    final_model = SARIMAX(
+        endog=y_full,
+        exog=X_full if use_exogenous else None,
+        order=tuple(sarimax_cfg.get("order", [1, 1, 1])),
+        seasonal_order=tuple(sarimax_cfg.get("seasonal_order", [1, 1, 1, 7])),
+        trend=sarimax_cfg.get("trend", "c"),
+        enforce_stationarity=False,
+        enforce_invertibility=False,
+    ).fit(disp=False)
+
+    y_future = np.asarray(final_model.get_forecast(steps=len(future_dates), exog=future_exog).predicted_mean)
+    predicted_df = pd.DataFrame({"Date": future_dates, f"Predicted {TRANSACTION_AMOUNT_LABEL}": np.round(y_future, 2)})
+    output_filename = f'future_predictions_{MODEL_SARIMAX.lower()}.csv'
+    write_predictions(predicted_df, os.path.join(output_dir, output_filename), logger=logger, skip_confirmation=skip_confirmation)
+
+    if ts_config.get("save_artifacts", True):
+        _save_model_artifact(MODEL_SARIMAX, final_model, output_dir, logger)
+
+    return {"model": MODEL_SARIMAX, "type": "Time-Series", **metrics}
+
+
+def _run_prophet_pipeline(
+    X_train: pd.DataFrame,
+    X_test: pd.DataFrame,
+    y_train: pd.Series,
+    y_test: pd.Series,
+    X_full: pd.DataFrame,
+    y_full: pd.Series,
+    processed_df: pd.DataFrame,
+    train_dates: pd.Series,
+    test_dates: pd.Series,
+    all_dates: pd.Series,
+    future_date_for_function: str,
+    output_dir: str,
+    skip_confirmation: bool,
+    logger: logging.Logger,
+) -> Dict[str, Any]:
+    """Train/evaluate Prophet, generate forecasts, and persist outputs."""
+    from prophet import Prophet
+
+    ts_config = config.get("time_series_models", {})
+    prophet_cfg = ts_config.get("prophet", {})
+    use_exogenous = prophet_cfg.get("use_exogenous", True)
+    regressor_columns = list(X_train.columns) if use_exogenous else []
+
+    model = Prophet(
+        yearly_seasonality=prophet_cfg.get("yearly_seasonality", True),
+        weekly_seasonality=prophet_cfg.get("weekly_seasonality", True),
+        daily_seasonality=prophet_cfg.get("daily_seasonality", False),
+        seasonality_mode=prophet_cfg.get("seasonality_mode", "additive"),
+        changepoint_prior_scale=prophet_cfg.get("changepoint_prior_scale", 0.05),
+    )
+    for column in regressor_columns:
+        model.add_regressor(column)
+
+    train_df = pd.DataFrame({"ds": pd.to_datetime(train_dates), "y": y_train.values})
+    if regressor_columns:
+        train_df = pd.concat([train_df, X_train.reset_index(drop=True)], axis=1)
+    model.fit(train_df)
+
+    train_pred_df = pd.DataFrame({"ds": pd.to_datetime(train_dates)})
+    test_pred_df = pd.DataFrame({"ds": pd.to_datetime(test_dates)})
+    if regressor_columns:
+        train_pred_df = pd.concat([train_pred_df, X_train.reset_index(drop=True)], axis=1)
+        test_pred_df = pd.concat([test_pred_df, X_test.reset_index(drop=True)], axis=1)
+
+    y_train_pred = model.predict(train_pred_df)["yhat"].to_numpy()
+    y_test_pred = model.predict(test_pred_df)["yhat"].to_numpy()
+    metrics = _collect_metrics(y_train, y_test, y_train_pred, y_test_pred)
+    _log_metrics(logger, metrics)
+
+    final_model = Prophet(
+        yearly_seasonality=prophet_cfg.get("yearly_seasonality", True),
+        weekly_seasonality=prophet_cfg.get("weekly_seasonality", True),
+        daily_seasonality=prophet_cfg.get("daily_seasonality", False),
+        seasonality_mode=prophet_cfg.get("seasonality_mode", "additive"),
+        changepoint_prior_scale=prophet_cfg.get("changepoint_prior_scale", 0.05),
+    )
+    for column in regressor_columns:
+        final_model.add_regressor(column)
+    full_df = pd.DataFrame({"ds": pd.to_datetime(all_dates), "y": y_full.values})
+    if regressor_columns:
+        full_df = pd.concat([full_df, X_full.reset_index(drop=True)], axis=1)
+    final_model.fit(full_df)
+
+    future_df, future_dates = prepare_future_dates(
+        future_date_for_function,
+        historical_df=processed_df,
+        logger=logger,
+    )
+    future_pred_df = pd.DataFrame({"ds": pd.to_datetime(future_dates)})
+    if regressor_columns:
+        future_regressors = future_df.reindex(columns=regressor_columns, fill_value=0).reset_index(drop=True)
+        future_pred_df = pd.concat([future_pred_df, future_regressors], axis=1)
+    y_future = final_model.predict(future_pred_df)["yhat"].to_numpy()
+
+    predicted_df = pd.DataFrame({"Date": future_dates, f"Predicted {TRANSACTION_AMOUNT_LABEL}": np.round(y_future, 2)})
+    output_filename = f'future_predictions_{MODEL_PROPHET.lower()}.csv'
+    write_predictions(predicted_df, os.path.join(output_dir, output_filename), logger=logger, skip_confirmation=skip_confirmation)
+
+    if ts_config.get("save_artifacts", True):
+        _save_model_artifact(MODEL_PROPHET, final_model, output_dir, logger)
+
+    return {"model": MODEL_PROPHET, "type": "Time-Series", **metrics}
+
+
 def _make_future_predictions(
     model,
     X_full: pd.DataFrame,
@@ -942,6 +1108,7 @@ def train_and_evaluate_models(
     # Store original target values for untransformed metrics
     y_train_original = y_train.copy()
     y_test_original = y_test.copy()
+    y_original = y.copy()
 
     y_train, y_test, y = _apply_transform_if_needed(
         y_train,
@@ -959,6 +1126,9 @@ def train_and_evaluate_models(
     save_feature_list(X_train.columns.tolist(), feature_list_path, logger=logger)
 
     metrics_records: List[dict] = []
+    train_dates = processed_df["Date"].iloc[: len(y_train)] if processed_df is not None else pd.Series(dtype="datetime64[ns]")
+    test_dates = processed_df["Date"].iloc[len(y_train): len(y_train) + len(y_test)] if processed_df is not None else pd.Series(dtype="datetime64[ns]")
+    all_dates = processed_df["Date"] if processed_df is not None else pd.Series(dtype="datetime64[ns]")
 
     # Train, evaluate, and predict for each model
     for model_name, spec in model_specs.items():
@@ -1022,6 +1192,56 @@ def train_and_evaluate_models(
         output_filename = f'future_predictions_{model_name.replace(" ", "_").lower()}.csv'
         output_path = os.path.join(output_dir, output_filename)
         write_predictions(predicted_df, output_path, logger=logger, skip_confirmation=skip_confirmation)
+
+    ts_models_config = config.get("time_series_models", {})
+    if ts_models_config.get("enabled", False):
+        if processed_df is None:
+            plog.log_warning(logger, "Skipping dedicated time-series models: processed dataframe is unavailable.")
+            return metrics_records
+        if ts_models_config.get("sarimax", {}).get("enabled", True):
+            plog.log_info(logger, f"--- {MODEL_SARIMAX} ---")
+            try:
+                metrics_records.append(
+                    _run_sarimax_pipeline(
+                        X_train=X_train,
+                        X_test=X_test,
+                        y_train=y_train_original,
+                        y_test=y_test_original,
+                        X_full=X,
+                        y_full=y_original,
+                        processed_df=processed_df,
+                        future_date_for_function=future_date_for_function,
+                        output_dir=output_dir,
+                        skip_confirmation=skip_confirmation,
+                        logger=logger,
+                    )
+                )
+            except ImportError as exc:
+                plog.log_warning(logger, f"Skipping {MODEL_SARIMAX}: dependency missing ({exc}).")
+
+        if ts_models_config.get("prophet", {}).get("enabled", True):
+            plog.log_info(logger, f"--- {MODEL_PROPHET} ---")
+            try:
+                metrics_records.append(
+                    _run_prophet_pipeline(
+                        X_train=X_train,
+                        X_test=X_test,
+                        y_train=y_train_original,
+                        y_test=y_test_original,
+                        X_full=X,
+                        y_full=y_original,
+                        processed_df=processed_df,
+                        train_dates=train_dates,
+                        test_dates=test_dates,
+                        all_dates=all_dates,
+                        future_date_for_function=future_date_for_function,
+                        output_dir=output_dir,
+                        skip_confirmation=skip_confirmation,
+                        logger=logger,
+                    )
+                )
+            except ImportError as exc:
+                plog.log_warning(logger, f"Skipping {MODEL_PROPHET}: dependency missing ({exc}).")
 
     if tuning_payload["models"]:
         _persist_hyperparameters(persist_path, tuning_payload, logger)

@@ -196,6 +196,35 @@ gradient_boosting:
 # Production Model Configuration
 production:
   # Default model to use for production predictions
-  # Options: "Linear Regression", "Decision Tree", "Random Forest", "Gradient Boosting"
+  # Options: "Linear Regression", "Decision Tree", "Random Forest", "Gradient Boosting", "SARIMAX", "Prophet"
   # This will be automatically updated based on best performing model
   default_model: "Gradient Boosting"
+
+# Dedicated Time-Series Models
+time_series_models:
+  # Enable/disable dedicated forecasting models (SARIMAX + Prophet)
+  enabled: false
+
+  # Persist fitted model artifacts to output_dir/artifacts/
+  save_artifacts: true
+
+  sarimax:
+    enabled: true
+    # SARIMAX (p,d,q)
+    order: [1, 1, 1]
+    # Seasonal SARIMAX (P,D,Q,s), default weekly seasonality for daily data
+    seasonal_order: [1, 1, 1, 7]
+    # Trend component: n (none), c (constant), t (linear), ct (constant+linear)
+    trend: c
+    # Include engineered features as exogenous regressors
+    use_exogenous: true
+
+  prophet:
+    enabled: true
+    yearly_seasonality: true
+    weekly_seasonality: true
+    daily_seasonality: false
+    seasonality_mode: additive
+    changepoint_prior_scale: 0.05
+    # Include engineered features as additional regressors
+    use_exogenous: true
