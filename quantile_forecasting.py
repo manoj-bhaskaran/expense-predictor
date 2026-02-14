@@ -22,7 +22,6 @@ from sklearn.linear_model import QuantileRegressor
 
 import python_logging_framework as plog
 from config import config
-from constants import TRANSACTION_AMOUNT_LABEL
 
 
 def pinball_loss(y_true: np.ndarray, y_pred: np.ndarray, quantile: float) -> float:
