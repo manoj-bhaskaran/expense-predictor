@@ -7,20 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Documentation
-- Updated ARCHITECTURE.md and MODELS.md to reflect baseline forecasting, robust metrics, and tuning workflow details.
-- Clarified DATA.md minimum sample thresholds and refreshed README testing/compatibility notes.
-
-## [1.24.0] - 2026-02-08
+## [1.24.0] - 2026-02-09
 
 ### Added
-- Constrained hyperparameter tuning for Decision Tree, Random Forest, and Gradient Boosting models using time-series cross-validation.
-- Reproducible tuning logs that report top-performing configurations ranked by test MAE.
-- Persistent best-hyperparameter artifacts saved under the output directory and reused on subsequent runs.
+- **Production Model Configuration**: Explicit production default model selection via `config.yaml`. New `production.default_model` field allows easy switching between ML models without code changes.
+- **Enhanced Model Comparison Report**: Comprehensive reporting system for model evaluation and selection:
+  - **CSV Report** (`reports/model_comparison_report.csv`): Consolidated metrics table with all ML and baseline models ranked by Test MAE and Test RMSE
+  - **Markdown Summary** (`reports/model_comparison_summary.md`): Decision-ready report with:
+    - Recommended production model with performance metrics
+    - Detailed rationale for model selection
+    - Top 3 models comparison table
+    - Complete rankings of all models
+    - Warning flags for models with negative R² scores
+    - Instructions for switching production models
+- **Negative R² Detection**: Automatic flagging of models with negative R² scores in both CSV (`R2 Warning` column) and Markdown reports (⚠️ emoji marker)
+- **Consistent Report Archiving**: All comparison artifacts saved in `reports/` subdirectory with standardized naming convention
+- New `ProductionConfig` validation class in `config.py` ensuring only valid model names can be set as production default
+- UTF-8 encoding support for markdown files to properly render emoji symbols on Windows
 
 ### Changed
-- Tree-based models now select configurations by test MAE after time-aware validation to reduce overfitting.
-- Version bump 1.23.0 → 1.24.0 (minor) for new tuning and model-selection workflow.
+- `write_comparison_report()` in `baselines.py` now generates both CSV and Markdown outputs
+- Model comparison reports include both ML models and baseline forecasters for comprehensive evaluation
+- Report sorting prioritizes Test MAE, then Test RMSE for model ranking
+- Version bump 1.23.0 → 1.24.0 (minor) for new production model configuration and enhanced reporting features
+
+### Technical Details
+- Production model validation accepts: "Linear Regression", "Decision Tree", "Random Forest", "Gradient Boosting"
+- Markdown report uses UTF-8 encoding to support emoji symbols cross-platform
+- R² warning flags applied when R² < 0 (predictions worse than mean baseline)
+- Report generation integrated into existing model evaluation pipeline (no breaking changes)
+- Config validation via Pydantic ensures type safety for production model selection
+
+### Documentation
+- Updated `config.yaml` with new `production` section and inline documentation
+- Enhanced `README.md` with production model configuration usage examples
+
 
 ## [1.23.0] - 2026-02-08
 
