@@ -228,3 +228,22 @@ time_series_models:
     changepoint_prior_scale: 0.05
     # Include engineered features as additional regressors
     use_exogenous: true
+
+# Quantile Regression Forecasting
+quantile_forecasting:
+  # Enable/disable quantile regression forecasting for budgeting ranges
+  # Default: false
+  enabled: false
+
+  # Quantiles to predict (P50, P75, P90 for budgeting scenarios)
+  # P50 = median, P75 = 75th percentile, P90 = 90th percentile
+  # Default: [0.50, 0.75, 0.90]
+  quantiles:
+    - 0.50
+    - 0.75
+    - 0.90
+
+  # Model type for quantile regression
+  # Options: 'gradient_boosting' (recommended for non-linear patterns), 'linear' (faster, simpler)
+  # Default: 'gradient_boosting'
+  model_type: gradient_boosting
