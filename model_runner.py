@@ -765,6 +765,68 @@ def _save_model_artifact(model_name: str, fitted_model: Any, output_dir: str, lo
     plog.log_info(logger, f"Saved model artifact for {model_name}: {artifact_path}")
 
 
+def _resolve_future_dates(future_date_str: Optional[str]) -> pd.DatetimeIndex:
+    """Build future date index from today through configured future end date."""
+    from helpers import get_quarter_end_date  # avoid circular import at module level
+
+    start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    if future_date_str is None:
+        end_date = get_quarter_end_date(start_date)
+    else:
+        end_date = datetime.strptime(future_date_str, "%d-%m-%Y")
+    return pd.date_range(start=start_date, end=end_date)
+
+
+def _build_single_day_features(
+    history: pd.DataFrame,
+    date: pd.Timestamp,
+    training_columns: pd.Index,
+    ts_config: Dict[str, Any],
+) -> pd.DataFrame:
+    """Create a single future feature row using recursive history-aware features."""
+    single_day = pd.DataFrame({"Date": [date]})
+    single_day[DAY_OF_WEEK] = single_day["Date"].dt.day_name().astype("category")
+    single_day["Month"] = single_day["Date"].dt.month
+    single_day["Day of the Month"] = single_day["Date"].dt.day
+    single_day = pd.get_dummies(single_day, columns=[DAY_OF_WEEK], drop_first=True)
+
+    ts_features = prepare_future_timeseries_features(history, single_day, ts_config)
+    ts_cols = [c for c in ts_features.columns if c not in single_day.columns]
+    for col in ts_cols:
+        single_day[col] = ts_features[col].values
+
+    return single_day.reindex(columns=training_columns, fill_value=0)
+
+
+def _recursive_prophet_future_predictions(
+    model: Any,
+    processed_df: pd.DataFrame,
+    future_date_for_function: str,
+    regressor_columns: List[str],
+    ts_config: Dict[str, Any],
+) -> Tuple[pd.DatetimeIndex, np.ndarray]:
+    """Generate Prophet future predictions recursively for realistic exogenous features."""
+    future_dates = _resolve_future_dates(future_date_for_function)
+    history = processed_df[["Date", TRANSACTION_AMOUNT_LABEL]].copy()
+    predictions: List[float] = []
+
+    for date in future_dates:
+        feature_row = _build_single_day_features(history, date, pd.Index(regressor_columns), ts_config)
+        predict_df = pd.DataFrame({"ds": [date]})
+        if regressor_columns:
+            predict_df = pd.concat([predict_df, feature_row.reset_index(drop=True)], axis=1)
+
+        prediction = float(model.predict(predict_df)["yhat"].iloc[0])
+        predictions.append(prediction)
+
+        history = pd.concat(
+            [history, pd.DataFrame({"Date": [date], TRANSACTION_AMOUNT_LABEL: [prediction]})],
+            ignore_index=True,
+        )
+
+    return future_dates, np.array(predictions)
+
+
 def _run_sarimax_pipeline(
     X_train: pd.DataFrame,
     X_test: pd.DataFrame,
@@ -783,6 +845,7 @@ def _run_sarimax_pipeline(
 
     ts_config = config.get("time_series_models", {})
     sarimax_cfg = ts_config.get("sarimax", {})
+    feature_config = config.get("feature_engineering", {})
     use_exogenous = sarimax_cfg.get("use_exogenous", True)
 
     train_exog = X_train if use_exogenous else None
@@ -805,13 +868,6 @@ def _run_sarimax_pipeline(
     metrics = _collect_metrics(y_train, y_test, y_train_pred, y_test_pred)
     _log_metrics(logger, metrics)
 
-    future_df, future_dates = prepare_future_dates(
-        future_date_for_function,
-        historical_df=processed_df,
-        logger=logger,
-    )
-    future_exog = future_df.reindex(columns=X_train.columns, fill_value=0) if use_exogenous else None
-
     final_model = SARIMAX(
         endog=y_full,
         exog=X_full if use_exogenous else None,
@@ -822,7 +878,29 @@ def _run_sarimax_pipeline(
         enforce_invertibility=False,
     ).fit(disp=False)
 
-    y_future = np.asarray(final_model.get_forecast(steps=len(future_dates), exog=future_exog).predicted_mean)
+    future_dates = _resolve_future_dates(future_date_for_function)
+    if use_exogenous:
+        history = processed_df[["Date", TRANSACTION_AMOUNT_LABEL]].copy()
+        recursive_model = final_model
+        recursive_predictions: List[float] = []
+        for date in future_dates:
+            future_exog_row = _build_single_day_features(history, date, X_train.columns, feature_config)
+            next_pred = float(recursive_model.get_forecast(steps=1, exog=future_exog_row).predicted_mean.iloc[0])
+            recursive_predictions.append(next_pred)
+
+            history = pd.concat(
+                [history, pd.DataFrame({"Date": [date], TRANSACTION_AMOUNT_LABEL: [next_pred]})],
+                ignore_index=True,
+            )
+            recursive_model = recursive_model.append(
+                endog=pd.Series([next_pred], index=[date]),
+                exog=future_exog_row,
+                refit=False,
+            )
+        y_future = np.asarray(recursive_predictions)
+    else:
+        y_future = np.asarray(final_model.get_forecast(steps=len(future_dates), exog=None).predicted_mean)
+
     predicted_df = pd.DataFrame({"Date": future_dates, f"Predicted {TRANSACTION_AMOUNT_LABEL}": np.round(y_future, 2)})
     output_filename = f'future_predictions_{MODEL_SARIMAX.lower()}.csv'
     write_predictions(predicted_df, os.path.join(output_dir, output_filename), logger=logger, skip_confirmation=skip_confirmation)
@@ -856,6 +934,15 @@ def _run_prophet_pipeline(
     prophet_cfg = ts_config.get("prophet", {})
     use_exogenous = prophet_cfg.get("use_exogenous", True)
     regressor_columns = list(X_train.columns) if use_exogenous else []
+    if regressor_columns:
+        variable_columns = [col for col in regressor_columns if X_train[col].nunique(dropna=False) > 1]
+        dropped_columns = sorted(set(regressor_columns) - set(variable_columns))
+        if dropped_columns:
+            plog.log_info(
+                logger,
+                "Skipping constant Prophet regressors: " + ", ".join(dropped_columns),
+            )
+        regressor_columns = variable_columns
 
     model = Prophet(
         yearly_seasonality=prophet_cfg.get("yearly_seasonality", True),
@@ -897,16 +984,14 @@ def _run_prophet_pipeline(
         full_df = pd.concat([full_df, X_full.reset_index(drop=True)], axis=1)
     final_model.fit(full_df)
 
-    future_df, future_dates = prepare_future_dates(
+    feature_config = config.get("feature_engineering", {})
+    future_dates, y_future = _recursive_prophet_future_predictions(
+        final_model,
+        processed_df,
         future_date_for_function,
-        historical_df=processed_df,
-        logger=logger,
+        regressor_columns,
+        feature_config,
     )
-    future_pred_df = pd.DataFrame({"ds": pd.to_datetime(future_dates)})
-    if regressor_columns:
-        future_regressors = future_df.reindex(columns=regressor_columns, fill_value=0).reset_index(drop=True)
-        future_pred_df = pd.concat([future_pred_df, future_regressors], axis=1)
-    y_future = final_model.predict(future_pred_df)["yhat"].to_numpy()
 
     predicted_df = pd.DataFrame({"Date": future_dates, f"Predicted {TRANSACTION_AMOUNT_LABEL}": np.round(y_future, 2)})
     output_filename = f'future_predictions_{MODEL_PROPHET.lower()}.csv'
@@ -1008,15 +1093,7 @@ def _recursive_future_predictions(
     Returns:
         Tuple of future dates and predicted values (original scale).
     """
-    from helpers import get_quarter_end_date  # avoid circular import at module level
-
-    start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-    if future_date_str is None:
-        end_date = get_quarter_end_date(start_date)
-    else:
-        end_date = datetime.strptime(future_date_str, "%d-%m-%Y")
-
-    future_dates = pd.date_range(start=start_date, end=end_date)
+    future_dates = _resolve_future_dates(future_date_str)
 
     # Working copy of historical data that grows with each predicted day
     history = processed_df[["Date", TRANSACTION_AMOUNT_LABEL]].copy()
@@ -1024,23 +1101,7 @@ def _recursive_future_predictions(
     predictions: list[float] = []
 
     for date in future_dates:
-        # Build a single-day feature row
-        single_day = pd.DataFrame({"Date": [date]})
-        single_day[DAY_OF_WEEK] = single_day["Date"].dt.day_name().astype("category")
-        single_day["Month"] = single_day["Date"].dt.month
-        single_day["Day of the Month"] = single_day["Date"].dt.day
-        single_day = pd.get_dummies(single_day, columns=[DAY_OF_WEEK], drop_first=True)
-
-        # Compute time-series features from history (including prior predictions)
-        ts_features = prepare_future_timeseries_features(
-            history, single_day, ts_config,
-        )
-        ts_cols = [c for c in ts_features.columns if c not in single_day.columns]
-        for col in ts_cols:
-            single_day[col] = ts_features[col].values
-
-        # Align columns with training set and predict
-        single_day = single_day.reindex(columns=X_train_columns, fill_value=0)
+        single_day = _build_single_day_features(history, date, X_train_columns, ts_config)
         raw_pred = model.predict(single_day)[0]
 
         # Convert to original scale for feeding back into history

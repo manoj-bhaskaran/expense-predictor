@@ -162,6 +162,10 @@ time_series_models:
 
 Artifacts for enabled time-series models are saved under `output_dir/artifacts/`.
 
+Implementation notes:
+- Prophet automatically excludes zero-variance exogenous columns at fit time to avoid regressor validation failures.
+- SARIMAX/Prophet future exogenous features are generated recursively from prior predictions (not zero placeholders) to keep lag/rolling inputs realistic for multi-step horizons.
+
 ### Constrained Hyperparameter Tuning
 
 Tree-based models can be tuned using a small, constrained grid with time-aware validation.

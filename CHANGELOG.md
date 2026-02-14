@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Excluded constant-valued exogenous columns before registering Prophet regressors, preventing fit-time failures on zero-variance features.
+- Updated dedicated SARIMAX and Prophet future exogenous feature generation to use recursive prediction feedback so lag/rolling regressors remain realistic across multi-day horizons.
+
 ## [1.26.0] - 2026-02-14
 
 ### Added
