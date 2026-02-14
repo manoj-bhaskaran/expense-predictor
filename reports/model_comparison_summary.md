@@ -1,6 +1,6 @@
 # Model Comparison Report
 
-**Generated:** 2026-02-09 13:17:11
+**Generated:** 2026-02-14 14:36:33
 
 **Total Models Evaluated:** 8
 
@@ -8,7 +8,7 @@
 
 ## Recommended Production Model
 
-**Model:** `Naive Last Value`
+**Model:** `Decision Tree`
 
 ### Performance Metrics
 
@@ -18,7 +18,7 @@
 
 ### Rationale
 
-The **Naive Last Value** model was selected based on the following criteria:
+The **Decision Tree** model was selected based on the following criteria:
 
 1. **Lowest Mean Absolute Error (MAE):** 0.00
    - This indicates the model has the best average prediction accuracy on unseen test data
@@ -33,9 +33,9 @@ The **Naive Last Value** model was selected based on the following criteria:
 
 | Rank | Model | Type | Test MAE | Test RMSE | Test R² |
 |------|-------|------|----------|-----------|----------|
-| 1 | Naive Last Value | Baseline | 0.00 | 0.00 | 1.0000 |
-| 2 | Rolling Mean 3M | Baseline | 0.00 | 0.00 | 1.0000 |
-| 3 | Rolling Mean 6M | Baseline | 0.00 | 0.00 | 1.0000 |
+| 1 | Decision Tree | ML | 0.00 | 0.00 | 1.0000 |
+| 2 | Naive Last Value | Baseline | 0.00 | 0.00 | 1.0000 |
+| 3 | Random Forest | ML | 0.00 | 0.00 | 1.0000 |
 
 ---
 
@@ -43,14 +43,14 @@ The **Naive Last Value** model was selected based on the following criteria:
 
 | Rank | Model | Type | Test MAE | Test RMSE | Test R² | Train MAE | Train RMSE | Train R² | Warning |
 |------|-------|------|----------|-----------|---------|-----------|------------|----------|----------|
-| 1 | Naive Last Value | Baseline | 0.00 | 0.00 | 1.0000 | 8.40 | 24.77 | 0.8127 |  |
-| 2 | Rolling Mean 3M | Baseline | 0.00 | 0.00 | 1.0000 | 16.55 | 38.29 | 0.5522 |  |
-| 3 | Rolling Mean 6M | Baseline | 0.00 | 0.00 | 1.0000 | 26.78 | 48.52 | 0.2812 |  |
-| 4 | Seasonal Naive (YoY) | Baseline | 0.00 | 0.00 | 1.0000 | 56.58 | 96.69 | 0.0000 |  |
-| 5 | Random Forest | ML | 19.47 | 36.75 | 0.0000 | 23.81 | 43.83 | 0.4151 |  |
-| 6 | Decision Tree | ML | 19.54 | 39.31 | 0.0000 | 22.75 | 44.17 | 0.4059 |  |
-| 7 | Gradient Boosting | ML | 21.93 | 39.96 | 0.0000 | 22.66 | 40.17 | 0.5087 |  |
-| 8 | Linear Regression | ML | 28.93 | 35.62 | 0.0000 | 36.98 | 50.48 | 0.2242 |  |
+| 1 | Decision Tree | ML | 0.00 | 0.00 | 1.0000 | 7.18 | 43.33 | 0.9699 |  |
+| 2 | Naive Last Value | Baseline | 0.00 | 0.00 | 1.0000 | 2.99 | 44.82 | 0.9677 |  |
+| 3 | Random Forest | ML | 0.00 | 0.00 | 1.0000 | 5.00 | 31.08 | 0.9845 |  |
+| 4 | Rolling Mean 3M | Baseline | 0.00 | 0.00 | 1.0000 | 83.79 | 191.77 | 0.4094 |  |
+| 5 | Rolling Mean 6M | Baseline | 0.00 | 0.00 | 1.0000 | 125.24 | 222.96 | 0.2016 |  |
+| 6 | Seasonal Naive (YoY) | Baseline | 0.00 | 0.00 | 1.0000 | 223.74 | 423.41 | 0.0000 |  |
+| 7 | Gradient Boosting | ML | 0.09 | 0.19 | 0.0000 | 2.22 | 16.80 | 0.9955 |  |
+| 8 | Linear Regression | ML | 4.27 | 6.06 | 0.0000 | 8.41 | 43.72 | 0.9693 |  |
 
 ---
 
@@ -71,7 +71,7 @@ To change the default production model:
 **Example configuration:**
 ```yaml
 production:
-  default_model: "Naive Last Value"
+  default_model: "Decision Tree"
 ```
 
 After updating the configuration, the selected model will be used for all future predictions.
