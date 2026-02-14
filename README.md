@@ -10,11 +10,12 @@ A machine learning-based expense prediction system that analyzes historical tran
 ## Features
 
 - **Multiple ML Models**: Supports Linear Regression, Decision Tree, Random Forest, and Gradient Boosting algorithms
+- **Quantile Regression Forecasting**: Probabilistic forecasts with prediction intervals (P50, P75, P90) for budgeting scenarios instead of single point estimates
 - **Dedicated Time-Series Models**: Optional SARIMAX and Prophet forecasting pipelines with configurable seasonality and optional exogenous regressors
 - **Time-Series Feature Engineering**: Configurable lag features (t-1, t-3, t-6, t-12), rolling statistics (mean/std over 7, 14, 30 day windows), and calendar features (quarter, year) to capture spending momentum and seasonality
 - **Flexible Data Input**: Works with CSV transaction data and optionally integrates Excel bank statements
 - **Target Transformation**: Optional log-based transformation (log1p or log) for handling skewed expense distributions with automatic inverse transformation of predictions
-- **Robust Metrics**: Comprehensive evaluation including Median Absolute Error (MedAE), Symmetric Mean Absolute Percentage Error (SMAPE), and percentile-based error distribution (P50/P75/P90)
+- **Robust Metrics**: Comprehensive evaluation including Median Absolute Error (MedAE), Symmetric Mean Absolute Percentage Error (SMAPE), percentile-based error distribution (P50/P75/P90), and quantile-specific metrics (pinball loss, coverage)
 - **Baseline Forecasters**: Compare ML models against naive forecasts (last value, rolling means, seasonal naive) for benchmarking
 - **Time-Series Splitting**: Chronological train/test split to prevent data leakage in temporal predictions
 - **Constrained Tuning**: Time-aware cross-validation for tree-based models with reproducible, saved best hyperparameters
@@ -165,6 +166,48 @@ Artifacts for enabled time-series models are saved under `output_dir/artifacts/`
 Implementation notes:
 - Prophet automatically excludes zero-variance exogenous columns at fit time to avoid regressor validation failures.
 - SARIMAX/Prophet future exogenous features are generated recursively from prior predictions (not zero placeholders) to keep lag/rolling inputs realistic for multi-step horizons.
+
+### Quantile Regression Forecasting
+
+Enable probabilistic forecasts with prediction intervals for budgeting scenarios. Instead of single point estimates, quantile regression generates multiple predictions representing different confidence levels (P50 for median, P75 for 75th percentile, P90 for 90th percentile).
+
+This is particularly useful for:
+- **Budget Planning**: Know the range of likely expenses (e.g., "90% chance expenses will be below $X")
+- **Risk Management**: Prepare for worst-case scenarios with P90 predictions
+- **Confidence Intervals**: Understand prediction uncertainty
+
+```yaml
+quantile_forecasting:
+  enabled: true
+  quantiles:
+    - 0.50  # P50 - Median (50th percentile)
+    - 0.75  # P75 - Upper range (75th percentile)
+    - 0.90  # P90 - Conservative estimate (90th percentile)
+  model_type: gradient_boosting  # or 'linear'
+```
+
+**Output**: A CSV file `future_predictions_quantile_forecasting.csv` with columns:
+- `Date`: Future dates in DD/MM/YYYY format
+- `P50`: Median prediction (50% of actual values expected below this)
+- `P75`: 75th percentile prediction
+- `P90`: 90th percentile prediction (conservative upper bound)
+
+**Model Types**:
+- `gradient_boosting`: Non-linear quantile regression using GradientBoostingRegressor (recommended for capturing complex patterns)
+- `linear`: Linear quantile regression using QuantileRegressor (faster, simpler, good for linear relationships)
+
+**Evaluation Metrics**:
+- **Pinball Loss**: Asymmetric loss function that penalizes over/under-predictions based on quantile level
+- **Coverage**: Proportion of actual values falling below predicted quantile (should match target quantile for well-calibrated models)
+- **Coverage Error**: Absolute difference between actual coverage and target quantile
+
+Example output shows increasing predictions with higher quantiles:
+```
+Date       | P50    | P75    | P90
+-----------|--------|--------|--------
+01/04/2024 | $150.00| $165.00| $180.00
+02/04/2024 | $148.50| $163.20| $178.45
+```
 
 ### Constrained Hyperparameter Tuning
 
