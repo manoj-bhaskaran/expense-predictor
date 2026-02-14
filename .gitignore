@@ -60,3 +60,6 @@ docs/_build/
 docs/_static/
 docs/_templates/
 docs/_autosummary/
+
+#Reports
+reports/
