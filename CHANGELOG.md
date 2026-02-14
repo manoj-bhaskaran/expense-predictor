@@ -242,7 +242,7 @@ Critical data validation enhancement. High-impact code quality improvements. All
 Three patch releases adding Python 3.12 support and fixing critical Excel processing issues.
 
 ### Added
-- **Python 3.12 Support** ([#87](https://github.com/manoj-bhaskaran/expense-predictor/issues/87)): Added to CI/CD test matrix. All 163 tests pass on Python 3.9-3.12. Updated line-profiler to 4.1.3 for Python 3.12 compatibility. Updated README.
+- **Python 3.12 Support** ([#87](https://github.com/manoj-bhaskaran/expense-predictor/issues/87)): Added to CI/CD test matrix. All 163 tests pass on Python 3.10-3.12. Updated line-profiler to 4.1.3 for Python 3.12 compatibility. Updated README.
 
 ### Fixed
 - **Missing Production Dependency** ([#106](https://github.com/manoj-bhaskaran/expense-predictor/issues/106)): Added openpyxl==3.1.2 to requirements.txt and setup.py. Fixes ModuleNotFoundError for .xlsx processing in production.
@@ -293,7 +293,7 @@ Complete CI/CD pipeline (testing, pre-commit, security, Dependabot). Test covera
 None - all releases backward compatible
 
 ### Technical Stack
-Dependencies: pytest, pytest-cov, pytest-mock, pydantic, python-dotenv, pre-commit, line-profiler, bandit. Python 3.9-3.12. Core: scikit-learn, pandas, numpy.
+Dependencies: pytest, pytest-cov, pytest-mock, pydantic, python-dotenv, pre-commit, line-profiler, bandit. Python 3.10-3.12. Core: scikit-learn, pandas, numpy.
 
 ---
 

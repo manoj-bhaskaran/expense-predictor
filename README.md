@@ -2,7 +2,7 @@
 
 [![Tests](https://github.com/manoj-bhaskaran/expense-predictor/actions/workflows/test.yml/badge.svg)](https://github.com/manoj-bhaskaran/expense-predictor/actions/workflows/test.yml)
 [![codecov](https://codecov.io/gh/manoj-bhaskaran/expense-predictor/branch/main/graph/badge.svg)](https://codecov.io/gh/manoj-bhaskaran/expense-predictor)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A machine learning-based expense prediction system that analyzes historical transaction data to forecast future expenses. The project uses multiple regression models to predict transaction amounts for specified future dates.
@@ -30,7 +30,7 @@ A machine learning-based expense prediction system that analyzes historical tran
 
 ## Requirements
 
-- Python 3.9 or higher (tested on Python 3.9, 3.10, 3.11, 3.12, and 3.13)
+- Python 3.10 or higher (tested on Python 3.10, 3.11, 3.12, and 3.13)
 - See `requirements.txt` for pinned package dependencies
 
 ## Excel File Support
@@ -692,7 +692,7 @@ expense-predictor/
 ├── setup.py                 # Package setup and dependencies configuration
 ├── requirements.txt         # Production dependencies (pinned versions)
 ├── requirements-dev.txt     # Development dependencies (pinned versions)
-├── .python-version          # Python version specification (3.9)
+├── .python-version          # Python version specification (3.10.13)
 ├── .pre-commit-config.yaml  # Pre-commit hooks configuration
 ├── pytest.ini               # Pytest configuration
 ├── .coveragerc             # Coverage configuration
@@ -1093,7 +1093,7 @@ The project includes a comprehensive CI/CD pipeline with multiple automated work
 
 1. **Testing (`test.yml`)** - Runs on all pull requests and pushes
 
-   - Multi-version Python testing (3.9, 3.10, 3.11, 3.12, 3.13)
+  - Multi-version Python testing (3.10, 3.11, 3.12, 3.13)
    - Automated test execution with pytest
    - Code coverage enforcement (minimum 80%)
    - Coverage reports uploaded to Codecov

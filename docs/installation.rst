@@ -6,7 +6,7 @@ This guide walks through installing the Expense Predictor system.
 Requirements
 ------------
 
-* Python 3.9 or higher
+* Python 3.10 or higher
 * Git (required for installing dependencies from GitHub)
 * pip (Python package installer)
 
@@ -134,7 +134,7 @@ Verify your Python version:
 
    python --version
 
-If < 3.9, install a newer version from https://www.python.org/downloads/
+If < 3.10, install a newer version from https://www.python.org/downloads/
 
 Docker Installation (Alternative)
 ----------------------------------

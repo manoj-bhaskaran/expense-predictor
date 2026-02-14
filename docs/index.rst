@@ -4,7 +4,7 @@ Expense Predictor Documentation
 Welcome to the Expense Predictor documentation! This system uses machine learning
 to analyze historical transaction data and forecast future expenses.
 
-.. image:: https://img.shields.io/badge/python-3.9+-blue.svg
+.. image:: https://img.shields.io/badge/python-3.10+-blue.svg
    :target: https://www.python.org/downloads/
    :alt: Python Version
 
