@@ -10,6 +10,7 @@ A machine learning-based expense prediction system that analyzes historical tran
 ## Features
 
 - **Multiple ML Models**: Supports Linear Regression, Decision Tree, Random Forest, and Gradient Boosting algorithms
+- **Dedicated Time-Series Models**: Optional SARIMAX and Prophet forecasting pipelines with configurable seasonality and optional exogenous regressors
 - **Time-Series Feature Engineering**: Configurable lag features (t-1, t-3, t-6, t-12), rolling statistics (mean/std over 7, 14, 30 day windows), and calendar features (quarter, year) to capture spending momentum and seasonality
 - **Flexible Data Input**: Works with CSV transaction data and optionally integrates Excel bank statements
 - **Target Transformation**: Optional log-based transformation (log1p or log) for handling skewed expense distributions with automatic inverse transformation of predictions
@@ -110,6 +111,7 @@ The `config.yaml` file allows you to customize model hyperparameters and data pr
 - **Model Hyperparameters**: Fine-tune each machine learning model's parameters
 - **Constrained Tuning**: Configure time-series CV splits, constrained grids, and saved parameter reuse
 - **Baselines**: Configure baseline forecasters and rolling window sizes
+- **Dedicated Time-Series Models**: Enable/disable SARIMAX and Prophet, tune key model parameters, and toggle artifact persistence
 
 **Example configuration:**
 
@@ -132,6 +134,37 @@ decision_tree:
 ```
 
 See `config.yaml` for the complete list of configurable parameters with detailed explanations.
+
+### Dedicated Time-Series Forecasting Models
+
+When enabled, Expense Predictor runs SARIMAX and Prophet alongside existing ML models and baselines.
+These models are optimized for temporal structure and can optionally consume engineered exogenous features.
+
+```yaml
+time_series_models:
+  enabled: true
+  save_artifacts: true
+  sarimax:
+    enabled: true
+    order: [1, 1, 1]
+    seasonal_order: [1, 1, 1, 7]
+    trend: c
+    use_exogenous: true
+  prophet:
+    enabled: true
+    yearly_seasonality: true
+    weekly_seasonality: true
+    daily_seasonality: false
+    seasonality_mode: additive
+    changepoint_prior_scale: 0.05
+    use_exogenous: true
+```
+
+Artifacts for enabled time-series models are saved under `output_dir/artifacts/`.
+
+Implementation notes:
+- Prophet automatically excludes zero-variance exogenous columns at fit time to avoid regressor validation failures.
+- SARIMAX/Prophet future exogenous features are generated recursively from prior predictions (not zero placeholders) to keep lag/rolling inputs realistic for multi-step horizons.
 
 ### Constrained Hyperparameter Tuning
 
