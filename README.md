@@ -60,13 +60,15 @@ The Expense Predictor supports both legacy and modern Excel file formats with au
 
 ```bash
 # Process legacy .xls file
-expense-predictor --data_file trandata.csv --excel_file bank_statement.xls
+expense-predictor --data_file trandata.csv --excel_dir ./data --excel_file bank_statement.xls
 
 # Process modern .xlsx file
-expense-predictor --data_file trandata.csv --excel_file bank_statement.xlsx
+expense-predictor --data_file trandata.csv --excel_dir ./data --excel_file bank_statement.xlsx
 ```
 
 Both commands work identically - the application handles the format detection internally.
+
+> **Note:** The `--excel_file` argument accepts only the filename. Use `--excel_dir` to specify the directory containing the Excel file. If `--excel_dir` is omitted, it defaults to the current directory.
 
 ## Installation
 
@@ -438,6 +440,20 @@ python model_runner.py \
 | `--output_dir` | Directory for prediction output files | `.` (current directory) |
 | `--skip_confirmation` | Skip confirmation prompts when overwriting files (for automation) | False |
 | `--skip_baselines` | Skip baseline forecasts and comparison report generation | False |
+
+### Upgrading from v1.22.0 or Earlier
+
+If you previously used a full file path in `--excel_file`, you now need to split it into `--excel_dir` (directory) and `--excel_file` (filename only):
+
+**Old syntax (v1.22.0):**
+```bash
+python model_runner.py --future_date 08/01/2027 --excel_file "C:\Users\manoj\Downloads\OpTransactionHistory08-02-2026 (1).xls" --data_file ../trandata.csv
+```
+
+**New syntax (v1.23.0+):**
+```bash
+python model_runner.py --future_date 08/01/2027 --excel_dir "C:\Users\manoj\Downloads" --excel_file "OpTransactionHistory08-02-2026 (1).xls" --data_file ../trandata.csv
+```
 
 ### Baselines and Comparison Report
 
