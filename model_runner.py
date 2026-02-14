@@ -52,8 +52,8 @@ from sklearn.tree import DecisionTreeRegressor
 import python_logging_framework as plog
 from baselines import run_baselines, write_comparison_report
 from config import config
-from constants import TRANSACTION_AMOUNT_LABEL
-from feature_engineering import save_feature_list
+from constants import DAY_OF_WEEK, TRANSACTION_AMOUNT_LABEL
+from feature_engineering import prepare_future_timeseries_features, save_feature_list
 from helpers import (
     apply_target_transform,
     calculate_median_absolute_error,
@@ -766,6 +766,11 @@ def _make_future_predictions(
     """
     Fit on full data and generate future predictions.
 
+    When time-series features are enabled, predictions are made
+    recursively: each day's prediction is fed back as the target
+    value for computing subsequent lag and rolling features, avoiding
+    a train/inference feature mismatch.
+
     Args:
         model: Estimator with fit/predict methods.
         X_full: Full dataset features.
@@ -781,18 +786,115 @@ def _make_future_predictions(
         Tuple of future dates and predicted values.
     """
     model.fit(X_full, y_full)
-    future_df, future_dates = prepare_future_dates(
-        future_date_for_function,
-        historical_df=processed_df,
-        logger=logger,
-    )
-    future_df = future_df.reindex(columns=X_train_columns, fill_value=0)
-    y_predict = model.predict(future_df)
 
-    if transform_enabled:
-        y_predict = inverse_target_transform(y_predict, method=transform_method, logger=logger)
+    ts_config = config.get("feature_engineering", {})
+    ts_has_autoregressive = ts_config.get("enabled", True) and (
+        ts_config.get("lags", [1]) or ts_config.get("rolling_windows", [7])
+    )
+
+    if ts_has_autoregressive and processed_df is not None:
+        future_dates, y_predict = _recursive_future_predictions(
+            model, processed_df, X_train_columns, future_date_for_function,
+            transform_enabled, transform_method, ts_config, logger,
+        )
+    else:
+        future_df, future_dates = prepare_future_dates(
+            future_date_for_function,
+            historical_df=processed_df,
+            logger=logger,
+        )
+        future_df = future_df.reindex(columns=X_train_columns, fill_value=0)
+        y_predict = model.predict(future_df)
+
+        if transform_enabled:
+            y_predict = inverse_target_transform(y_predict, method=transform_method, logger=logger)
 
     return future_dates, np.round(y_predict, 2)
+
+
+def _recursive_future_predictions(
+    model,
+    processed_df: pd.DataFrame,
+    X_train_columns: pd.Index,
+    future_date_str: Optional[str],
+    transform_enabled: bool,
+    transform_method: str,
+    ts_config: Dict[str, Any],
+    logger: logging.Logger,
+) -> Tuple[pd.DatetimeIndex, np.ndarray]:
+    """
+    Predict future values one day at a time, feeding each prediction
+    back as the target for subsequent lag/rolling feature computation.
+
+    This avoids the train/inference feature mismatch that occurs when
+    all future target values are hardcoded to zero.
+
+    Args:
+        model: Fitted estimator with a predict method.
+        processed_df: Historical DataFrame with Date and target columns.
+        X_train_columns: Feature columns used in training.
+        future_date_str: End date for predictions (DD-MM-YYYY) or None.
+        transform_enabled: Whether target transformation is enabled.
+        transform_method: Transformation method name.
+        ts_config: Feature engineering configuration.
+        logger: Logger instance.
+
+    Returns:
+        Tuple of future dates and predicted values (original scale).
+    """
+    from helpers import get_quarter_end_date  # avoid circular import at module level
+
+    start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    if future_date_str is None:
+        end_date = get_quarter_end_date(start_date)
+    else:
+        end_date = datetime.strptime(future_date_str, "%d-%m-%Y")
+
+    future_dates = pd.date_range(start=start_date, end=end_date)
+
+    # Working copy of historical data that grows with each predicted day
+    history = processed_df[["Date", TRANSACTION_AMOUNT_LABEL]].copy()
+
+    predictions: list[float] = []
+
+    for date in future_dates:
+        # Build a single-day feature row
+        single_day = pd.DataFrame({"Date": [date]})
+        single_day[DAY_OF_WEEK] = single_day["Date"].dt.day_name().astype("category")
+        single_day["Month"] = single_day["Date"].dt.month
+        single_day["Day of the Month"] = single_day["Date"].dt.day
+        single_day = pd.get_dummies(single_day, columns=[DAY_OF_WEEK], drop_first=True)
+
+        # Compute time-series features from history (including prior predictions)
+        ts_features = prepare_future_timeseries_features(
+            history, single_day, ts_config,
+        )
+        ts_cols = [c for c in ts_features.columns if c not in single_day.columns]
+        for col in ts_cols:
+            single_day[col] = ts_features[col].values
+
+        # Align columns with training set and predict
+        single_day = single_day.reindex(columns=X_train_columns, fill_value=0)
+        raw_pred = model.predict(single_day)[0]
+
+        # Convert to original scale for feeding back into history
+        if transform_enabled:
+            original_pred = float(
+                inverse_target_transform(np.array([raw_pred]), method=transform_method)[0]
+            )
+        else:
+            original_pred = float(raw_pred)
+
+        predictions.append(original_pred)
+
+        # Feed the original-scale prediction back so future lag/rolling
+        # features are computed from realistic values, not zeros.
+        new_row = pd.DataFrame({"Date": [date], TRANSACTION_AMOUNT_LABEL: [original_pred]})
+        history = pd.concat([history, new_row], ignore_index=True)
+
+    plog.log_info(logger, f"Recursive prediction completed for {len(predictions)} future days")
+
+    return future_dates, np.array(predictions)
 
 
 def train_and_evaluate_models(

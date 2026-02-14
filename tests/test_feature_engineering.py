@@ -271,3 +271,35 @@ class TestPrepareFutureTimeseriesFeatures:
         )
         assert "Quarter" in result.columns
         assert result["Quarter"].iloc[0] == 2
+
+
+class TestEmptyFeatureConfig:
+    """Tests that empty lag/window lists are handled gracefully."""
+
+    def test_empty_lags_list(self, daily_df, mock_logger):
+        ts_config = {"lags": [], "rolling_windows": [7], "calendar": True}
+        result = generate_timeseries_features(daily_df, ts_config, logger=mock_logger)
+        assert not any(c.startswith("lag_") for c in result.columns)
+        assert "rolling_mean_7" in result.columns
+
+    def test_empty_rolling_windows_list(self, daily_df, mock_logger):
+        ts_config = {"lags": [1], "rolling_windows": [], "calendar": True}
+        result = generate_timeseries_features(daily_df, ts_config, logger=mock_logger)
+        assert "lag_1" in result.columns
+        assert not any(c.startswith("rolling_") for c in result.columns)
+
+    def test_both_empty(self, daily_df, mock_logger):
+        ts_config = {"lags": [], "rolling_windows": [], "calendar": True}
+        result = generate_timeseries_features(daily_df, ts_config, logger=mock_logger)
+        assert "Quarter" in result.columns
+        assert len(result) == len(daily_df)  # no NaN rows to drop
+
+    def test_pydantic_accepts_empty_lags(self):
+        from config import FeatureEngineeringConfig
+        cfg = FeatureEngineeringConfig(lags=[], rolling_windows=[7])
+        assert cfg.lags == []
+
+    def test_pydantic_accepts_empty_rolling_windows(self):
+        from config import FeatureEngineeringConfig
+        cfg = FeatureEngineeringConfig(lags=[1], rolling_windows=[])
+        assert cfg.rolling_windows == []
