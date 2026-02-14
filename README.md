@@ -10,6 +10,7 @@ A machine learning-based expense prediction system that analyzes historical tran
 ## Features
 
 - **Multiple ML Models**: Supports Linear Regression, Decision Tree, Random Forest, and Gradient Boosting algorithms
+- **Time-Series Feature Engineering**: Configurable lag features (t-1, t-3, t-6, t-12), rolling statistics (mean/std over 7, 14, 30 day windows), and calendar features (quarter, year) to capture spending momentum and seasonality
 - **Flexible Data Input**: Works with CSV transaction data and optionally integrates Excel bank statements
 - **Target Transformation**: Optional log-based transformation (log1p or log) for handling skewed expense distributions with automatic inverse transformation of predictions
 - **Robust Metrics**: Comprehensive evaluation including Median Absolute Error (MedAE), Symmetric Mean Absolute Percentage Error (SMAPE), and percentile-based error distribution (P50/P75/P90)

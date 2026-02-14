@@ -1,0 +1,31 @@
+{
+  "cv_metric": "mae",
+  "generated_at": "2026-02-14T15:44:25Z",
+  "models": {
+    "Decision Tree": {
+      "cv_mae": 0.0,
+      "params": {
+        "max_depth": 3,
+        "min_samples_leaf": 5
+      }
+    },
+    "Gradient Boosting": {
+      "cv_mae": 1.8916988390175824,
+      "params": {
+        "max_depth": 4,
+        "min_samples_leaf": 5,
+        "subsample": 0.8
+      }
+    },
+    "Random Forest": {
+      "cv_mae": 1.4924874052184975,
+      "params": {
+        "max_depth": 4,
+        "min_samples_leaf": 2,
+        "subsample": 1.0
+      }
+    }
+  },
+  "schema_version": 1,
+  "selection_metric": "cv_mae"
+}
