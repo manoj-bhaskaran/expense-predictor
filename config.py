@@ -203,6 +203,33 @@ class BaselinesConfig(BaseModel):
         return v
     
 
+class FeatureEngineeringConfig(BaseModel):
+    """Configuration for time-series feature engineering."""
+
+    model_config = {"strict": True}
+
+    enabled: bool = Field(default=True, description="Enable time-series feature engineering")
+    lags: list[int] = Field(default_factory=lambda: [1, 3, 6, 12], min_length=1)
+    rolling_windows: list[int] = Field(default_factory=lambda: [7, 14, 30], min_length=1)
+    calendar: bool = Field(default=True, description="Enable quarter and year calendar features")
+
+    @field_validator("lags")
+    @classmethod
+    def validate_lags(cls, v: list[int]) -> list[int]:
+        """Ensure lag values are positive integers."""
+        if any(lag <= 0 for lag in v):
+            raise ValueError("lags must contain positive integers")
+        return v
+
+    @field_validator("rolling_windows")
+    @classmethod
+    def validate_rolling_windows(cls, v: list[int]) -> list[int]:
+        """Ensure rolling window sizes are positive integers >= 2."""
+        if any(window < 2 for window in v):
+            raise ValueError("rolling_windows must contain integers >= 2")
+        return v
+
+
 class ProductionConfig(BaseModel):
     """Configuration for production model selection."""
 
@@ -235,6 +262,7 @@ class Config(BaseModel):
     gradient_boosting: GradientBoostingConfig = Field(default_factory=GradientBoostingConfig)
     tuning: TuningConfig = Field(default_factory=TuningConfig)
     baselines: BaselinesConfig = Field(default_factory=BaselinesConfig)
+    feature_engineering: FeatureEngineeringConfig = Field(default_factory=FeatureEngineeringConfig)
     production: ProductionConfig = Field(default_factory=ProductionConfig)
 
 
@@ -282,6 +310,7 @@ DEFAULT_CONFIG = {
         },
     },
     "baselines": {"enabled": True, "rolling_windows_months": [3, 6]},
+    "feature_engineering": {"enabled": True, "lags": [1, 3, 6, 12], "rolling_windows": [7, 14, 30], "calendar": True},
     "production": {"default_model": "Gradient Boosting"},
 }
 

@@ -53,6 +53,7 @@ import python_logging_framework as plog
 from baselines import run_baselines, write_comparison_report
 from config import config
 from constants import TRANSACTION_AMOUNT_LABEL
+from feature_engineering import save_feature_list
 from helpers import (
     apply_target_transform,
     calculate_median_absolute_error,
@@ -760,6 +761,7 @@ def _make_future_predictions(
     transform_enabled: bool,
     transform_method: str,
     logger: logging.Logger,
+    processed_df: Optional[pd.DataFrame] = None,
 ) -> Tuple[pd.DatetimeIndex, np.ndarray]:
     """
     Fit on full data and generate future predictions.
@@ -773,12 +775,17 @@ def _make_future_predictions(
         transform_enabled: Whether target transformation is enabled.
         transform_method: Transformation method name.
         logger: Logger instance.
+        processed_df: Processed historical DataFrame for computing time-series features.
 
     Returns:
         Tuple of future dates and predicted values.
     """
     model.fit(X_full, y_full)
-    future_df, future_dates = prepare_future_dates(future_date_for_function)
+    future_df, future_dates = prepare_future_dates(
+        future_date_for_function,
+        historical_df=processed_df,
+        logger=logger,
+    )
     future_df = future_df.reindex(columns=X_train_columns, fill_value=0)
     y_predict = model.predict(future_df)
 
@@ -799,6 +806,7 @@ def train_and_evaluate_models(
     output_dir: str,
     skip_confirmation: bool,
     logger: logging.Logger,
+    processed_df: Optional[pd.DataFrame] = None,
 ) -> List[dict]:
     """
     Train and evaluate all ML models, then generate predictions.
@@ -814,6 +822,7 @@ def train_and_evaluate_models(
         output_dir: Directory to save predictions.
         skip_confirmation: Whether to skip file overwrite confirmations.
         logger: Logger instance.
+        processed_df: Processed historical DataFrame for time-series features.
     """
     transform_enabled = config.get("target_transform", {}).get("enabled", False)
     transform_method = config.get("target_transform", {}).get("method", "log1p")
@@ -842,6 +851,10 @@ def train_and_evaluate_models(
     )
 
     model_specs = _build_model_specs(tuning_config)
+
+    # Save feature list artifact for debugging and reproducibility
+    feature_list_path = os.path.join(output_dir, "reports", "feature_list.json")
+    save_feature_list(X_train.columns.tolist(), feature_list_path, logger=logger)
 
     metrics_records: List[dict] = []
 
@@ -899,6 +912,7 @@ def train_and_evaluate_models(
             transform_enabled,
             transform_method,
             logger,
+            processed_df=processed_df,
         )
 
         # Save predictions
@@ -989,7 +1003,8 @@ def main(args: Optional[List[str]] = None) -> int:
 
     # Train and evaluate all models
     ml_metrics = train_and_evaluate_models(
-        X_train, X_test, y_train, y_test, X, y, future_date_for_function, output_dir, parsed_args.skip_confirmation, logger
+        X_train, X_test, y_train, y_test, X, y, future_date_for_function, output_dir, parsed_args.skip_confirmation, logger,
+        processed_df=processed_df,
     )
 
     baseline_metrics: List[dict] = []

@@ -14,6 +14,11 @@ import python_logging_framework as plog
 from config import config
 from constants import DAY_OF_WEEK, TRANSACTION_AMOUNT_LABEL, VALUE_DATE_LABEL
 from exceptions import DataValidationError
+from feature_engineering import (
+    generate_timeseries_features,
+    prepare_future_timeseries_features,
+    save_feature_list,
+)
 from security import confirm_overwrite, sanitize_dataframe_for_csv
 
 
@@ -445,8 +450,25 @@ def _process_dataframe(
     df["Month"] = df["Date"].dt.month
     df["Day of the Month"] = df["Date"].dt.day
 
+    # Time-series feature engineering (lags, rolling stats, calendar)
+    ts_config = config.get("feature_engineering", {})
+    if ts_config.get("enabled", True):
+        df = generate_timeseries_features(df, ts_config, logger=logger, drop_na=False)
+
     df = pd.get_dummies(df, columns=[DAY_OF_WEEK], drop_first=True)
     plog.log_info(logger, f"Feature engineering completed. Total features: {len(df.columns) - 2}")
+
+    # Drop rows with NaN values introduced by lag/rolling features.
+    # This must happen after all feature engineering so that X, y, and df stay aligned.
+    nan_mask = df.drop(columns=["Date", TRANSACTION_AMOUNT_LABEL]).isna().any(axis=1)
+    if nan_mask.any():
+        rows_before = len(df)
+        df = df[~nan_mask].reset_index(drop=True)
+        plog.log_info(
+            logger,
+            f"Dropped {rows_before - len(df)} rows with NaN from time-series features "
+            f"({rows_before} -> {len(df)} rows)",
+        )
 
     x_train = df.drop(["Date", TRANSACTION_AMOUNT_LABEL], axis=1)
     y_train = df[TRANSACTION_AMOUNT_LABEL]
@@ -472,12 +494,23 @@ def preprocess_data(file_path: str, logger: Optional[logging.Logger] = None) -> 
     return _process_dataframe(df, logger=logger)
 
 
-def prepare_future_dates(future_date: Optional[str] = None) -> Tuple[pd.DataFrame, pd.DatetimeIndex]:
+def prepare_future_dates(
+    future_date: Optional[str] = None,
+    historical_df: Optional[pd.DataFrame] = None,
+    logger: Optional[logging.Logger] = None,
+) -> Tuple[pd.DataFrame, pd.DatetimeIndex]:
     """
     Prepare future dates for prediction.
 
+    When historical data is provided and time-series feature engineering is
+    enabled, lag and rolling features are computed from the historical tail
+    so that the first future dates receive meaningful feature values.
+
     Parameters:
     future_date (str, optional): The end date for future predictions in 'dd-mm-yyyy' format. Defaults to None.
+    historical_df (pd.DataFrame, optional): Processed historical DataFrame with Date and target columns.
+        Required for computing lag/rolling features on future dates. Defaults to None.
+    logger (logging.Logger, optional): Logger instance for logging messages.
 
     Returns:
     tuple: A tuple containing the DataFrame with future dates and the future date range.
@@ -498,6 +531,17 @@ def prepare_future_dates(future_date: Optional[str] = None) -> Tuple[pd.DataFram
     future_df["Month"] = future_df["Date"].dt.month
     future_df["Day of the Month"] = future_df["Date"].dt.day
     future_df = pd.get_dummies(future_df, columns=[DAY_OF_WEEK], drop_first=True)
+
+    # Time-series features from historical data (after one-hot encoding)
+    ts_config = config.get("feature_engineering", {})
+    if ts_config.get("enabled", True) and historical_df is not None:
+        ts_features = prepare_future_timeseries_features(
+            historical_df, future_df, ts_config, logger=logger,
+        )
+        # Merge time-series feature columns into future_df
+        ts_cols = [c for c in ts_features.columns if c not in future_df.columns]
+        for col in ts_cols:
+            future_df[col] = ts_features[col].values
 
     return future_df, future_dates
 

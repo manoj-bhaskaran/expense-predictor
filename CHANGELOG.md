@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.25.0] - 2026-02-14
+
+### Added
+- **Time-Series Feature Engineering**: New `feature_engineering.py` module providing configurable time-aware features to capture spending momentum, trends, and seasonal cycles:
+  - **Lag features** (t-1, t-3, t-6, t-12): Target values from N days prior to capture recent spending patterns
+  - **Rolling statistics** (7, 14, 30 day windows): Rolling mean and standard deviation with shift to prevent data leakage
+  - **Calendar features**: Quarter and year columns to complement existing month and day-of-month features
+- **Feature Engineering Configuration**: New `feature_engineering` section in `config.yaml` with Pydantic-validated settings for lags, rolling windows, and calendar feature toggles
+- **Feature List Artifact**: Feature names saved to `reports/feature_list.json` for debugging and reproducibility
+- **Future Prediction Support**: Time-series features for future dates computed from historical data tail, ensuring meaningful lag/rolling values at the prediction boundary
+- **NaN Handling**: Automatic removal of rows with NaN values introduced by lag/rolling windows, with aligned X, y, and processed DataFrame
+- New `FeatureEngineeringConfig` Pydantic validation class in `config.py`
+- 30 new unit tests in `tests/test_feature_engineering.py` covering lag features, rolling statistics, calendar features, NaN handling, feature persistence, and future feature preparation
+
+### Changed
+- `_process_dataframe()` in `helpers.py` now calls time-series feature engineering after base calendar features
+- `prepare_future_dates()` in `helpers.py` accepts optional `historical_df` parameter for computing lag/rolling features on future dates
+- `train_and_evaluate_models()` and `_make_future_predictions()` in `model_runner.py` pass processed historical data through the prediction pipeline
+- Updated two existing integration tests to account for NaN-dropped rows from time-series feature engineering
+- Version bump 1.24.0 → 1.25.0 (minor) for new time-series feature engineering capability
+
+### Technical Details
+- Feature generation is deterministic: same input always produces same output
+- Rolling features use `shift(1)` before computation to prevent target leakage
+- NaN rows from the largest rolling window (default 30) are dropped from the start of the dataset
+- Future predictions use the historical data tail to compute lag/rolling features across the train/future boundary
+- All features configurable via `config.yaml` `feature_engineering` section; set `enabled: false` to disable entirely
+- Validated via Pydantic: lags must be positive integers, rolling windows must be >= 2
+
+### Documentation
+- Updated `README.md` with time-series feature engineering in feature list
+- Updated `config.yaml` with documented `feature_engineering` section
+- Added `feature_engineering` module to `setup.py` py_modules list
+
 ## [1.24.0] - 2026-02-09
 
 ### Added
