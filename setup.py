@@ -69,7 +69,7 @@ setup(
             "bandit==1.8.6",
             "mypy==1.19.1",
             "types-python-dateutil==2.8.19",
-            "sphinx==7.4.7",
+            "sphinx==8.1.3",
             "sphinx-rtd-theme==3.1.0",
             "ipython==8.18.1",
             "jupyter==1.0.0",
