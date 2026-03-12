@@ -64,7 +64,7 @@ setup(
             "openpyxl==3.1.5",
             "flake8==7.3.0",
             "pylint==3.3.9",
-            "black==24.3.0",
+            "black==26.3.1",
             "isort>=4.2.5,<7",  # Keep in <6 range for pylint 2.17.0 compatibility
             "bandit==1.8.6",
             "mypy==1.19.1",
