@@ -78,7 +78,7 @@ setup(
             "pre-commit==3.4.0",
             "ipdb==0.13.13",
             "memory-profiler==0.61.0",
-            "line-profiler==5.0.0",
+            "line-profiler==5.0.1",
             "matplotlib>=3.9.0",  # Supports Python 3.13
             "seaborn>=0.13.0",
         ],
