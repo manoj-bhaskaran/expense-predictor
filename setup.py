@@ -47,7 +47,7 @@ setup(
     install_requires=[
         "numpy>=1.22.4,<3",
         "pandas==2.3.3",
-        "scikit-learn==1.6.1",
+        "scikit-learn==1.7.2",
         "statsmodels==0.14.5",
         "prophet==1.1.7",
         "xlrd==2.0.2",
