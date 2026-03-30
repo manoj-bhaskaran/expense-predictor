@@ -75,7 +75,7 @@ setup(
             "jupyter==1.1.1",
             "notebook==7.5.1",
             "coverage==7.10.7",
-            "pre-commit==3.4.0",
+            "pre-commit==4.5.1",
             "ipdb==0.13.13",
             "memory-profiler==0.61.0",
             "line-profiler==5.0.1",
