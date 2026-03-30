@@ -60,7 +60,7 @@ setup(
         "dev": [
             "pytest==9.0.2",
             "pytest-cov==7.0.0",
-            "pytest-mock==3.11.1",
+            "pytest-mock==3.15.1",
             "openpyxl==3.1.5",
             "flake8==7.3.0",
             "pylint==3.3.9",
